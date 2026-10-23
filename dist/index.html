@@ -254,7 +254,6 @@ button,
     animation: placeBadgePop 0.45s cubic-bezier(0.18, 0.89, 0.32, 1.25) 0.28s backwards;
   }
 
-  /* Placement Image (shown when image file names are set below) */
   #rfb-place-img {
     display: none;
     max-width: 290px;
@@ -265,7 +264,6 @@ button,
     filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.9));
   }
 
-  /* Fallback Text Badge (shown when place image is still in progress) */
   #rfb-sub {
     font-family: 'Courier New', Courier, monospace;
     font-size: 15px;
@@ -281,7 +279,6 @@ button,
     image-rendering: pixelated;
   }
 
-  /* Banner whip-in entrance */
   @keyframes bannerWhipIn {
     0% {
       transform: translateX(-55vw) rotate(-14deg) scale(0.65);
@@ -297,7 +294,6 @@ button,
     }
   }
 
-  /* Text explosive slam-down entrance */
   @keyframes finishTextSlam {
     0% {
       transform: scale(2.4) translateY(-38px) rotate(6deg);
@@ -842,13 +838,11 @@ button,
   @keyframes discPopSpin {
     0%   { transform: translateX(-50%) translateY(10px) scale(0.5) rotate(0deg); opacity: 0; }
     18%  { transform: translateX(-50%) translateY(10px) scale(0.5) rotate(0deg); opacity: 0; }
-    /* Shoots up out of the slot and completes its spin */
     26%  { transform: translateX(-50%) translateY(-95px) scale(1.15) rotate(180deg); opacity: 1; }
     32%  { transform: translateX(-50%) translateY(-106px) scale(1.20) rotate(360deg); opacity: 1; }
 
     55%  { transform: translateX(-50%) translateY(-110px) scale(1.22) rotate(360deg); opacity: 1; }
     76%  { transform: translateX(-50%) translateY(-104px) scale(1.20) rotate(360deg); opacity: 1; }
-    /* Plunges back down into the jukebox */
     90%  { transform: translateX(-50%) translateY(-18px) scale(0.95) rotate(360deg); opacity: 1; }
     100% { transform: translateX(-50%) translateY(12px) scale(0.5) rotate(360deg); opacity: 0; }
   }
@@ -1193,7 +1187,6 @@ button,
     text-shadow: 0 2px 12px rgba(0, 0, 0, 0.95);
   }
 
-  /* Dynamic Left/Center/Right positioning based on the map */
   #credits-scroll-wrap {
     position: absolute;
     top: 0;
@@ -4511,13 +4504,11 @@ const { halloweenGliderTexture, halloweenGliderEmissiveTexture } = (() => {
   emCanvas.height = 256;
   const emCtx = emCanvas.getContext('2d');
 
-  // Vibrant pumpkin orange base
   ctx.fillStyle = '#ff6600';
   ctx.fillRect(0, 0, 1024, 256);
   emCtx.fillStyle = '#000000';
   emCtx.fillRect(0, 0, 1024, 256);
 
-  // Carved vertical pumpkin ridges
   for (let x = 0; x < 1024; x += 48) {
     ctx.fillStyle = 'rgba(70, 22, 0, 0.45)';
     ctx.fillRect(x, 0, 6, 256);
@@ -4525,12 +4516,10 @@ const { halloweenGliderTexture, halloweenGliderEmissiveTexture } = (() => {
     ctx.fillRect(x + 6, 0, 4, 256);
   }
 
-  // Dark charcoal border trim
   ctx.fillStyle = '#1c0f06';
   ctx.fillRect(0, 0, 1024, 18);
   ctx.fillRect(0, 238, 1024, 18);
 
-  // Jack-o'-Lantern Carved Face in center
   const cx = 512, cy = 128;
   const drawFace = (targetCtx, fillCol) => {
     targetCtx.fillStyle = fillCol;
@@ -4582,7 +4571,6 @@ const { halloweenGliderTexture, halloweenGliderEmissiveTexture } = (() => {
   drawFace(ctx, '#1a0500');
   drawFace(emCtx, '#ffaa00');
 
-  // Wingtip Bat Silhouettes
   [80, 944].forEach(bx => {
     ctx.fillStyle = '#1c0f06';
     ctx.beginPath();
@@ -6075,14 +6063,12 @@ const { lunarVoyagerTexture, lunarVoyagerEmissiveTexture } = (() => {
         const w = Math.min(tileW, x1 - x);
         const h = Math.min(tileH, 256 - y);
 
-        // Rich multifaceted gold variations
         const r = Math.floor(210 + rnd() * 42);
         const g = Math.floor(155 + rnd() * 35);
         const b = Math.floor(35 + rnd() * 25);
         ctx.fillStyle = `rgb(${r},${g},${b})`;
         ctx.fillRect(x, y, w, h);
 
-        // Crinkle specular creases
         ctx.strokeStyle = 'rgba(255, 252, 205, 0.55)';
         ctx.lineWidth = 1.3;
         ctx.beginPath();
@@ -6096,12 +6082,10 @@ const { lunarVoyagerTexture, lunarVoyagerEmissiveTexture } = (() => {
         ctx.lineTo(x + rnd() * w, y + rnd() * h);
         ctx.stroke();
 
-        // Foil seam line
         ctx.strokeStyle = 'rgba(130, 85, 15, 0.4)';
         ctx.lineWidth = 1;
         ctx.strokeRect(x, y, w, h);
 
-        // Gentle ambient golden emissive glow
         emCtx.fillStyle = 'rgba(190, 130, 20, 0.22)';
         emCtx.fillRect(x, y, w, h);
       }
@@ -6119,12 +6103,10 @@ const { lunarVoyagerTexture, lunarVoyagerEmissiveTexture } = (() => {
       ctx.fillStyle = `rgb(${shade},${shade},${shade + 4})`;
       ctx.fillRect(x, y, w, h);
 
-      // Quilt seam box
       ctx.strokeStyle = 'rgba(195, 205, 220, 0.75)';
       ctx.lineWidth = 1;
       ctx.strokeRect(x, y, w, h);
 
-      // Stitched cross accent
       ctx.strokeStyle = 'rgba(175, 185, 200, 0.55)';
       ctx.beginPath();
       ctx.moveTo(x + w / 2 - 2, y + h / 2);
@@ -6148,18 +6130,17 @@ const { lunarVoyagerTexture, lunarVoyagerEmissiveTexture } = (() => {
     }
   });
 
-  ctx.fillStyle = '#d8232a'; // Aerospace red
-  ctx.fillRect(478, 0, 10, 256);
+  ctx.fillStyle = '#d8232a'; 
+    ctx.fillRect(478, 0, 10, 256);
   ctx.fillRect(536, 0, 10, 256);
 
-  ctx.fillStyle = '#0b2240'; // Deep mission navy
+  ctx.fillStyle = '#0b2240';
   ctx.fillRect(488, 0, 48, 256);
 
-  ctx.fillStyle = '#f1c40f'; // Solar gold pinstripe
+  ctx.fillStyle = '#f1c40f'; 
   ctx.fillRect(476, 0, 2, 256);
   ctx.fillRect(546, 0, 2, 256);
 
-  // Stenciled Mission Text
   ctx.save();
   ctx.translate(512, 128);
   ctx.rotate(-Math.PI / 2);
@@ -7190,7 +7171,6 @@ deckMesh.position.set(0, 0.55, -1.2);
 deckMesh.rotation.x = 0.52;
 podHarnessGroup.add(deckMesh);
 
-// Glowing Flight Computer Screen
 const screenGeom = new THREE.PlaneGeometry(0.65, 0.42);
 screenGeom.rotateX(-Math.PI / 2);
 const screenMesh = new THREE.Mesh(screenGeom, new THREE.MeshBasicMaterial({ color: 0x00f0ff }));
@@ -7198,28 +7178,24 @@ screenMesh.position.set(0, 0.65, -1.2);
 screenMesh.rotation.x = 0.52;
 podHarnessGroup.add(screenMesh);
 
-// Reclined pilot torso
 const torsoGeom = new THREE.BoxGeometry(1.05, 1.15, 0.92);
 const torsoMesh = new THREE.Mesh(torsoGeom, pilotSuitMat);
 torsoMesh.position.set(0, 0.6, -0.1);
 torsoMesh.rotation.x = -0.32;
 podHarnessGroup.add(torsoMesh);
 
-// Aerodynamic pilot helmet
 const helmetGeom = new THREE.SphereGeometry(0.48, 16, 16);
 helmetGeom.scale(0.92, 1.0, 1.15);
 const helmetMesh = new THREE.Mesh(helmetGeom, helmetMat);
 helmetMesh.position.set(0, 1.35, 0.38);
 podHarnessGroup.add(helmetMesh);
 
-// Helmet teardrop aerodynamic tail
 const helmTailGeom = new THREE.ConeGeometry(0.36, 0.82, 12);
 helmTailGeom.rotateX(Math.PI / 2);
 const helmTailMesh = new THREE.Mesh(helmTailGeom, helmetMat);
 helmTailMesh.position.set(0, 1.35, 0.85);
 podHarnessGroup.add(helmTailMesh);
 
-// Reflective tinted visor
 const visorGeom = new THREE.SphereGeometry(0.42, 14, 14, 0, Math.PI, 0, Math.PI * 0.65);
 visorGeom.rotateY(-Math.PI / 2);
 visorGeom.rotateX(-0.15);
@@ -8876,7 +8852,6 @@ applySkySetting();
     });
 
 } else if (courseKey === 'moon') {
-    // HIGH-DEFINITION EARTHRISE
     const earthCanvas = document.createElement('canvas');
     earthCanvas.width = 1024;
     earthCanvas.height = 512;
@@ -8891,7 +8866,6 @@ applySkySetting();
     eCtx.fillStyle = oceanGrad;
     eCtx.fillRect(0, 0, 1024, 512);
 
-    // Realistic Continental Shapes
     eCtx.fillStyle = '#2c5e38';
     eCtx.beginPath(); // North America
     eCtx.ellipse(260, 160, 140, 85, -0.22, 0, Math.PI * 2);
@@ -8909,7 +8883,6 @@ applySkySetting();
     eCtx.ellipse(820, 370, 70, 48, -0.15, 0, Math.PI * 2);
     eCtx.fill();
 
-    // Sahara Desert & Arid Lands
     eCtx.fillStyle = '#b08a47';
     eCtx.beginPath();
     eCtx.ellipse(555, 235, 75, 36, 0.05, 0, Math.PI * 2);
@@ -8964,7 +8937,6 @@ applySkySetting();
     earthMesh.rotation.y = 0.9;
     earthGroup.add(earthMesh);
 
-    // Glowing Atmospheric Rayleigh Rim
     const atmoMesh = new THREE.Mesh(
       new THREE.SphereGeometry(3990, 40, 40),
       new THREE.MeshBasicMaterial({ color: 0x00e1ff, transparent: true, opacity: 0.35, side: THREE.BackSide })
@@ -9050,7 +9022,6 @@ applySkySetting();
     descentStage.position.y = 19;
     apolloGroup.add(descentStage);
 
-    // Modular Equipment Bays / Black Thermal Shielding Quadrants
     for (let q = 0; q < 4; q++) {
       const qAng = (q / 4) * Math.PI * 2;
       const bay = new THREE.Mesh(new THREE.BoxGeometry(26, 22, 18), (q % 2 === 0 ? blackFoilMat : silverMat));
@@ -9059,12 +9030,10 @@ applySkySetting();
       apolloGroup.add(bay);
     }
 
-    // Descent Rocket Engine Bell (DPS Nozzle)
     const dpsNozzle = new THREE.Mesh(new THREE.CylinderGeometry(11, 26, 22, 16), darkBellMat);
     dpsNozzle.position.y = 9;
     apolloGroup.add(dpsNozzle);
 
-    // 4 A-Frame Outrigger Landing Legs with Footpads & Contact Probes
     for (let leg = 0; leg < 4; leg++) {
       const ang = (leg / 4) * Math.PI * 2 + Math.PI / 4;
       const legGroup = new THREE.Group();
@@ -9086,12 +9055,10 @@ applySkySetting();
         legGroup.add(truss);
       });
 
-      // Circular Inverted-Dish Footpad
       const pad = new THREE.Mesh(new THREE.CylinderGeometry(16, 17, 3.5, 14), foilMat);
       pad.position.set(0, -17.5, 46);
       legGroup.add(pad);
 
-      // Lunar Contact Probe Wire
       const probe = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 16, 4), darkBellMat);
       probe.position.set(0, -25, 46);
       legGroup.add(probe);
@@ -9099,7 +9066,6 @@ applySkySetting();
       apolloGroup.add(legGroup);
     }
 
-    // Forward Egress Platform ("Porch") & Ladder on Front (+Z) Strut
     const porch = new THREE.Mesh(new THREE.BoxGeometry(16, 2.5, 14), silverMat);
     porch.position.set(0, 32, 48);
     apolloGroup.add(porch);
@@ -9117,14 +9083,12 @@ applySkySetting();
       rung.position.set(0, 28 - r * 4.4, 48 + r * 3.8);
       ladderGroup.add(rung);
     }
-    // Historic Commemorative Plaque
     const plaque = new THREE.Mesh(new THREE.BoxGeometry(8, 6, 0.8), new THREE.MeshStandardMaterial({ color: 0xeeeeee, metalness: 0.95 }));
     plaque.position.set(0, 18, 56);
     plaque.rotation.x = 0.55;
     ladderGroup.add(plaque);
     apolloGroup.add(ladderGroup);
 
-    // Ascent Stage ("Eagle") Cabin
     const cabinGroup = new THREE.Group();
     cabinGroup.position.set(0, 33, 0);
 
@@ -9166,7 +9130,6 @@ applySkySetting();
       });
     }
 
-    // High-Gain S-Band Steerable Dish Antenna
     const sBandDish = new THREE.Mesh(new THREE.ConeGeometry(15, 6, 16, 1, true), silverMat);
     sBandDish.position.set(22, 42, 14);
     sBandDish.rotation.set(-0.7, 0.4, 0);
@@ -9174,7 +9137,6 @@ applySkySetting();
 
     apolloGroup.add(cabinGroup);
 
-    // RIPPLED AMERICAN FLAG ON A PROUD SILVER MAST
     const flagGroup = new THREE.Group();
     flagGroup.position.set(110, 0, 65);
 
@@ -9230,7 +9192,6 @@ applySkySetting();
     flagGroup.add(flagBanner);
     apolloGroup.add(flagGroup);
 
-    // EASEP SCIENCE PACKAGE & LUNAR TV CAMERA
     const tvTripod = new THREE.Mesh(new THREE.ConeGeometry(10, 24, 3, 1, true), silverMat);
     tvTripod.position.set(90, 12, 130);
     const tvCam = new THREE.Mesh(new THREE.BoxGeometry(10, 8, 14), foilMat);
@@ -9238,7 +9199,6 @@ applySkySetting();
     tvCam.lookAt(apX, apY + 30, apZ);
     apolloGroup.add(tvTripod, tvCam);
 
-    // PSEP (Passive Seismic Experiment) with Blue Solar Panels
     const psep = new THREE.Mesh(new THREE.CylinderGeometry(8, 8, 8, 10), silverMat);
     psep.position.set(-85, 4, 100);
     [-14, 14].forEach(sx => {
@@ -9269,12 +9229,10 @@ applySkySetting();
     roverGroup.position.set(rovX, getTerrainHeight(rovX, rovZ, 'moon'), rovZ);
     roverGroup.rotation.y = 1.1;
 
-    // Open Tubular Spaceframe Chassis
     const chassis = new THREE.Mesh(new THREE.BoxGeometry(40, 5, 68), silverMat);
     chassis.position.y = 12;
     roverGroup.add(chassis);
 
-    // 4 Open Wire-Mesh Wheels with Chevron Treads & Orange Fiberglass Fenders
     const orangeFenderMat = new THREE.MeshStandardMaterial({ color: 0xe64a19, roughness: 0.4, metalness: 0.3 });
     const wireTireMat = new THREE.MeshStandardMaterial({ color: 0x61666e, roughness: 0.6, metalness: 0.85, wireframe: false });
 
@@ -9340,13 +9298,11 @@ applySkySetting();
     const gY = getTerrainHeight(gX, gZ, 'moon');
     golfGroup.position.set(gX, gY, gZ);
 
-    // Ball 1 (Shanked in divot)
     const golfBall1 = new THREE.Mesh(new THREE.SphereGeometry(7, 14, 14), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25 }));
     golfBall1.position.set(0, 10, 0);
     const tee = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 0.4, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff2222 }));
     tee.position.y = 4;
 
-    // 6-Iron Club Head stuck in Regolith
     const clubShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 44, 6), silverMat);
     clubShaft.position.set(14, 20, -5);
     clubShaft.rotation.set(0.3, 0, 0.25);
@@ -9413,7 +9369,6 @@ applySkySetting();
     const j2Engine = new THREE.Mesh(new THREE.CylinderGeometry(12, 24, 28, 14), darkBellMat);
     j2Engine.position.y = -75;
 
-    // Scattered Titanium Helium Pressure Spheres & Impact Debris
     [-24, 28, 42].forEach((dx, idx) => {
       const shrapnel = new THREE.Mesh(new THREE.DodecahedronGeometry(8 + idx * 3, 0), silverMat);
       shrapnel.position.set(dx, -30 + idx * 12, (idx - 1) * 26);
@@ -9469,15 +9424,10 @@ applySkySetting();
 
 environmentGroup.add(baseGroup);
 
-    // =========================================================================
-    // 7. ELON MUSK'S TESLA ROADSTER & STARMAN (ORBITING NEXT TO EARTH)
-    // =========================================================================
+
     const roadsterGroup = new THREE.Group();
-    // Positioned right off the glowing upper-right edge of Earth
     roadsterGroup.position.set(4600, 4800, -18000);
-    // Scaled so it is clearly seeable right beside the Earth from the lunar surface
     roadsterGroup.scale.set(22, 22, 22);
-    // Iconic 3/4 orbital float orientation
     roadsterGroup.rotation.set(0.35, -0.75, 0.4);
 
     // Materials
@@ -9538,13 +9488,11 @@ environmentGroup.add(baseGroup);
       roadsterGroup.add(carSeatBottom, carSeatBack);
     });
 
-    // Windshield & Frame
     const roadsterWindshield = new THREE.Mesh(new THREE.BoxGeometry(19, 8, 0.8), roadsterGlass);
     roadsterWindshield.position.set(0, 13, 7.5);
     roadsterWindshield.rotation.x = -0.75;
     roadsterGroup.add(roadsterWindshield);
 
-    // Dashboard with Glowing "DON'T PANIC!" Display
     const roadsterDash = new THREE.Mesh(new THREE.BoxGeometry(17, 3, 3), roadsterInterior);
     roadsterDash.position.set(0, 10.5, 6);
     const dontPanicCanvas = document.createElement('canvas');
@@ -9592,16 +9540,13 @@ environmentGroup.add(baseGroup);
     tailLightBar.position.set(0, 8.5, -24.1);
     roadsterGroup.add(tailLightBar);
 
-    // Starman in the Driver's Seat
     const starmanGroup = new THREE.Group();
     starmanGroup.position.set(-4.5, 10, -0.5);
 
-    // Spacesuit Torso
     const starmanTorso = new THREE.Mesh(new THREE.BoxGeometry(5.5, 7.5, 4.2), starmanSuitMat);
     starmanTorso.position.y = 4;
     starmanGroup.add(starmanTorso);
 
-    // Helmet with Golden Reflective Visor
     const starmanHelmet = new THREE.Mesh(new THREE.SphereGeometry(3.2, 16, 16), starmanSuitMat);
     starmanHelmet.scale.set(1.0, 1.15, 1.05);
     starmanHelmet.position.set(0, 9.2, 0);
@@ -9610,13 +9555,10 @@ environmentGroup.add(baseGroup);
     starmanVisor.rotation.x = 0.1;
     starmanGroup.add(starmanHelmet, starmanVisor);
 
-    // Right Arm (Holding steering wheel)
     const starmanRightArm = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.9, 6.5, 6), starmanSuitMat);
     starmanRightArm.position.set(2.2, 4.5, 2.5);
     starmanRightArm.rotation.set(0.8, 0, -0.35);
     starmanGroup.add(starmanRightArm);
-
-    // Left Arm (Casually resting on the door sill)
     const starmanArmUpper = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.9, 4.5, 6), starmanSuitMat);
     starmanArmUpper.position.set(-3.2, 4.8, 0);
     starmanArmUpper.rotation.z = 0.5;
@@ -9627,7 +9569,6 @@ environmentGroup.add(baseGroup);
 
     roadsterGroup.add(starmanGroup);
 
-    // Falcon Heavy Payload Attach Adapter Ring underneath
     const payloadAdapter = new THREE.Mesh(
       new THREE.CylinderGeometry(7, 12, 8, 16, 1, true),
       new THREE.MeshStandardMaterial({ color: 0xc4c7cc, metalness: 0.8, side: THREE.DoubleSide })
@@ -9769,7 +9710,6 @@ environmentGroup.add(baseGroup);
   const snow = new THREE.Color(course.snowColor);
   const deepIce = new THREE.Color(0x27526b);
 
-  // Low mode stays retro flat-shaded; High mode uses smooth vertex normals & specular roughness
   const terrainMat = new THREE.MeshStandardMaterial({
     vertexColors: true,
     flatShading: !isHighGfx,
@@ -9832,7 +9772,7 @@ environmentGroup.add(baseGroup);
             }
           } else if (courseKey === 'glacial') {
             if (slopeY < 0.60) {
-              c.lerp(deepIce, 0.85); // Steep crevasses expose deep blue glacial ice
+              c.lerp(deepIce, 0.85); 
             } else if (h > 180) {
               const snowCling = Math.min(1.0, (slopeY - 0.5) / 0.5);
               c.lerp(snow, Math.min(1.0, (h - 180) / 160) * snowCling);
@@ -9844,9 +9784,7 @@ environmentGroup.add(baseGroup);
               c.multiplyScalar(0.72 + slopeY * 0.28);
             }
           } else {
-            // Canyon, Coastal, Mountain terrain
             if (slopeY < 0.62) {
-              // Sheer cliffs expose striated horizontal rock strata
               const strata = Math.sin(h * 0.07) * 0.07;
               c.r = Math.max(0, Math.min(1, c.r + strata));
               c.g = Math.max(0, Math.min(1, c.g + strata * 0.5));
@@ -10321,12 +10259,10 @@ function updateAI(dt) {
       if (ai.bullyState === 'cooldown') {
         ai.bullyTimer += dt;
 
-        // If the player is ahead, pursue and close the gap on ANY difficulty
         if (ai.progress < playerProgress) {
           const stalkSpeed = Math.min(Math.max(player.speed + 7.0, ai.baseSpeed + 12.0), currentDiveCap);
           ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, stalkSpeed, 2.5 * dt);
         } else {
-          // If already leading, fly natural racing / dive speed
           const isDiving = _toTarget.y < -0.04;
           if (isDiving) {
             const diveSteepness = Math.min(1.0, (-_toTarget.y - 0.04) / 0.35);
@@ -10337,7 +10273,6 @@ function updateAI(dt) {
           }
         }
 
-        // Trigger harassment when close enough and timer is ready
         if (ai.bullyTimer >= 3.5 && distToPlayer < 480) {
           ai.bullyState = 'in_face';
           ai.bullyPhaseTimer = 0;
@@ -10346,16 +10281,13 @@ function updateAI(dt) {
         ai.bullyPhaseTimer += dt;
 
         if (aiLead < -25) {
-          // Still closing in from behind: approach player smoothly
           _targetWp.lerp(player.pos, 0.35);
           const closeSpeed = Math.min(player.speed + 6.0, currentDiveCap);
           ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, closeSpeed, 3.0 * dt);
         } else {
-          // Alongside or in front: crowd the player's nose/line without reversing!
           const crowdTarget = _tempVec2.copy(player.pos).addScaledVector(_playerForward, 40);
           _targetWp.lerp(crowdTarget, 0.40);
 
-          // Match speed closely so it stays locked right next to you throughout the phase
           const harassSpeed = Math.max(player.speed + 1.2, ai.baseSpeed);
           ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, harassSpeed, 3.5 * dt);
         }
@@ -10379,13 +10311,11 @@ function updateAI(dt) {
     let draftTarget = null;
     let closestAheadDist = 450;
 
-    // Check if player is ahead
     if (ai.progress < playerProgress && distToPlayer < closestAheadDist) {
       draftTarget = { pos: player.pos, speed: player.speed, dist: distToPlayer };
       closestAheadDist = distToPlayer;
     }
 
-    // AI slipstreaming each other & soft collision nudge
     aiGliders.forEach((otherAi, oIdx) => {
       if (oIdx === idx) return;
       const dToOther = ai.pos.distanceTo(otherAi.pos);
@@ -10393,7 +10323,6 @@ function updateAI(dt) {
       if (dToOther < 160 && otherAi.progress > ai.progress && ai.currentSpeed < maxDraftSpeed) {
         ai.currentSpeed = Math.min(ai.currentSpeed + 14 * dt, maxDraftSpeed);
       }
-      // Soft AI-to-AI separation 
       if (gameState === 'RACING' && dToOther < 20.0 && Math.abs(ai.pos.y - otherAi.pos.y) < 14.0) {
         const sepX = ai.pos.x - otherAi.pos.x;
         const sepZ = ai.pos.z - otherAi.pos.z;
@@ -11017,7 +10946,6 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
   const aAirbrake = player.airbrake ? 42.0 : 0.0;
 
   player.speed -= (aParasiticDrag + aInducedDrag + aTurnDrag + aAirbrake) * dt;
-  // Bird Strike Stacking Drag Penalty thing
   if (birdStrikeDragTimer > 0) {
     birdStrikeDragTimer -= dt;
     const birdDrag = 44.0 * Math.min(birdStrikeDragTimer, 1.5);
@@ -11094,17 +11022,14 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
         const pushX = bumpX / hDist;
         const pushZ = bumpZ / hDist;
 
-        // Gentle elastic push apart
         player.pos.x += pushX * 22.0 * dt;
         player.pos.z += pushZ * 22.0 * dt;
         ai.pos.x -= pushX * 22.0 * dt;
         ai.pos.z -= pushZ * 22.0 * dt;
 
-        // Light speed friction (never stalls or drops below 36 kts)
         player.speed = Math.max(36, player.speed - 12.0 * dt);
         ai.currentSpeed = Math.max(36, ai.currentSpeed - 12.0 * dt);
 
-        // Subtle roll wobble away from contact
         player.targetRoll += pushX * 0.15;
         ai.roll -= pushX * 0.20;
 
@@ -11573,13 +11498,13 @@ function drawCustomSpeedometer(ctx, x, y, speed, rBoost) {
     ctx.save();
 
     ctx.beginPath();
-    ctx.moveTo(220, 308); // Bottom-left slant start
-    ctx.lineTo(238, 272); // Top-left slant end
-    ctx.lineTo(522, 271); // Horizontal runner top
-    ctx.lineTo(558, 246); // Upward angle bend
-    ctx.lineTo(583, 199); // Top slant start
-    ctx.lineTo(638, 199); // Under the speed box to the right wall
-    ctx.lineTo(646, 314); // Bottom-right corner flush against the fin
+    ctx.moveTo(220, 308);
+    ctx.lineTo(238, 272);
+    ctx.lineTo(522, 271); 
+    ctx.lineTo(558, 246); 
+    ctx.lineTo(583, 199); 
+    ctx.lineTo(638, 199); 
+    ctx.lineTo(646, 314); 
     ctx.closePath();
     ctx.clip(); 
 
@@ -11598,14 +11523,11 @@ function drawCustomSpeedometer(ctx, x, y, speed, rBoost) {
       ctx.fillStyle = fillGrad;
     }
 
-    // Fill across the chamber
     ctx.fillRect(minX, 195, fillX - minX, 125);
 
-    // Reset shadow blur so tick marks stay clean
     ctx.shadowBlur = 0;
     ctx.shadowColor = 'transparent';
 
-    // Mechanical tick rungs
     ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
     ctx.lineWidth = 2.5;
     for (let rx = minX + 16; rx <= fillX; rx += 16) {
@@ -11676,7 +11598,6 @@ function drawCustomSpeedometer(ctx, x, y, speed, rBoost) {
     ctx.fillStyle = '#5f189e';
     ctx.fill();
 
-    // Highlight Center Ridge
     ctx.strokeStyle = '#f3e8ff';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
