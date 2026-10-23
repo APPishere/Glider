@@ -29,6 +29,7 @@ jobs:
 
       - name: install dependencies
         run: npm install
+        continue-on-error: true
 
       - name: Build Tauri App
         uses: tauri-apps/tauri-action@v0.5.5
