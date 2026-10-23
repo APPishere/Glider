@@ -37,8 +37,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: app-v1.0.0
-          releaseName: "Glider Desktop v1.0.0"
+          tagName: app-v4.0.0
+          releaseName: "Glider Patch 4"
           body: "Automated desktop release for Glider (Windows & macOS)"
           draft: false
           prerelease: false
