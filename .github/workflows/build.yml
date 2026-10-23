@@ -27,8 +27,10 @@ jobs:
         with:
           node-version: 22
 
-      - name: install dependencies
-        run: npm install --include=optional
+      - name: Install dependencies & Tauri CLI
+        run: |
+          npm install
+          npm install --save-dev @tauri-apps/cli@latest
 
       - name: Build Tauri App
         uses: tauri-apps/tauri-action@v0.5.5
