@@ -2599,6 +2599,7 @@ try {
   localStorage.removeItem('glider_halloween_door_unlocked');
 } catch (e) {}
 let isHalloweenBossDuel = false;
+let halloweenPreviousSkin = null;
 
 const CHRISTMAS_EVENT_ACTIVE = (() => {
   const now = new Date();
@@ -11302,9 +11303,9 @@ setupTrackHazards(courseKey, activeSubtrack);
     }
     if (selectedSubtrack === 'B' && localStorage.getItem('glider_xmas_present_B') !== 'true') {
       const mB = new THREE.Mesh(pGeom, pMat);
-      mB.position.set(0, 36, -9600);
+      mB.position.set(0, 65, -9600);
       environmentGroup.add(mB);
-      activePresents3D.push({ id: 'glider_xmas_present_B', mesh: mB, pos: new THREE.Vector3(0, 36, -9600) });
+      activePresents3D.push({ id: 'glider_xmas_present_B', mesh: mB, pos: new THREE.Vector3(0, 50, -9600) });
     }
     if (selectedSubtrack === 'C' && localStorage.getItem('glider_xmas_present_C') !== 'true') {
       const mC = new THREE.Mesh(pGeom, pMat);
@@ -14288,12 +14289,13 @@ function endRace(reason) {
   if (warnEl) warnEl.style.display = 'none';
 
   if (isHalloweenBossDuel) {
-    isHalloweenBossDuel = false;
-    localStorage.setItem('glider_equipped_skin', 'default');
-    buildParagliderMesh();
-    applySkySetting();
-    updateHalloweenThemeVisibility();
-  }
+  isHalloweenBossDuel = false;
+  localStorage.setItem('glider_equipped_skin', halloweenPreviousSkin || 'default');
+  halloweenPreviousSkin = null;
+  buildParagliderMesh();
+  applySkySetting();
+  updateHalloweenThemeVisibility();
+}
 
   if (isKrampusBossDuel) {
     isKrampusBossDuel = false;
@@ -15129,6 +15131,7 @@ const resetBtn = document.getElementById('btn-reset-scores');
         selectedDifficulty = 'hard';
         gameMode = 'race';
 
+        halloweenPreviousSkin = localStorage.getItem('glider_equipped_skin') || 'default';
         localStorage.setItem('glider_equipped_skin', 'glider_halloween');
         buildParagliderMesh();
         buildCourse('coastal');
@@ -15264,10 +15267,12 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
     if (isHalloweenBossDuel) {
       isHalloweenBossDuel = false;
       if (!localStorage.getItem('glider_unlocked_halloween')) {
-        localStorage.setItem('glider_equipped_skin', 'default');
-        buildParagliderMesh();
-        applySkySetting();
-      }
+      } else {
+          localStorage.setItem('glider_equipped_skin', halloweenPreviousSkin || 'default');
+          halloweenPreviousSkin = null;
+          buildParagliderMesh();
+          applySkySetting();
+        }
       updateHalloweenThemeVisibility();
     }
     if (isKrampusBossDuel) {
