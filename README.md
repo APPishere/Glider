@@ -57,7 +57,9 @@ Check out the artist!
 Mobile?
 Its okay! its on your screen!
 
-### @konekofire (KonekoXArt)
+### Check out the Artist!
+
+@konekofire (KonekoXArt)
 
 https://www.instagram.com/konekoxart/
 
