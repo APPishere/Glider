@@ -2,16 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GLIDER</title>
-<link rel="manifest" href="manifest.json">
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js');
-    });
-  }
-</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>GLIDER</title>
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
 <style>
   :root {
@@ -45,6 +36,11 @@
     font-family: var(--font-stack);
     color: var(--mono);
     cursor: url('glidercurser.png'), auto;
+    touch-action: none;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
   }
 
   /* Custom Curser!*/
@@ -69,7 +65,70 @@ button,
     cursor: url('Keycurser.png'), url('glidercurser_select.png'), pointer !important;
   }
 
-  /* Halloween Bottom Stats Bar */
+  .credits-halloween-final {
+  margin-top: 100px;
+  margin-bottom: 200px;
+  text-align: center;
+  font-family: 'Comic Sans MS', cursive, sans-serif;
+  color: #8A1818;
+  font-size: 3.2rem;
+  font-weight: bold;
+  letter-spacing: 0.1rem;
+  font-style: italic;
+  text-shadow: 0 0 16px rgba(0, 0, 0, 0.95), 0 2px 4px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+  user-select: none;
+  display: none;
+}
+
+  #happy-halloween-banner {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    color: #8A1818;
+    font-size: 2.8rem;
+    font-weight: bold;
+    letter-spacing: 0.1rem;
+    font-style: italic;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 45; 
+    opacity: 0;
+    transition: opacity 1.2s ease, transform 1.2s ease, bottom 0.25s ease;
+    padding: 0 20px;
+    text-shadow: 0 0 16px rgba(0, 0, 0, 0.95), 0 2px 4px rgba(0, 0, 0, 0.9);
+  }
+
+  #happy-halloween-banner.visible {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.05);
+  }
+
+  #happy-halloween-banner::before,
+  #happy-halloween-banner::after {
+    content: '';
+    position: absolute;
+    width: 2px;
+    height: 100vh;
+    bottom: -15px; 
+    background: repeating-linear-gradient(
+      to bottom,
+      #6d4c33 0px,
+      #6d4c33 4px,
+      #3f2918 4px,
+      #3f2918 8px
+    );
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
+    pointer-events: none;
+  }
+  #happy-halloween-banner::before {
+    left: 4px;
+  }
+  #happy-halloween-banner::after {
+    right: 4px;
+  }
+
   .hud-stats.halloween-theme {
     background: url('halloweenbar.png') no-repeat center center / 100% 100%, url('input_file_4.png') no-repeat center center / 100% 100% !important;
     border: none !important;
@@ -91,7 +150,6 @@ button,
     text-shadow: 0 0 8px rgba(255, 120, 0, 0.8), 0 2px 4px rgba(0,0,0,0.95);
   }
 
-  /* Halloween Minimap Frame */
   #minimap-container.halloween-theme {
     background: url('halloweenminimap.png') no-repeat center center / 100% 100%, url('input_file_9.png') no-repeat center center / 100% 100% !important;
     border: none !important;
@@ -472,10 +530,34 @@ button,
     100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
   }
 
-  #weather-badge {
+  #btn-hud-pause {
     position: absolute;
     top: 25px;
     left: 25px;
+    width: 32px;
+    height: 32px;
+    background: var(--mono-bg);
+    border: 1px solid var(--mono-20);
+    border-radius: 2px;
+    color: var(--mono-90);
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: url('glidercurser_select.png'), pointer !important;
+    pointer-events: auto;
+    z-index: 25;
+    transition: all 0.15s ease;
+  }
+  #btn-hud-pause:hover, #btn-hud-pause:active {
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+
+  #weather-badge {
+    position: absolute;
+    top: 25px;
+    left: 65px;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -522,7 +604,6 @@ button,
               logoHoverGlide 3.2s ease-in-out 0.85s infinite alternate;
   }
 
-  /* Dive-out when key is pressed */
   #splash-logo.fly-out {
     animation: logoSwoopOut 0.6s cubic-bezier(0.55, 0, 1, 0.45) forwards !important;
   }
@@ -634,6 +715,10 @@ button,
     text-transform: uppercase;
   }
 
+  .menu-screen > * {
+    flex-shrink: 0;
+  }
+
   .track-list {
     width: 100%;
     display: flex;
@@ -642,6 +727,7 @@ button,
     margin-bottom: 18px;
     max-height: 290px;
     overflow-y: auto;
+    flex-shrink: 0;
   }
 
   .track-opt {
@@ -1401,9 +1487,436 @@ button,
   #greatest-glider-prompt {
     display: none !important;
   }
+
+  #rotate-device-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #000000;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+    font-size: 20px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    align-items: center;
+    justify-content: center;
+    z-index: 999999;
+    text-align: center;
+    user-select: none;
+    pointer-events: all;
+  }
+
+  @media (orientation: portrait) and ((pointer: coarse) or (max-width: 1024px)) {
+    #rotate-device-overlay {
+      display: flex !important;
+    }
+  }
+
+  .mobile-ctrl-btn {
+    display: none;
+    position: fixed;
+    background: rgba(0, 0, 0, 0.65);
+    border: 1.5px solid var(--mono-60);
+    border-radius: 4px;
+    color: var(--mono);
+    font-family: var(--font-stack);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    touch-action: none;
+    z-index: 120;
+    pointer-events: auto;
+  }
+
+  #mobile-btn-brake.rect-mode {
+    width: 100px !important;
+    height: 42px !important;
+    font-size: 11px !important;
+  }
+
+  #mobile-joystick {
+    width: 104px;
+    height: 104px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 0 0 14px rgba(0, 0, 0, 0.7);
+    bottom: 20px;
+    left: 20px;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+  }
+
+  #mobile-joystick.active {
+    border-color: var(--cyan);
+    box-shadow: 0 0 16px rgba(0, 240, 255, 0.5);
+  }
+
+  #mobile-joystick-knob {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, rgba(0, 240, 255, 0.95), rgba(0, 160, 200, 0.7));
+    border: 2px solid #ffffff;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.75);
+    pointer-events: none;
+    transform: translate(0px, 0px);
+    will-change: transform;
+  }
+
+  .mobile-ctrl-btn:active, .mobile-ctrl-btn.active {
+    background: rgba(0, 240, 255, 0.35);
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+
+  #mobile-btn-pause {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+    padding: 0;
+    top: 14px;
+    left: 14px;
+  }
+
+  #mobile-btn-yaw-l {
+    width: 64px;
+    height: 64px;
+    font-size: 18px;
+    bottom: 20px;
+    left: 20px;
+  }
+
+  #mobile-btn-yaw-r {
+    width: 64px;
+    height: 64px;
+    font-size: 18px;
+    bottom: 20px;
+    left: 94px;
+  }
+
+  #mobile-btn-brake {
+    width: 64px;
+    height: 64px;
+    font-size: 10px;
+    bottom: 20px;
+    right: 20px;
+  }
+
+  .mobile-ctrl-btn.reposition-mode {
+    outline: none !important;
+    box-shadow: none !important;
+    z-index: 555 !important;
+    cursor: move !important;
+  }
+
+  #mobile-reposition-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(3px);
+    z-index: 550;
+    pointer-events: auto;
+    touch-action: none;
+  }
+
+  #mobile-reposition-banner {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--cyan);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  #mobile-reposition-actions {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 16px;
+    z-index: 560;
+  }
+
+  #mobile-speedometer {
+    display: none;
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 4px;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 900;
+    z-index: 15;
+    pointer-events: none;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.9);
+  }
+
+  #mobile-speed-val {
+    font-size: 32px;
+    line-height: 1;
+    color: #ffffff;
+    letter-spacing: 2px;
+  }
+
+  #mobile-speed-unit {
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--mono-60);
+  }
+
+  .menu-screen {
+    max-height: 88vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  @media (pointer: coarse) {
+    * {
+      cursor: auto !important;
+    }
+    button,
+    .mono-btn,
+    .track-opt,
+    .subtrack-opt,
+    .shop-item-card,
+    .ctrl-btn,
+    .mode-btn,
+    .diff-btn,
+    .invert-btn,
+    .pointer-btn,
+    .keybind-btn,
+    [role="button"],
+    a {
+      cursor: pointer !important;
+    }
+  }
+
+  @media (pointer: coarse), (max-width: 950px), (max-height: 600px) {
+    .desktop-only-setting {
+      display: none !important;
+    }
+
+    .mobile-ctrl-btn {
+      display: flex;
+    }
+
+    .track-list {
+      max-height: 160px;
+      margin-bottom: 10px;
+      flex-shrink: 0;
+    }
+
+    .control-toggle-box {
+      margin-bottom: 8px;
+      padding: 6px 12px;
+    }
+
+    .medals-grid {
+      margin: 8px 0 12px 0;
+    }
+
+    .menu-screen {
+      padding: 14px 18px;
+      max-height: 88vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .menu-title {
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+
+    .menu-subtitle {
+      font-size: 10px;
+      margin-bottom: 12px;
+    }
+
+    .track-opt, .subtrack-opt, .cup-opt {
+      padding: 10px 14px;
+    }
+
+    .track-name {
+      font-size: 11px;
+    }
+
+    .track-desc {
+      font-size: 9px;
+    }
+
+    .mono-btn {
+      padding: 8px 16px;
+      font-size: 10px;
+    }
+
+    #splash-logo {
+      max-width: 60vw;
+      width: 320px;
+    }
+
+    .shop-tv-gif {
+      height: 85px;
+      max-height: 85px;
+    }
+
+    .shop-tv-corner {
+      top: 5px;
+      right: 20px;
+    }
+
+    img.track-name {
+      max-height: 70px;
+    }
+
+    #flappy-modal-card {
+      height: 88vh !important;
+      max-height: 88vh !important;
+      width: auto !important;
+      max-width: 95vw !important;
+      aspect-ratio: 480 / 720 !important;
+    }
+
+    .hud-stats {
+      width: auto !important;
+      max-width: 60vw !important;
+      padding: 6px 14px !important;
+      gap: 10px !important;
+      font-size: 10px !important;
+      bottom: 16px !important;
+    }
+
+    .hud-stats .stat-group > span:first-child {
+      display: none !important;
+    }
+
+    .hud-stats .stat-group {
+      display: flex;
+      align-items: baseline;
+      gap: 2px;
+    }
+
+    .hud-stats.halloween-theme {
+      max-width: 60vw !important;
+      height: 50px !important;
+      padding: 0 16px !important;
+    }
+
+    #btn-hud-pause {
+      top: 14px !important;
+      left: 14px !important;
+      width: 30px !important;
+      height: 30px !important;
+      font-size: 10px !important;
+    }
+
+    #weather-badge {
+      top: 14px !important;
+      left: 52px !important;
+      padding: 5px 10px !important;
+      font-size: 9px !important;
+      gap: 0 !important;
+    }
+
+    #weather-badge > div:nth-child(2),
+    #weather-badge > div:nth-child(3) {
+      display: none !important;
+    }
+
+    #mobile-speedometer {
+      display: flex;
+    }
+
+    #minimap-container {
+      top: 50px !important;
+      right: 14px !important;
+      padding: 3px !important;
+    }
+
+    #minimap-canvas {
+      width: 90px !important;
+      height: 90px !important;
+    }
+
+    #minimap-container.halloween-theme {
+      width: 108px !important;
+      height: 118px !important;
+      padding: 20px 8px 16px 8px !important;
+    }
+
+    #notif-container {
+      top: 12px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      right: auto !important;
+      align-items: center !important;
+    }
+
+    .notif-card {
+      min-width: 240px !important;
+      max-width: 300px !important;
+    }
+
+    #thermal-hint {
+      top: 13% !important;
+      font-size: 10px !important;
+      padding: 6px 14px !important;
+    }
+
+    #stall-warning {
+      top: 18% !important;
+      font-size: 10px !important;
+      padding: 6px 14px !important;
+    }
+
+    #stall-bonus {
+      top: 23% !important;
+      font-size: 10px !important;
+      padding: 6px 14px !important;
+    }
+
+    #countdown-box {
+      font-size: 64px !important;
+      letter-spacing: 4px !important;
+    }
+  }
 </style>
 </head>
 <body>
+
+<div id="rotate-device-overlay">ROTATE YOUR DEVICE</div>
+
+<div id="mobile-controls-wrap">
+  <button id="mobile-btn-pause" class="mobile-ctrl-btn" aria-label="Pause">❚❚</button>
+  <button id="mobile-btn-yaw-l" class="mobile-ctrl-btn" aria-label="Yaw Left (Q)">Q</button>
+  <button id="mobile-btn-yaw-r" class="mobile-ctrl-btn" aria-label="Yaw Right (E)">E</button>
+  <button id="mobile-btn-brake" class="mobile-ctrl-btn" aria-label="Airbrake">BRAKE</button>
+  <div id="mobile-joystick" class="mobile-ctrl-btn" aria-label="Steering Joystick">
+    <div id="mobile-joystick-knob"></div>
+  </div>
+</div>
+
+<div id="mobile-reposition-overlay">
+  <div id="mobile-reposition-banner">Drag To Reorganize</div>
+  <div id="mobile-reposition-actions">
+    <button class="mono-btn" id="btn-mobile-reset-pos">RESET</button>
+    <button class="mono-btn" id="btn-mobile-save-pos" style="border-color: var(--gold); color: var(--gold);">SAVE</button>
+  </div>
+</div>
 
 <canvas id="webgl-canvas"></canvas>
 <canvas id="hud-canvas"></canvas>
@@ -1452,7 +1965,7 @@ button,
 </button>
 
 <div id="settings-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 560; display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px);">
-  <div class="menu-screen" style="position: relative; top: auto; left: auto; transform: none; width: 92%; max-width: 520px; z-index: 561;">
+  <div class="menu-screen" style="position: relative; top: auto; left: auto; transform: none; width: 92%; max-width: 520px; max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch; z-index: 561;">
     <div class="menu-title">SETTINGS</div>
     <div class="menu-subtitle">CONFIGURATION Stuff</div>
 
@@ -1470,7 +1983,15 @@ button,
       </div>
     </div>
 
-    <div class="control-toggle-box">
+    <div class="control-toggle-box" id="settings-joystick-box">
+      <div class="control-toggle-label">MOBILE ANALOG STICK</div>
+      <div class="row-group" style="width: auto; margin-bottom: 0;">
+        <button class="mono-btn joystick-btn active" data-joystick="visible">VISIBLE</button>
+        <button class="mono-btn joystick-btn" data-joystick="invisible">INVISIBLE</button>
+      </div>
+    </div>
+
+    <div class="control-toggle-box desktop-only-setting" id="settings-steering-box">
       <div class="control-toggle-label">STEERING MODE</div>
       <div class="row-group" style="width: auto; margin-bottom: 0;">
         <button class="mono-btn ctrl-btn active" data-mode="wasd">WASD ONLY</button>
@@ -1486,7 +2007,7 @@ button,
       </div>
     </div>
 
-    <div class="control-toggle-box" id="settings-pointer-box" style="display: none;">
+    <div class="control-toggle-box desktop-only-setting" id="settings-pointer-box" style="display: none;">
       <div class="control-toggle-label">SPEEDOMETER NEEDLE</div>
       <div class="row-group" style="width: auto; margin-bottom: 0;">
         <button class="mono-btn pointer-btn active" data-pointer="default">PURPLE</button>
@@ -1494,7 +2015,7 @@ button,
       </div>
     </div>
 
-    <div class="control-toggle-box">
+    <div class="control-toggle-box desktop-only-setting" id="settings-gfx-box">
       <div class="control-toggle-label">GRAPHICS QUALITY</div>
       <div class="row-group" style="width: auto; margin-bottom: 0;">
         <button class="mono-btn gfx-btn active" data-gfx="low">LOW</button>
@@ -1533,6 +2054,15 @@ button,
   </div>
 </div>
 
+<div id="flappy-minigame-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 580; display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(5px);">
+  <div id="flappy-modal-card" style="position: relative; width: 480px; max-width: 95vw; height: 720px; max-height: 90vh; background: #000; border: 2px solid var(--mono-20); box-shadow: 0 0 24px rgba(0, 0, 0, 0.9); overflow: hidden; display: flex; flex-direction: column;">
+    <button id="btn-flappy-close" style="position: absolute; top: 12px; right: 12px; z-index: 30; width: 34px; height: 34px; background: #cc1122; border: 2px solid #ffffff; color: #ffffff; font-weight: 900; font-size: 18px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(255, 0, 0, 0.6); outline: none;">&#10005;</button>
+    <canvas id="flappy-canvas" width="480" height="720" style="width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; display: block;"></canvas>
+  </div>
+</div>
+
+<div id="happy-halloween-banner">Happy Halloween</div>
+
 <div id="halloween-decor-wrap" style="position: fixed; inset: 0; pointer-events: none; z-index: 45; display: none;">
   <img src="cornercobweb.png" onerror="this.src='input_file_5.png'" alt="Cobweb" class="hw-decor hw-corner-web left" style="position: absolute; top: 0; left: 0; width: 180px; height: auto; image-rendering: pixelated; opacity: 0.82; filter: drop-shadow(0 0 8px rgba(0,0,0,0.9));">
   <img src="cornercobweb.png" onerror="this.src='input_file_5.png'" alt="Cobweb" class="hw-decor hw-corner-web right" style="position: absolute; top: 0; right: 0; width: 180px; height: auto; transform: scaleX(-1); image-rendering: pixelated; opacity: 0.82; filter: drop-shadow(0 0 8px rgba(0,0,0,0.9));">
@@ -1559,6 +2089,13 @@ button,
 </div>
 
 <div id="hud-overlay">
+  <button id="btn-hud-pause" aria-label="Pause Flight">❚❚</button>
+
+  <div id="mobile-speedometer">
+    <span id="mobile-speed-val">000</span>
+    <span id="mobile-speed-unit">KTS</span>
+  </div>
+
   <div id="volcano-event-warning">
     <img src="upcomingevent.gif" alt="UPCOMING EVENT WARNING">
   </div>
@@ -1875,14 +2412,22 @@ button,
 </div>
 
 <div id="screen-pause" class="menu-screen hidden">
-  <img src="flightcontrols.png" alt="controls" class="menu-subtitle">
-  <div class="menu-subtitle">SETTINGS & CONTROL CONFIGURATION</div>
+  <img src="flightcontrols.png" alt="controls" class="menu-subtitle desktop-only-setting">
+  <div class="menu-subtitle">SETTINGS</div>
 
-  <div class="control-toggle-box">
+  <div class="control-toggle-box desktop-only-setting">
     <div class="control-toggle-label">STEERING MODE</div>
     <div class="row-group" style="width: auto; margin-bottom: 0;">
       <button class="mono-btn ctrl-btn active" data-mode="wasd">WASD ONLY</button>
       <button class="mono-btn ctrl-btn" data-mode="mouse">MOUSE ONLY</button>
+    </div>
+  </div>
+
+  <div class="control-toggle-box" id="pause-joystick-box">
+    <div class="control-toggle-label">MOBILE ANALOG STICK</div>
+    <div class="row-group" style="width: auto; margin-bottom: 0;">
+      <button class="mono-btn joystick-btn active" data-joystick="visible">VISIBLE</button>
+      <button class="mono-btn joystick-btn" data-joystick="invisible">INVISIBLE</button>
     </div>
   </div>
 
@@ -1908,9 +2453,9 @@ button,
     </div>
   </div>
 
-  <div class="instructions" style="margin-bottom: 20px;">
+  <div class="instructions desktop-only-setting" style="margin-bottom: 20px;">
     <b>WASD MODE:</b> W/S Pitch, D Left / A Right Bank, Q/E Rudder Yaw<br>
-    <b>MOUSE ONLY:</b> Pointer precision pitch & bank steering without keys
+    <b>MOUSE ONLY:</b> Mause left / right / up /down to steer Q/E Rudder Yaw
   </div>
 
   <div class="row-group" style="margin-bottom: 0;">
@@ -1938,7 +2483,6 @@ button,
   </div>
 </div>
 
-<!-- CINEMATIC ROLLING CREDITS OVERLAY -->
 <div id="screen-credits">
   <div id="credits-dim-overlay"></div>
 
@@ -2025,9 +2569,11 @@ button,
 
       <!-- SPECIAL THANKS -->
       <div class="credits-entry credits-thanks-wrap">
-        <div style="font-size: 16px; font-weight: 900; letter-spacing: 4px; color: #ffffff; text-transform: uppercase; margin-bottom: 14px; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9), 0 0 12px rgba(255, 255, 255, 0.3);">SPECIAL THANKS TO:</div>
+        <div style="font-size: 16px;">SPECIAL THANKS TO:</div>
         <img src="specialthankseveryone.png" alt="SPECIAL THANKS" class="credits-thanks-img">
       </div>
+
+      <div class="credits-halloween-final" id="credits-halloween-final">HAPPY HALLOWEEN!</div>
     </div>
   </div>
 </div>
@@ -2043,15 +2589,525 @@ button,
 
 <script>
 
-const HALLOWEEN_EVENT_ACTIVE = true;
-// Session-only: Door is always locked upon reloading the tab
+const HALLOWEEN_EVENT_ACTIVE = (() => {
+  const now = new Date();
+  const md = (now.getMonth() + 1) * 100 + now.getDate();
+  return md >= 1027 && md <= 1102; 
+})();
 let halloween_door_unlocked = false;
 try {
   localStorage.removeItem('glider_halloween_door_unlocked');
 } catch (e) {}
 let isHalloweenBossDuel = false;
 
-// Custom Keybindings Manager
+const CHRISTMAS_EVENT_ACTIVE = (() => {
+  const now = new Date();
+  const md = (now.getMonth() + 1) * 100 + now.getDate();
+  return (md >= 1220 && md <= 1231) || (md === 101);
+})();
+let isKrampusBossDuel = false;
+let activePresents3D = [];
+function hasAllChristmasPresents() {
+  return localStorage.getItem('glider_xmas_present_A') === 'true' &&
+         localStorage.getItem('glider_xmas_present_B') === 'true' &&
+         localStorage.getItem('glider_xmas_present_C') === 'true';
+}
+
+function isMobileDevice() {
+  return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.matchMedia('(pointer: coarse)').matches;
+}
+
+let mobilePitchInput = 0;
+let mobileRollInput = 0;
+let mobileYawLeft = false;
+let mobileYawRight = false;
+let mobileAirbrake = false;
+let isRepositionMode = false;
+let lastMobileCtrlGameState = null;
+let mobileJoystickMode = localStorage.getItem('glider_mobile_joystick') || 'visible';
+const activeSteeringTouches = new Map();
+
+function updateJoystickVisibility() {
+  const stick = document.getElementById('mobile-joystick');
+  const brake = document.getElementById('mobile-btn-brake');
+  const isVisibleMode = (mobileJoystickMode !== 'invisible');
+
+  document.querySelectorAll('.joystick-btn').forEach(btn => {
+    if (btn.getAttribute('data-joystick') === (isVisibleMode ? 'visible' : 'invisible')) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  if (stick) {
+    if (isVisibleMode && (gameState === 'RACING' || gameState === 'RUNUP' || isRepositionMode)) {
+      stick.style.display = 'flex';
+    } else {
+      stick.style.display = 'none';
+    }
+  }
+
+  if (brake) {
+    if (isVisibleMode) {
+      brake.classList.add('rect-mode');
+    } else {
+      brake.classList.remove('rect-mode');
+    }
+  }
+
+  applyMobileButtonPositions();
+}
+
+function applyMobileButtonPositions() {
+  const yawL = document.getElementById('mobile-btn-yaw-l');
+  const yawR = document.getElementById('mobile-btn-yaw-r');
+  const brake = document.getElementById('mobile-btn-brake');
+  const stick = document.getElementById('mobile-joystick');
+  if (!yawL || !yawR || !brake) return;
+
+  const isVisibleMode = (mobileJoystickMode !== 'invisible');
+  if (brake) {
+    if (isVisibleMode) brake.classList.add('rect-mode');
+    else brake.classList.remove('rect-mode');
+  }
+
+  let saved = null;
+  try {
+    saved = JSON.parse(localStorage.getItem('glider_mobile_button_positions'));
+  } catch (e) {}
+
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+
+  if (saved && saved.yawL && saved.yawR && saved.brake) {
+    yawL.style.left = clamp(saved.yawL.xRatio * w, 10, w - 74) + 'px';
+    yawL.style.top = clamp(saved.yawL.yRatio * h, 10, h - 74) + 'px';
+    yawL.style.right = 'auto';
+    yawL.style.bottom = 'auto';
+
+    yawR.style.left = clamp(saved.yawR.xRatio * w, 10, w - 74) + 'px';
+    yawR.style.top = clamp(saved.yawR.yRatio * h, 10, h - 74) + 'px';
+    yawR.style.right = 'auto';
+    yawR.style.bottom = 'auto';
+
+    brake.style.left = clamp(saved.brake.xRatio * w, 10, w - 104) + 'px';
+    brake.style.top = clamp(saved.brake.yRatio * h, 10, h - 54) + 'px';
+    brake.style.right = 'auto';
+    brake.style.bottom = 'auto';
+
+    if (stick) {
+      if (saved.stick) {
+        stick.style.left = clamp(saved.stick.xRatio * w, 10, w - 114) + 'px';
+        stick.style.top = clamp(saved.stick.yRatio * h, 10, h - 114) + 'px';
+      } else {
+        stick.style.left = '20px';
+        stick.style.top = clamp(h - 124, 10, h - 114) + 'px';
+      }
+      stick.style.right = 'auto';
+      stick.style.bottom = 'auto';
+    }
+  } else {
+    if (isVisibleMode) {
+      if (stick) {
+        stick.style.left = '20px';
+        stick.style.top = clamp(h - 124, 10, h - 114) + 'px';
+        stick.style.right = 'auto';
+        stick.style.bottom = 'auto';
+      }
+      brake.style.left = clamp(w - 146, 10, w - 104) + 'px';
+      brake.style.top = clamp(h - 132, 10, h - 54) + 'px';
+      brake.style.right = 'auto';
+      brake.style.bottom = 'auto';
+
+      yawL.style.left = clamp(w - 146, 10, w - 74) + 'px';
+      yawL.style.top = clamp(h - 80, 10, h - 74) + 'px';
+      yawL.style.right = 'auto';
+      yawL.style.bottom = 'auto';
+
+      yawR.style.left = clamp(w - 76, 10, w - 74) + 'px';
+      yawR.style.top = clamp(h - 80, 10, h - 74) + 'px';
+      yawR.style.right = 'auto';
+      yawR.style.bottom = 'auto';
+    } else {
+      yawL.style.left = '20px';
+      yawL.style.top = (h - 84) + 'px';
+      yawL.style.right = 'auto';
+      yawL.style.bottom = 'auto';
+
+      yawR.style.left = '94px';
+      yawR.style.top = (h - 84) + 'px';
+      yawR.style.right = 'auto';
+      yawR.style.bottom = 'auto';
+
+      brake.style.left = (w - 84) + 'px';
+      brake.style.top = (h - 84) + 'px';
+      brake.style.right = 'auto';
+      brake.style.bottom = 'auto';
+    }
+  }
+}
+
+function saveMobileButtonPositions() {
+  const yawL = document.getElementById('mobile-btn-yaw-l');
+  const yawR = document.getElementById('mobile-btn-yaw-r');
+  const brake = document.getElementById('mobile-btn-brake');
+  const stick = document.getElementById('mobile-joystick');
+  if (!yawL || !yawR || !brake) return;
+
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+
+  const data = {
+    yawL: { xRatio: yawL.offsetLeft / w, yRatio: yawL.offsetTop / h },
+    yawR: { xRatio: yawR.offsetLeft / w, yRatio: yawR.offsetTop / h },
+    brake: { xRatio: brake.offsetLeft / w, yRatio: brake.offsetTop / h }
+  };
+  if (stick) {
+    data.stick = { xRatio: stick.offsetLeft / w, yRatio: stick.offsetTop / h };
+  }
+  try {
+    localStorage.setItem('glider_mobile_button_positions', JSON.stringify(data));
+  } catch (e) {}
+}
+
+function resetMobileButtonPositions() {
+  try {
+    localStorage.removeItem('glider_mobile_button_positions');
+  } catch (e) {}
+  applyMobileButtonPositions();
+}
+
+function openMobileRepositionEditor() {
+  isRepositionMode = true;
+  const overlay = document.getElementById('mobile-reposition-overlay');
+  if (overlay) overlay.style.display = 'block';
+
+  const wrap = document.getElementById('mobile-controls-wrap');
+  if (wrap) wrap.style.display = 'block';
+
+  const pauseBtn = document.getElementById('mobile-btn-pause');
+  if (pauseBtn) pauseBtn.style.display = 'none';
+
+  const yawL = document.getElementById('mobile-btn-yaw-l');
+  const yawR = document.getElementById('mobile-btn-yaw-r');
+  const brake = document.getElementById('mobile-btn-brake');
+  const stick = document.getElementById('mobile-joystick');
+
+  [yawL, yawR, brake].forEach(btn => {
+    if (btn) {
+      btn.style.display = 'flex';
+      btn.classList.add('reposition-mode');
+    }
+  });
+  if (stick && mobileJoystickMode !== 'invisible') {
+    stick.style.display = 'flex';
+    stick.classList.add('reposition-mode');
+  }
+  applyMobileButtonPositions();
+}
+
+function closeMobileRepositionEditor(save) {
+  if (save) {
+    saveMobileButtonPositions();
+  }
+  isRepositionMode = false;
+  const overlay = document.getElementById('mobile-reposition-overlay');
+  if (overlay) overlay.style.display = 'none';
+
+  const pauseBtn = document.getElementById('mobile-btn-pause');
+  const yawL = document.getElementById('mobile-btn-yaw-l');
+  const yawR = document.getElementById('mobile-btn-yaw-r');
+  const brake = document.getElementById('mobile-btn-brake');
+  const stick = document.getElementById('mobile-joystick');
+
+  [yawL, yawR, brake, stick].forEach(btn => {
+    if (btn) {
+      btn.classList.remove('reposition-mode');
+    }
+  });
+
+  if (gameState !== 'RACING' && gameState !== 'RUNUP') {
+    const wrap = document.getElementById('mobile-controls-wrap');
+    if (wrap) wrap.style.display = 'none';
+  } else {
+    if (pauseBtn) pauseBtn.style.display = 'flex';
+    if (stick && mobileJoystickMode !== 'invisible') stick.style.display = 'flex';
+  }
+
+  const settingsOverlay = document.getElementById('settings-overlay');
+  if (settingsOverlay) settingsOverlay.style.display = 'flex';
+}
+
+function setupDraggableButton(btn) {
+  if (!btn) return;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let initLeft = 0, initTop = 0;
+
+  btn.addEventListener('pointerdown', (e) => {
+    if (!isRepositionMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    initLeft = btn.offsetLeft;
+    initTop = btn.offsetTop;
+    btn.setPointerCapture(e.pointerId);
+  });
+
+  btn.addEventListener('pointermove', (e) => {
+    if (!isRepositionMode || !isDragging) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const newL = Math.max(10, Math.min(w - btn.offsetWidth - 10, initLeft + dx));
+    const newT = Math.max(10, Math.min(h - btn.offsetHeight - 10, initTop + dy));
+    btn.style.left = newL + 'px';
+    btn.style.top = newT + 'px';
+    btn.style.right = 'auto';
+    btn.style.bottom = 'auto';
+  });
+
+  const onDragEnd = (e) => {
+    if (!isRepositionMode || !isDragging) return;
+    isDragging = false;
+    try { btn.releasePointerCapture(e.pointerId); } catch (err) {}
+    saveMobileButtonPositions();
+  };
+
+  btn.addEventListener('pointerup', onDragEnd);
+  btn.addEventListener('pointercancel', onDragEnd);
+}
+
+function setupJoystick() {
+  const stick = document.getElementById('mobile-joystick');
+  const knob = document.getElementById('mobile-joystick-knob');
+  if (!stick || !knob) return;
+
+  let pointerId = null;
+
+  stick.addEventListener('pointerdown', (e) => {
+    if (isRepositionMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+    pointerId = e.pointerId;
+    stick.classList.add('active');
+    stick.setPointerCapture(e.pointerId);
+    handleMove(e);
+  });
+
+  const handleMove = (e) => {
+    if (e.pointerId !== pointerId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = stick.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = e.clientX - cx;
+    const dy = e.clientY - cy;
+    const maxR = 30;
+    const dist = Math.hypot(dx, dy);
+    let clampedX = dx;
+    let clampedY = dy;
+    if (dist > maxR) {
+      clampedX = (dx / dist) * maxR;
+      clampedY = (dy / dist) * maxR;
+    }
+    knob.style.transform = `translate(${clampedX}px, ${clampedY}px)`;
+    mobileRollInput = THREE.MathUtils.clamp(clampedX / maxR, -1, 1);
+    mobilePitchInput = THREE.MathUtils.clamp(clampedY / maxR, -1, 1);
+  };
+
+  stick.addEventListener('pointermove', handleMove);
+
+  const handleEnd = (e) => {
+    if (e.pointerId !== pointerId) return;
+    pointerId = null;
+    stick.classList.remove('active');
+    knob.style.transform = 'translate(0px, 0px)';
+    mobileRollInput = 0;
+    mobilePitchInput = 0;
+    try { stick.releasePointerCapture(e.pointerId); } catch (err) {}
+  };
+
+  stick.addEventListener('pointerup', handleEnd);
+  stick.addEventListener('pointercancel', handleEnd);
+}
+
+function setupMobileControls() {
+  const yawL = document.getElementById('mobile-btn-yaw-l');
+  const yawR = document.getElementById('mobile-btn-yaw-r');
+  const brake = document.getElementById('mobile-btn-brake');
+  const pause = document.getElementById('mobile-btn-pause');
+  const stick = document.getElementById('mobile-joystick');
+  const hudPause = document.getElementById('btn-hud-pause');
+
+  setupDraggableButton(yawL);
+  setupDraggableButton(yawR);
+  setupDraggableButton(brake);
+  if (stick) setupDraggableButton(stick);
+  setupJoystick();
+
+  const attachAction = (btn, onPress, onRelease) => {
+    if (!btn) return;
+    btn.addEventListener('pointerdown', (e) => {
+      if (isRepositionMode) return;
+      e.preventDefault();
+      e.stopPropagation();
+      btn.classList.add('active');
+      onPress();
+    });
+    const release = (e) => {
+      if (isRepositionMode) return;
+      e.preventDefault();
+      e.stopPropagation();
+      btn.classList.remove('active');
+      onRelease();
+    };
+    btn.addEventListener('pointerup', release);
+    btn.addEventListener('pointercancel', release);
+    btn.addEventListener('pointerleave', release);
+  };
+
+  attachAction(yawL, () => { mobileYawLeft = true; }, () => { mobileYawLeft = false; });
+  attachAction(yawR, () => { mobileYawRight = true; }, () => { mobileYawRight = false; });
+  attachAction(brake, () => { mobileAirbrake = true; player.airbrake = true; }, () => { mobileAirbrake = false; if (!keys['Space'] && !gpAirbrake) player.airbrake = false; });
+
+  if (pause) {
+    pause.addEventListener('pointerdown', (e) => {
+      if (isRepositionMode) return;
+      e.preventDefault();
+      e.stopPropagation();
+      audio.init();
+      togglePauseMenu();
+    });
+  }
+
+  if (hudPause) {
+    const onHudPause = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      audio.init();
+      togglePauseMenu();
+    };
+    hudPause.addEventListener('pointerdown', onHudPause);
+    hudPause.addEventListener('click', onHudPause);
+  }
+
+  const btnMobileSave = document.getElementById('btn-mobile-save-pos');
+  if (btnMobileSave) {
+    btnMobileSave.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      audio.init();
+      audio.playRecoveryBoost();
+      closeMobileRepositionEditor(true);
+    });
+  }
+
+  const btnMobileReset = document.getElementById('btn-mobile-reset-pos');
+  if (btnMobileReset) {
+    btnMobileReset.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      audio.init();
+      resetMobileButtonPositions();
+      audio.playBeep(440, 'triangle', 0.12);
+    });
+  }
+
+  const flappyCard = document.getElementById('flappy-modal-card');
+  if (flappyCard) {
+    flappyCard.addEventListener('pointerdown', (e) => {
+      if (e.target && e.target.id === 'btn-flappy-close') return;
+      e.preventDefault();
+      flappyTriggerFlap();
+    });
+  }
+
+  function updateSteeringFromTouches() {
+    if (activeSteeringTouches.size === 0) {
+      if (mobileJoystickMode === 'invisible' || !stick || stick.style.display === 'none') {
+        mobilePitchInput = 0;
+        mobileRollInput = 0;
+      }
+      return;
+    }
+    let latest = null;
+    activeSteeringTouches.forEach(t => { latest = t; });
+    if (!latest) {
+      if (mobileJoystickMode === 'invisible' || !stick || stick.style.display === 'none') {
+        mobilePitchInput = 0;
+        mobileRollInput = 0;
+      }
+      return;
+    }
+    const dx = latest.currX - latest.startX;
+    const dy = latest.currY - latest.startY;
+    const dragRange = Math.min(window.innerWidth, window.innerHeight) * 0.18;
+    mobileRollInput = THREE.MathUtils.clamp(dx / dragRange, -1, 1);
+    mobilePitchInput = THREE.MathUtils.clamp(dy / dragRange, -1, 1);
+  }
+
+  window.addEventListener('touchstart', (e) => {
+    if (gameState !== 'RACING' && gameState !== 'RUNUP') return;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      if (t.target && t.target.closest && t.target.closest('.mobile-ctrl-btn, #mobile-reposition-overlay')) {
+        continue;
+      }
+      activeSteeringTouches.set(t.identifier, {
+        startX: t.clientX,
+        startY: t.clientY,
+        currX: t.clientX,
+        currY: t.clientY
+      });
+    }
+    updateSteeringFromTouches();
+  }, { passive: false });
+
+  window.addEventListener('touchmove', (e) => {
+    if (gameState !== 'RACING' && gameState !== 'RUNUP') return;
+    let handled = false;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      if (activeSteeringTouches.has(t.identifier)) {
+        const item = activeSteeringTouches.get(t.identifier);
+        item.currX = t.clientX;
+        item.currY = t.clientY;
+        handled = true;
+      }
+    }
+    if (handled) {
+      e.preventDefault();
+      updateSteeringFromTouches();
+    }
+  }, { passive: false });
+
+  const endSteeringTouch = (e) => {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      activeSteeringTouches.delete(e.changedTouches[i].identifier);
+    }
+    updateSteeringFromTouches();
+  };
+
+  window.addEventListener('touchend', endSteeringTouch);
+  window.addEventListener('touchcancel', endSteeringTouch);
+
+  window.addEventListener('gesturestart', (e) => e.preventDefault());
+  window.addEventListener('gesturechange', (e) => e.preventDefault());
+  window.addEventListener('gestureend', (e) => e.preventDefault());
+
+  applyMobileButtonPositions();
+  updateJoystickVisibility();
+}
+
 const defaultKeybinds = {
   pitchDown: ['KeyW', 'ArrowUp'],
   pitchUp: ['KeyS', 'ArrowDown'],
@@ -2159,7 +3215,9 @@ function renderKeybindList() {
 function updateCellarDoorVisibility() {
   const cellarWrap = document.getElementById('shop-cellar-door-wrap');
   if (cellarWrap) {
-    cellarWrap.style.display = (HALLOWEEN_EVENT_ACTIVE && halloween_door_unlocked) ? 'block' : 'none';
+    const showHw = (HALLOWEEN_EVENT_ACTIVE && halloween_door_unlocked);
+    const showXmas = (CHRISTMAS_EVENT_ACTIVE && hasAllChristmasPresents());
+    cellarWrap.style.display = (showHw || showXmas) ? 'block' : 'none';
   }
 }
 
@@ -2179,6 +3237,25 @@ function updateHalloweenThemeVisibility() {
   }
   if (mmContainer) {
     mmContainer.classList.toggle('halloween-theme', isHwEquipped);
+  }
+
+  const banner = document.getElementById('happy-halloween-banner');
+  if (banner) {
+    const activeScreen = document.querySelector('.menu-screen:not(.hidden)');
+    const settingsOverlay = document.getElementById('settings-overlay');
+    const settingsOpen = settingsOverlay && window.getComputedStyle(settingsOverlay).display !== 'none';
+    const isRacing = (gameState === 'RACING' || gameState === 'RUNUP' || gameState === 'FINISHING' || gameState === 'CREDITS');
+    const isExcludedScreen = !activeScreen || ['screen-pause', 'screen-win', 'screen-lose'].includes(activeScreen.id);
+
+    if (HALLOWEEN_EVENT_ACTIVE && !isRacing && !settingsOpen && !isExcludedScreen) {
+      const rect = activeScreen.getBoundingClientRect();
+      if (rect.height > 0) {
+        banner.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+      }
+      banner.classList.add('visible');
+    } else {
+      banner.classList.remove('visible');
+    }
   }
 }
 
@@ -2708,6 +3785,7 @@ const AphelionEncoder = (() => {
     const pbs = saveObj.pbs || {};
     const ghosts = saveObj.ghosts || {};
     const hw = saveObj.halloweenUnlocked ? 1 : 0;
+    const xm = saveObj.xm || 0;
     const packedGhosts = {};
     for (const track in ghosts) {
       if (Array.isArray(ghosts[track])) {
@@ -2722,7 +3800,7 @@ const AphelionEncoder = (() => {
         ]);
       }
     }
-    const jsonStr = JSON.stringify({ p: pbs, g: packedGhosts, hw });
+    const jsonStr = JSON.stringify({ p: pbs, g: packedGhosts, hw, xm });
     if (typeof TextEncoder !== 'undefined') {
       return new TextEncoder().encode(jsonStr);
     }
@@ -2742,6 +3820,7 @@ const AphelionEncoder = (() => {
     const pbs = parsed.p || {};
     const ghosts = {};
     const halloweenUnlocked = (parsed.hw === 1);
+    const xm = parsed.xm || 0;
     if (parsed.g) {
       for (const track in parsed.g) {
         ghosts[track] = parsed.g[track].map(f => ({
@@ -2750,7 +3829,7 @@ const AphelionEncoder = (() => {
         }));
       }
     }
-    return { pbs, ghosts, halloweenUnlocked };
+    return { pbs, ghosts, halloweenUnlocked, xm };
   }
 
   function lzwCompress(bytes) {
@@ -4500,7 +5579,6 @@ const { aphelionApexTexture, aphelionApexEmissiveTexture } = (() => {
   return { aphelionApexTexture: diffTex, aphelionApexEmissiveTexture: emTex };
 })();
 
-// Procedural Halloween Jack-o'-Lantern Canopy Texture
 const { halloweenGliderTexture, halloweenGliderEmissiveTexture } = (() => {
   const canvas = document.createElement('canvas');
   canvas.width = 1024;
@@ -4595,11 +5673,100 @@ const { halloweenGliderTexture, halloweenGliderEmissiveTexture } = (() => {
   return { halloweenGliderTexture: diffTex, halloweenGliderEmissiveTexture: emTex };
 })();
 
+const { santaGliderTexture, santaGliderEmissiveTexture } = (() => {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+
+  const emCanvas = document.createElement('canvas');
+  emCanvas.width = 1024;
+  emCanvas.height = 256;
+  const emCtx = emCanvas.getContext('2d');
+
+  ctx.fillStyle = '#b81420';
+  ctx.fillRect(0, 0, 1024, 256);
+  emCtx.fillStyle = '#000000';
+  emCtx.fillRect(0, 0, 1024, 256);
+
+  ctx.fillStyle = '#f5f6fa';
+  ctx.fillRect(0, 0, 1024, 18);
+  ctx.fillRect(0, 238, 1024, 18);
+  emCtx.fillStyle = '#444444';
+  emCtx.fillRect(0, 0, 1024, 18);
+  emCtx.fillRect(0, 238, 1024, 18);
+
+  ctx.fillStyle = '#dfb12c';
+  ctx.fillRect(0, 18, 1024, 4);
+  ctx.fillRect(0, 234, 1024, 4);
+  emCtx.fillStyle = '#dfb12c';
+  emCtx.fillRect(0, 18, 1024, 4);
+  emCtx.fillRect(0, 234, 1024, 4);
+
+  let seed = 1225;
+  const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  for (let s = 0; s < 140; s++) {
+    const sx = rnd() * 1024;
+    const sy = 28 + rnd() * 200;
+    const sr = 1.0 + rnd() * 1.5;
+    ctx.fillStyle = rnd() > 0.5 ? '#dfb12c' : '#ffffff';
+    ctx.beginPath();
+    ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+    ctx.fill();
+    emCtx.fillStyle = '#dfb12c';
+    emCtx.beginPath();
+    emCtx.arc(sx, sy, sr * 1.2, 0, Math.PI * 2);
+    emCtx.fill();
+  }
+
+  const cx = 512, cy = 128;
+  ctx.fillStyle = '#222222';
+  ctx.fillRect(0, cy - 14, 1024, 28);
+  ctx.fillStyle = '#dfb12c';
+  ctx.fillRect(cx - 32, cy - 22, 64, 44);
+  ctx.fillStyle = '#222222';
+  ctx.fillRect(cx - 20, cy - 12, 40, 24);
+  ctx.fillStyle = '#dfb12c';
+  ctx.fillRect(cx - 5, cy - 12, 10, 24);
+
+  emCtx.fillStyle = '#dfb12c';
+  emCtx.fillRect(cx - 32, cy - 22, 64, 44);
+  emCtx.fillStyle = '#000000';
+  emCtx.fillRect(cx - 20, cy - 12, 40, 24);
+  emCtx.fillStyle = '#dfb12c';
+  emCtx.fillRect(cx - 5, cy - 12, 10, 24);
+
+  [0, 1008].forEach(wx => {
+    ctx.fillStyle = '#dfb12c';
+    ctx.fillRect(wx, 20, 16, 216);
+    emCtx.fillStyle = '#dfb12c';
+    emCtx.fillRect(wx, 20, 16, 216);
+  });
+
+  const diffTex = new THREE.CanvasTexture(canvas);
+  const emTex = new THREE.CanvasTexture(emCanvas);
+  return { santaGliderTexture: diffTex, santaGliderEmissiveTexture: emTex };
+})();
+
 function isHalloweenGliderEquipped() {
   return getEquippedSkinId() === 'glider_halloween';
 }
 
 const GLIDER_SKINS = [
+  {
+    id: 'glider_santa',
+    name: 'Santa Glider',
+    colorName: 'Velvet Red',
+    color: 0xc41220,
+    previewColor: '#c41220',
+    emissive: 0xdfb12c,
+    emissiveIntensity: 0.45,
+    roughness: 0.3,
+    metalness: 0.4,
+    isGlowing: true,
+    reqText: 'Unlock during Christmas event!',
+    checkUnlocked: () => !!localStorage.getItem('glider_unlocked_santa')
+  },
   {
     id: 'glider_halloween',
     name: 'Jack-o\'-Lantern',
@@ -4611,7 +5778,7 @@ const GLIDER_SKINS = [
     roughness: 0.35,
     metalness: 0.15,
     isGlowing: true,
-    reqText: 'Unlock during halloween event',
+    reqText: 'Unlock during halloween event!',
     checkUnlocked: () => !!localStorage.getItem('glider_unlocked_halloween')
   },
   {
@@ -4774,6 +5941,20 @@ const GLIDER_SKINS = [
 ];
 
 const GHOST_SKINS = [
+  {
+    id: 'ghost_krampus',
+    name: 'Krampus Drone',
+    colorName: 'Shadow Black & Horns',
+    color: 0x0a0a0a,
+    previewColor: '#0a0a0a',
+    emissive: 0xff1111,
+    emissiveIntensity: 0.85,
+    roughness: 0.25,
+    metalness: 0.85,
+    isGlowing: true,
+    reqText: 'Defeat Krampus on Razor Pass to unlock',
+    checkUnlocked: () => !!localStorage.getItem('glider_unlocked_krampus_ghost')
+  },
   {
     id: 'ghost_16bit',
     name: '16-bit Chaser',
@@ -5865,10 +7046,25 @@ buildParagliderMesh();
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     resizeHudCanvas();
+    updateHalloweenThemeVisibility();
+    applyMobileButtonPositions();
+    updateJoystickVisibility();
   });
 
   window.addEventListener('keydown', (e) => {
-    // Controls Customization Key Rebinding Handler
+    const flappyOverlay = document.getElementById('flappy-minigame-overlay');
+    if (flappyOverlay && flappyOverlay.style.display !== 'none') {
+      if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+        e.preventDefault();
+        flappyTriggerFlap();
+        return;
+      }
+      if (e.code === 'Escape') {
+        e.preventDefault();
+        closeFlappyMinigame();
+        return;
+      }
+    }
     if (activeRebindAction !== null) {
       e.preventDefault();
       e.stopPropagation();
@@ -5982,6 +7178,7 @@ if (activeGamepadIndex === e.gamepad?.index) {
   });
 
   setupUI();
+  setupMobileControls();
   showScreen('screen-start');
   updatePBTags();
   animate();
@@ -6010,7 +7207,6 @@ tvNoiseTexture.repeat.set(3, 1);
 let tvGlitchBarY = 0;
 
 function updateTvStaticTexture() {
-  // Only calculate when equipped or actively viewed in the shop to preserve CPU (ik ik very smart)
   const isEquipped = getEquippedSkinId() === 'glider_tv_static';
   const isInspected = inspectedType === 'glider' && inspectedGliderId === 'glider_tv_static';
   const shopVisible = document.getElementById('screen-shop') && !document.getElementById('screen-shop').classList.contains('hidden');
@@ -6239,7 +7435,18 @@ function createSkinMaterial(skinId) {
     });
   }
 
-  // Exclusive Halloween Glider
+  if (skinId === 'glider_santa') {
+    return new THREE.MeshStandardMaterial({
+      map: santaGliderTexture,
+      emissiveMap: santaGliderEmissiveTexture,
+      emissive: 0xdfb12c,
+      emissiveIntensity: 0.45,
+      roughness: 0.28,
+      metalness: 0.45,
+      side: THREE.DoubleSide
+    });
+  }
+
   if (skinId === 'glider_halloween') {
     return new THREE.MeshStandardMaterial({
       map: halloweenGliderTexture,
@@ -6418,6 +7625,40 @@ function buildGoldDrone(group, mat) {
 
   buildTailHalf(false);
   buildTailHalf(true);
+}
+
+function buildKrampusDrone(group, mat) {
+  const krampusMat = mat || createGhostSkinMaterial('ghost_krampus');
+  const redAccentMat = new THREE.MeshStandardMaterial({
+    color: 0xff1111,
+    emissive: 0xff0000,
+    emissiveIntensity: 0.85,
+    roughness: 0.2,
+    metalness: 0.5
+  });
+
+  const body = new THREE.Mesh(new THREE.ConeGeometry(5, 26, 4), krampusMat);
+  body.rotateX(-Math.PI / 2);
+  const wings = new THREE.Mesh(new THREE.BoxGeometry(44, 0.5, 7), krampusMat);
+  wings.position.set(0, 0, 3);
+  group.add(body, wings);
+
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(42, 0.7, 0.8), redAccentMat);
+  stripe.position.set(0, 0, 0.5);
+  group.add(stripe);
+
+  [-1, 1].forEach(side => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.9, 8, 8), redAccentMat);
+    eye.position.set(side * 1.5, 1.2, -8.5);
+    group.add(eye);
+
+    const hornGeom = new THREE.ConeGeometry(1.2, 7.5, 6);
+    hornGeom.rotateX(0.45);
+    hornGeom.rotateZ(-side * 0.5);
+    const horn = new THREE.Mesh(hornGeom, krampusMat);
+    horn.position.set(side * 2.5, 3.2, -6.5);
+    group.add(horn);
+  });
 }
 
 function getTrackStats() {
@@ -6839,6 +8080,9 @@ function renderShop() {
     } else if (inspectedGhostId === 'ghost_gold') {
       buildGoldDrone(shopDroneGroup, previewMat);
       shopDroneGroup.is2DDrone = false;
+    } else if (inspectedGhostId === 'ghost_krampus') {
+      buildKrampusDrone(shopDroneGroup, previewMat);
+      shopDroneGroup.is2DDrone = false;
     } else {
       const bodyGeom = new THREE.ConeGeometry(5, 24, 4);
       bodyGeom.rotateX(-Math.PI / 2);
@@ -7113,6 +8357,10 @@ if (currentSkinId === 'lunar_voyager') {
   accentHex = 0xa020f0;
   accentEmissive = 0xa020f0;
   accentEmissiveInt = 0.5;
+} else if (currentSkinId === 'glider_santa') {
+  accentHex = 0xc41220;
+  accentEmissive = 0xdfb12c;
+  accentEmissiveInt = 0.45;
 }
 
 const podAccentMat = new THREE.MeshStandardMaterial({
@@ -7383,6 +8631,10 @@ function createGhostDroneMesh() {
   } else if (equippedSkinId === 'ghost_gold') {
     const mat = createGhostSkinMaterial(equippedSkinId);
     buildGoldDrone(ghostDroneGroup, mat);
+    ghostDroneGroup.is2DDrone = false;
+  } else if (equippedSkinId === 'ghost_krampus') {
+    const mat = createGhostSkinMaterial(equippedSkinId);
+    buildKrampusDrone(ghostDroneGroup, mat);
     ghostDroneGroup.is2DDrone = false;
   } else {
     const mat = createGhostSkinMaterial(equippedSkinId);
@@ -8611,6 +9863,7 @@ seaStacks = [];
   lighthouseBeams = [];
   volcanoEruptionSystem = null;
   volcanoLavaLight = null;
+  activePresents3D = [];
 
   volcanoEvent.warningActive = false;
   volcanoEvent.exploded = false;
@@ -10032,6 +11285,35 @@ const outerRing = new THREE.Mesh(
 
 setupTrackHazards(courseKey, activeSubtrack);
 
+  if (CHRISTMAS_EVENT_ACTIVE && courseKey === 'glacial') {
+    const pTex = createPixelTexture('present.png');
+    const pGeom = new THREE.BoxGeometry(16, 16, 16);
+    const pMat = new THREE.MeshStandardMaterial({
+      map: pTex,
+      roughness: 0.45,
+      metalness: 0.1
+    });
+
+    if (selectedSubtrack === 'A' && localStorage.getItem('glider_xmas_present_A') !== 'true') {
+      const mA = new THREE.Mesh(pGeom, pMat);
+      mA.position.set(-280, 298, -8750);
+      environmentGroup.add(mA);
+      activePresents3D.push({ id: 'glider_xmas_present_A', mesh: mA, pos: new THREE.Vector3(-280, 298, -8750) });
+    }
+    if (selectedSubtrack === 'B' && localStorage.getItem('glider_xmas_present_B') !== 'true') {
+      const mB = new THREE.Mesh(pGeom, pMat);
+      mB.position.set(0, 36, -9600);
+      environmentGroup.add(mB);
+      activePresents3D.push({ id: 'glider_xmas_present_B', mesh: mB, pos: new THREE.Vector3(0, 36, -9600) });
+    }
+    if (selectedSubtrack === 'C' && localStorage.getItem('glider_xmas_present_C') !== 'true') {
+      const mC = new THREE.Mesh(pGeom, pMat);
+      mC.position.set(900, 475, -4300);
+      environmentGroup.add(mC);
+      activePresents3D.push({ id: 'glider_xmas_present_C', mesh: mC, pos: new THREE.Vector3(900, 475, -4300) });
+    }
+  }
+
   if (gameMode === 'race') {
     spawnAI(course, activeSubtrack);
   } else {
@@ -10103,6 +11385,40 @@ function spawnAI(course, activeSubtrack) {
       isPhantomBoss: true,
       lap: 0, progress: 0,
       color: 0x050505,
+      shadowMesh: null,
+      aiDraftTimer: 0, bullyTimer: 0, bullyState: 'cooldown', bullyPhaseTimer: 0,
+      dodgeOffset: 0, dodgeTarget: 0, dodgeTimer: 0,
+      personality: {
+        type: 'speedy',
+        wobbleFreq: 1.8,
+        cornerAggression: 0.98,
+        apexOffset: new THREE.Vector3(0, 0, 0),
+        thermalHunter: true
+      }
+    });
+    return;
+  }
+
+  if (isKrampusBossDuel) {
+    const aiGroup = new THREE.Group();
+    buildKrampusDrone(aiGroup);
+
+    const startPos = runwayBasePos.clone().add(cCliffRight.clone().multiplyScalar(24)).add(cCliffForward.clone().multiplyScalar(25));
+    aiGroup.position.copy(startPos);
+    environmentGroup.add(aiGroup);
+
+    aiGliders.push({
+      mesh: aiGroup,
+      pos: startPos.clone(),
+      vel: cCliffForward.clone().multiplyScalar(10),
+      pitch: 0, roll: 0,
+      yaw: Math.atan2(-cCliffForward.x, -cCliffForward.z),
+      targetIdx: 1,
+      baseSpeed: 108,
+      currentSpeed: 70,
+      isKrampusBoss: true,
+      lap: 0, progress: 0,
+      color: 0x0a0a0a,
       shadowMesh: null,
       aiDraftTimer: 0, bullyTimer: 0, bullyState: 'cooldown', bullyPhaseTimer: 0,
       dodgeOffset: 0, dodgeTarget: 0, dodgeTimer: 0,
@@ -10749,6 +12065,8 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
   let hasPitchInput = false;
   let hasRollInput = false;
 
+
+
   if (gamepadConnected) {
     if (Math.abs(gpPitch) > 0.05) {
       pitchInput += gpPitch * 0.9;
@@ -10782,6 +12100,18 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
       hasRollInput = true;
     }
   }
+
+  if (mobilePitchInput !== 0) {
+    pitchInput += mobilePitchInput;
+    hasPitchInput = true;
+  }
+  if (mobileRollInput !== 0) {
+    rollInput += mobileRollInput;
+    hasRollInput = true;
+  }
+  if (mobileYawLeft) yawInput -= 1.0;
+  if (mobileYawRight) yawInput += 1.0;
+  if (mobileAirbrake) player.airbrake = true;
 
   if (Math.abs(pitchInput) > 0.001) hasPitchInput = true;
   if (Math.abs(rollInput) > 0.001) hasRollInput = true;
@@ -11295,6 +12625,25 @@ updateCameraView(shakeX, shakeY);
 
 updateShadowMesh(playerShadowMesh, player.pos.x, player.pos.y, player.pos.z, player.yaw, selectedCourseId);
 
+  if (activePresents3D.length > 0) {
+    for (let i = activePresents3D.length - 1; i >= 0; i--) {
+      const p = activePresents3D[i];
+      if (player.pos.distanceTo(p.pos) < 36) {
+  localStorage.setItem(p.id, 'true');
+  environmentGroup.remove(p.mesh);
+  activePresents3D.splice(i, 1);
+  audio.playRecoveryBoost();
+  screenShake = Math.max(screenShake, 0.4);
+
+  let count = 0;
+  ['A','B','C'].forEach(sub => {
+    if (localStorage.getItem(`glider_xmas_present_${sub}`) === 'true') count++;
+  });
+  showAchievementNotifications([{ name: `Present Found! (${count}/3)` }]);
+}
+    }
+  }
+
   checkGateProgress();
   if (gameState !== 'RACING') return;
   checkBoundaries();
@@ -11463,6 +12812,23 @@ function drawHudCanvas() {
     hudCtx.arc(0, 0, 20, 0, Math.PI * 2);
     hudCtx.stroke();
 
+    if (rudderBoost && (rudderBoost.charging || (rudderBoost.chargeTimer && rudderBoost.chargeTimer > 0))) {
+      const chargeProgress = Math.min((rudderBoost.chargeTimer || 0) / 1.2, 1.0);
+      if (chargeProgress > 0) {
+        hudCtx.save();
+        hudCtx.beginPath();
+        hudCtx.arc(0, 0, 23.5, -Math.PI / 2, -Math.PI / 2 + chargeProgress * Math.PI * 2);
+        hudCtx.strokeStyle = '#39ff14';
+        hudCtx.lineWidth = chargeProgress >= 1.0 ? 3.5 : 2.5;
+        if (chargeProgress >= 1.0) {
+          hudCtx.shadowColor = '#39ff14';
+          hudCtx.shadowBlur = 10;
+        }
+        hudCtx.stroke();
+        hudCtx.restore();
+      }
+    }
+
     hudCtx.rotate(-relAngle);
 
     hudCtx.fillStyle = '#00f0ff';
@@ -11483,7 +12849,9 @@ function drawHudCanvas() {
     hudCtx.fillText(`${distMeters} M`, arrowX, arrowY + 36);
   }
 
-    drawCustomSpeedometer(hudCtx, w - 370, h - 175, player.speed, rudderBoost);
+    if (!isMobileDevice()) {
+      drawCustomSpeedometer(hudCtx, w - 370, h - 175, player.speed, rudderBoost);
+    }
 
   if (devFadeInTimer > 0) {
     const alpha = Math.min(1.0, Math.max(0, devFadeInTimer / 0.75));
@@ -11794,6 +13162,14 @@ const isPointToPoint = (selectedSubtrack === 'C' && (selectedCourseId === 'volca
         minimapCtx.arc(ax, ay, 3.5, 0, Math.PI * 2);
         minimapCtx.fill();
         minimapCtx.stroke();
+      } else if (ai.isKrampusBoss) {
+        minimapCtx.fillStyle = '#0a0a0a';
+        minimapCtx.strokeStyle = '#ff1111';
+        minimapCtx.lineWidth = 1.4;
+        minimapCtx.beginPath();
+        minimapCtx.arc(ax, ay, 3.5, 0, Math.PI * 2);
+        minimapCtx.fill();
+        minimapCtx.stroke();
       } else {
         minimapCtx.fillStyle = `#${ai.color.toString(16).padStart(6, '0')}`;
         minimapCtx.beginPath();
@@ -11851,6 +13227,9 @@ const isPointToPoint = (selectedSubtrack === 'C' && (selectedCourseId === 'volca
 
 function startCountdown() {
   audio.init();
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('landscape').catch(() => {});
+  }
   showScreen(null);
   stopMenuTheme(true);
   buildCourse(selectedCourseId);
@@ -11953,6 +13332,8 @@ stallMechanic.active = false;
   countBox.style.display = 'block';
   countBox.innerText = '3';
   audio.playBeep(440, 'sine', 0.15);
+
+   updateJoystickVisibility();
 }
 
 function updateRunup(dt) {
@@ -11999,6 +13380,7 @@ function updateRunup(dt) {
     raceStartTime = performance.now();
     gameState = 'RACING';
     document.getElementById('countdown-box').style.display = 'none';
+    updateJoystickVisibility();
   }
 
   updateCameraView(0, 0);
@@ -12009,36 +13391,37 @@ updateShadowMesh(playerShadowMesh, player.pos.x, player.pos.y, player.pos.z, pla
   updateAI(dt);
 }
 
-/* Player Name Color Mapped by Equipped Glider Skin */
 function getPlayerGliderColor() {
   const skinId = getEquippedSkinId();
   switch (skinId) {
+    case 'glider_santa':
+      return '#c41220';
     case 'glider_halloween':
-      return '#ff6600'; // Pumpkin Orange
+      return '#ff6600'; 
     case 'glider_16bit':
-      return '#8e44ad'; // Elegant dark purple
+      return '#8e44ad';
     case 'default':
-      return '#ee2233'; // Red
+      return '#ee2233'; 
     case 'lava_core':
-      return '#ff6600'; // Orange
+      return '#ff6600'; 
     case 'glider_tv_static':
-      return '#ffffff'; // White
+      return '#ffffff'; 
     case 'lunar_voyager':
-      return '#e5a93b'; // Apollo Gold
+      return '#e5a93b'; 
     case 'first_silver':
-      return '#d0d7de'; // Chrome / Silver
+      return '#d0d7de'; 
     case 'all_bronze':
-      return '#c87533'; // Bronze
+      return '#c87533'; 
     case 'first_gold':
-      return '#dfb12c'; // Satin Gold
+      return '#dfb12c'; 
     case 'all_silver':
-      return '#eef2f6'; // Platinum
+      return '#eef2f6'; 
     case 'all_gold':
-      return '#ffcc00'; // Polished Gold
+      return '#ffcc00'; 
     case 'aphelion_apex':
-      return '#00f0ff'; // Cyan
+      return '#00f0ff'; 
     case 'all_ace':
-      return '#ca8aff'; // Glowing Violet
+      return '#ca8aff'; 
     default:
       return '#00f0ff';
   }
@@ -12777,6 +14160,19 @@ function finishRace() {
     updateHalloweenThemeVisibility();
   }
 
+if (isKrampusBossDuel) {
+  const wonDuel = (player.rank === 1);
+  isKrampusBossDuel = false;
+  if (wonDuel) {
+    localStorage.setItem('glider_unlocked_santa', 'true');
+    localStorage.setItem('glider_unlocked_krampus_ghost', 'true');
+    showAchievementNotifications([
+      { name: "Santa Glider Unlocked!" },
+      { name: "Krampus Drone Unlocked!" }
+    ]);
+  }
+  }
+
   if (grandPrixState.active) {
     handleGrandPrixRaceFinish(player.rank, raceElapsedTime, false);
     return;
@@ -12899,6 +14295,10 @@ function endRace(reason) {
     updateHalloweenThemeVisibility();
   }
 
+  if (isKrampusBossDuel) {
+    isKrampusBossDuel = false;
+  }
+
   if (grandPrixState.active) {
     handleGrandPrixRaceFinish(5, 9999, true);
     return;
@@ -12906,6 +14306,393 @@ function endRace(reason) {
 
   document.getElementById('lose-stats').innerText = reason === 'lose-crash' ? 'TERRAIN IMPACT DETECTED' : 'DRIFTED OUT OF COURSE BOUNDS';
   showScreen('screen-lose');
+}
+
+let flappyCanvas = null;
+let flappyCtx = null;
+let flappyAnimId = null;
+let flappyState = 'READY';
+let flappyScore = 0;
+let flappyGlider = { x: 80, y: 300, vy: 0, rot: 0 };
+let flappyPipes = [];
+let flappySpawnTimer = 0;
+let flappyPipesSpawned = 0;
+let flappyPresentsDelivered = 0;
+let flappyDropStage = 'NONE';
+let flappyDropTimer = 0;
+let flappyChimneyY = 720;
+let flappyPresent = { x: 228, y: 280, vy: 0, visible: false };
+
+const flappyAssets = {
+  bg: new Image(),
+  glider: new Image(),
+  chimneyClosed: new Image(),
+  brick: new Image(),
+  chimneyTop: new Image(),
+  present: new Image()
+};
+flappyAssets.bg.src = 'gliderbirdbackground.png';
+flappyAssets.glider.src = 'FlappyGlider.png';
+flappyAssets.chimneyClosed.src = 'chimneytopclosed.png';
+flappyAssets.brick.src = 'brickwallforflappyglider.png';
+flappyAssets.chimneyTop.src = 'chimneytop.png';
+flappyAssets.present.src = 'present.png';
+
+function startKrampusBossRace() {
+  audio.init();
+  isKrampusBossDuel = true;
+  grandPrixState.active = false;
+  selectedCourseId = 'glacial';
+  selectedSubtrack = 'B';
+  selectedDifficulty = 'hard';
+  gameMode = 'race';
+  showScreen(null);
+  stopMenuTheme(true);
+  startCountdown();
+}
+
+function closeFlappyMinigame() {
+  if (flappyAnimId) {
+    cancelAnimationFrame(flappyAnimId);
+    flappyAnimId = null;
+  }
+  const overlay = document.getElementById('flappy-minigame-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function openFlappyMinigame() {
+  const overlay = document.getElementById('flappy-minigame-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+
+  flappyCanvas = document.getElementById('flappy-canvas');
+  flappyCtx = flappyCanvas.getContext('2d');
+  flappyCtx.imageSmoothingEnabled = false;
+
+  resetFlappyGame();
+
+  const closeBtn = document.getElementById('btn-flappy-close');
+  if (closeBtn) {
+    closeBtn.onclick = (e) => {
+      e.stopPropagation();
+      closeFlappyMinigame();
+    };
+  }
+
+  flappyCanvas.onpointerdown = (e) => {
+    e.preventDefault();
+    flappyTriggerFlap();
+  };
+
+  if (!flappyAnimId) {
+    let lastT = performance.now();
+    function loop(now) {
+      const dt = Math.min((now - lastT) / 1000, 0.05);
+      lastT = now;
+      updateFlappyGame(dt);
+      drawFlappyGame();
+      if (document.getElementById('flappy-minigame-overlay').style.display !== 'none') {
+        flappyAnimId = requestAnimationFrame(loop);
+      } else {
+        flappyAnimId = null;
+      }
+    }
+    flappyAnimId = requestAnimationFrame(loop);
+  }
+}
+
+function resetFlappyGame() {
+  flappyState = 'READY';
+  flappyScore = 0;
+  flappyGlider = { x: 80, y: 300, vy: 0, rot: 0 };
+  flappyPipes = [];
+  flappySpawnTimer = 0;
+  flappyPipesSpawned = 0;
+  flappyPresentsDelivered = 0;
+  flappyDropStage = 'NONE';
+  flappyDropTimer = 0;
+  flappyChimneyY = 720;
+  flappyPresent = { x: 228, y: 280, vy: 0, visible: false };
+}
+
+function flappyTriggerFlap() {
+  if (flappyState === 'READY') {
+    flappyState = 'PLAYING';
+    flappyGlider.vy = -310;
+    audio.playBeep(520, 'sine', 0.08);
+  } else if (flappyState === 'PLAYING') {
+    flappyGlider.vy = -310;
+    audio.playBeep(520, 'sine', 0.08);
+  } else if (flappyState === 'GAME_OVER') {
+    resetFlappyGame();
+  }
+}
+
+function updateFlappyGame(dt) {
+  if (flappyState === 'PLAYING') {
+    flappyGlider.vy += 920 * dt;
+    flappyGlider.y += flappyGlider.vy * dt;
+    flappyGlider.rot = Math.max(-0.55, Math.min(1.2, flappyGlider.vy * 0.003));
+
+    if (flappyGlider.y < 0) {
+      flappyGlider.y = 0;
+      flappyGlider.vy = 0;
+    }
+    if (flappyGlider.y + 30 > 690) {
+      flappyState = 'GAME_OVER';
+      audio.playCrash();
+      return;
+    }
+
+    const currentWaveTarget = (flappyPresentsDelivered + 1) * 10;
+    if (flappyPipesSpawned < currentWaveTarget) {
+      flappySpawnTimer += dt;
+      if (flappySpawnTimer >= 1.65) {
+        flappySpawnTimer = 0;
+        const topH = 80 + Math.random() * 260;
+        const gap = 200;
+        flappyPipes.push({
+          x: 480,
+          topH: topH,
+          bottomY: topH + gap,
+          passed: false
+        });
+        flappyPipesSpawned++;
+      }
+    }
+
+    const gx = flappyGlider.x + 4;
+    const gy = flappyGlider.y + 4;
+    const gw = 24;
+    const gh = 24;
+
+    for (let i = flappyPipes.length - 1; i >= 0; i--) {
+      const p = flappyPipes[i];
+      p.x -= 140 * dt;
+
+      if (!p.passed && p.x + 48 < flappyGlider.x) {
+        p.passed = true;
+        flappyScore++;
+        audio.playGateWhoosh();
+      }
+
+      const rx = p.x + 2;
+      const rw = 44;
+      const topRect = { x: rx, y: 0, w: rw, h: p.topH };
+      const botRect = { x: rx, y: p.bottomY, w: rw, h: 720 - p.bottomY };
+
+      const hitTop = (gx + gw > topRect.x && gx < topRect.x + topRect.w && gy + gh > topRect.y && gy < topRect.y + topRect.h);
+      const hitBot = (gx + gw > botRect.x && gx < botRect.x + botRect.w && gy + gh > botRect.y && gy < botRect.y + botRect.h);
+
+      if (hitTop || hitBot) {
+        flappyState = 'GAME_OVER';
+        audio.playCrash();
+        return;
+      }
+
+      if (p.x + 48 < -20) {
+        flappyPipes.splice(i, 1);
+      }
+    }
+
+    if (flappyPipesSpawned >= currentWaveTarget && flappyPipes.length === 0) {
+      flappyState = 'DROP';
+      flappyDropStage = 'RISING';
+      flappyDropTimer = 0;
+      flappyChimneyY = 720;
+      flappyPresent.visible = false;
+    }
+  } else if (flappyState === 'DROP') {
+    flappyDropTimer += dt;
+    flappyGlider.x = THREE.MathUtils.lerp(flappyGlider.x, 224, 3.0 * dt);
+    flappyGlider.y = THREE.MathUtils.lerp(flappyGlider.y, 240, 3.0 * dt);
+    flappyGlider.vy = 0;
+    flappyGlider.rot = THREE.MathUtils.lerp(flappyGlider.rot, 0, 4.0 * dt);
+
+    if (flappyDropStage === 'RISING') {
+      flappyChimneyY = THREE.MathUtils.lerp(flappyChimneyY, 480, 4.0 * dt);
+      if (Math.abs(flappyChimneyY - 480) < 3.0 && Math.abs(flappyGlider.x - 224) < 6.0) {
+        flappyChimneyY = 480;
+        flappyDropStage = 'DROPPING';
+        flappyPresent.x = 228;
+        flappyPresent.y = 264;
+        flappyPresent.vy = 40;
+        flappyPresent.visible = true;
+      }
+    } else if (flappyDropStage === 'DROPPING') {
+      flappyPresent.vy += 700 * dt;
+      flappyPresent.y += flappyPresent.vy * dt;
+
+      if (flappyPresent.y >= 505) {
+        flappyPresent.visible = false;
+        flappyPresentsDelivered++;
+        flappyDropStage = 'CELEBRATE';
+        flappyDropTimer = 0;
+        audio.playRecoveryBoost();
+      }
+    } else if (flappyDropStage === 'CELEBRATE') {
+      if (flappyDropTimer >= 1.5) {
+        if (flappyPresentsDelivered >= 3) {
+          flappyState = 'WON';
+          flappyDropTimer = 0;
+          audio.playFinishFanfare();
+          localStorage.setItem('glider_xmas_minigame_won', 'true');
+        } else {
+          flappyDropStage = 'LOWERING';
+        }
+      }
+    } else if (flappyDropStage === 'LOWERING') {
+      flappyChimneyY = THREE.MathUtils.lerp(flappyChimneyY, 720, 4.5 * dt);
+      if (flappyChimneyY >= 715) {
+        flappyChimneyY = 720;
+        flappyState = 'PLAYING';
+        flappySpawnTimer = 0;
+      }
+    }
+  } else if (flappyState === 'WON') {
+    flappyDropTimer += dt;
+    if (flappyDropTimer >= 2.2) {
+      closeFlappyMinigame();
+      startKrampusBossRace();
+    }
+  }
+}
+
+function drawFlappyGame() {
+  if (!flappyCtx) return;
+
+  if (flappyAssets.bg.complete) {
+    flappyCtx.drawImage(flappyAssets.bg, 0, 0, 480, 720);
+  } else {
+    flappyCtx.fillStyle = '#6ba4d8';
+    flappyCtx.fillRect(0, 0, 480, 720);
+  }
+
+  for (let i = 0; i < flappyPipes.length; i++) {
+    const p = flappyPipes[i];
+
+    if (flappyAssets.chimneyClosed.complete) {
+      flappyCtx.save();
+      flappyCtx.translate(p.x, p.topH);
+      flappyCtx.scale(1, -1);
+      flappyCtx.drawImage(flappyAssets.chimneyClosed, 0, 0, 48, 48);
+      flappyCtx.restore();
+    }
+    if (flappyAssets.brick.complete) {
+      for (let by = 0; by < p.topH - 48; by += 32) {
+        const bh = Math.min(32, (p.topH - 48) - by);
+        flappyCtx.drawImage(flappyAssets.brick, 0, 0, 48, bh, p.x, by, 48, bh);
+      }
+    }
+
+    if (flappyAssets.chimneyClosed.complete) {
+      flappyCtx.drawImage(flappyAssets.chimneyClosed, p.x, p.bottomY, 48, 48);
+    }
+    if (flappyAssets.brick.complete) {
+      for (let by = p.bottomY + 48; by < 720; by += 32) {
+        const bh = Math.min(32, 720 - by);
+        flappyCtx.drawImage(flappyAssets.brick, 0, 0, 48, bh, p.x, by, 48, bh);
+      }
+    }
+  }
+
+  if (flappyChimneyY < 720) {
+    if (flappyAssets.chimneyTop.complete) {
+      flappyCtx.drawImage(flappyAssets.chimneyTop, 192, flappyChimneyY, 96, 128);
+    }
+    if (flappyAssets.brick.complete) {
+      for (let by = flappyChimneyY + 128; by < 720; by += 32) {
+        const bh = Math.min(32, 720 - by);
+        flappyCtx.drawImage(flappyAssets.brick, 0, 0, 48, bh, 192, by, 48, bh);
+        flappyCtx.drawImage(flappyAssets.brick, 0, 0, 48, bh, 240, by, 48, bh);
+      }
+    }
+  }
+
+  if (flappyPresent.visible && flappyAssets.present.complete) {
+    flappyCtx.drawImage(flappyAssets.present, flappyPresent.x, flappyPresent.y, 24, 24);
+  }
+
+  flappyCtx.save();
+  flappyCtx.translate(flappyGlider.x + 16, flappyGlider.y + 16);
+  flappyCtx.rotate(flappyGlider.rot);
+  if (flappyAssets.glider.complete) {
+    flappyCtx.drawImage(flappyAssets.glider, -16, -16, 32, 32);
+  } else {
+    flappyCtx.fillStyle = '#ff2222';
+    flappyCtx.fillRect(-16, -16, 32, 32);
+  }
+  flappyCtx.restore();
+
+  flappyCtx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+  flappyCtx.fillRect(16, 14, 220, 68);
+  flappyCtx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+  flappyCtx.lineWidth = 1.5;
+  flappyCtx.strokeRect(16, 14, 220, 68);
+
+  flappyCtx.fillStyle = '#ffffff';
+  flappyCtx.font = '900 18px "Courier New", Courier, monospace';
+  flappyCtx.textAlign = 'left';
+  flappyCtx.fillText('PIPES: ' + flappyScore + ' / 30', 28, 42);
+  flappyCtx.fillStyle = '#f1c40f';
+  flappyCtx.fillText('GIFTS: ' + flappyPresentsDelivered + ' / 3', 28, 68);
+
+  if (flappyState === 'READY') {
+    flappyCtx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+    flappyCtx.fillRect(40, 260, 400, 160);
+    flappyCtx.strokeStyle = '#00f0ff';
+    flappyCtx.strokeRect(40, 260, 400, 160);
+
+    flappyCtx.fillStyle = '#ffffff';
+    flappyCtx.font = '900 24px "Courier New", Courier, monospace';
+    flappyCtx.textAlign = 'center';
+    flappyCtx.fillText('GIFT DROP', 240, 315);
+    flappyCtx.fillStyle = '#00f0ff';
+    flappyCtx.font = '700 14px "Courier New", Courier, monospace';
+    flappyCtx.fillText('PRESS SPACE OR TAP TO GLIDE', 240, 360);
+    flappyCtx.fillStyle = '#f1c40f';
+    flappyCtx.font = '700 12px "Courier New", Courier, monospace';
+    flappyCtx.fillText('SURVIVE 30 CHIMNEYS & DELIVER 3 GIFTS', 240, 390);
+  } else if (flappyState === 'GAME_OVER') {
+    flappyCtx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    flappyCtx.fillRect(40, 260, 400, 150);
+    flappyCtx.strokeStyle = '#ff3333';
+    flappyCtx.strokeRect(40, 260, 400, 150);
+
+    flappyCtx.fillStyle = '#ff3333';
+    flappyCtx.font = '900 26px "Courier New", Courier, monospace';
+    flappyCtx.textAlign = 'center';
+    flappyCtx.fillText('CRASHED!', 240, 320);
+    flappyCtx.fillStyle = '#ffffff';
+    flappyCtx.font = '700 14px "Courier New", Courier, monospace';
+    flappyCtx.fillText('PRESS SPACE OR TAP TO RETRY', 240, 370);
+  } else if (flappyState === 'DROP' && flappyDropStage === 'CELEBRATE') {
+    flappyCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    flappyCtx.fillRect(40, 120, 400, 70);
+    flappyCtx.strokeStyle = '#2ecc71';
+    flappyCtx.strokeRect(40, 120, 400, 70);
+
+    flappyCtx.fillStyle = '#2ecc71';
+    flappyCtx.font = '900 20px "Courier New", Courier, monospace';
+    flappyCtx.textAlign = 'center';
+    flappyCtx.fillText('PRESENT ' + flappyPresentsDelivered + ' / 3 DELIVERED!', 240, 162);
+  } else if (flappyState === 'WON') {
+    flappyCtx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+    flappyCtx.fillRect(30, 230, 420, 190);
+    flappyCtx.strokeStyle = '#f1c40f';
+    flappyCtx.strokeRect(30, 230, 420, 190);
+
+    flappyCtx.fillStyle = '#f1c40f';
+    flappyCtx.font = '900 24px "Courier New", Courier, monospace';
+    flappyCtx.textAlign = 'center';
+    flappyCtx.fillText('ALL PRESENTS DELIVERED!', 240, 290);
+    flappyCtx.fillStyle = '#ffffff';
+    flappyCtx.font = '700 15px "Courier New", Courier, monospace';
+    flappyCtx.fillText('PREPARE FOR BATTLE...', 240, 340);
+    flappyCtx.fillStyle = '#ff4444';
+    flappyCtx.font = '900 16px "Courier New", Courier, monospace';
+    flappyCtx.fillText('KRAMPUS AWAITS ON RAZOR PASS', 240, 380);
+  }
 }
 
 function setupUI() {
@@ -12939,6 +14726,10 @@ const resetBtn = document.getElementById('btn-reset-scores');
       localStorage.removeItem('glider_achieve_devtools');
       localStorage.removeItem('glider_achieve_tv');
       localStorage.removeItem('glider_credits_seen');
+      ['A', 'B', 'C'].forEach(p => localStorage.removeItem(`glider_xmas_present_${p}`));
+      localStorage.removeItem('glider_xmas_minigame_won');
+      localStorage.removeItem('glider_unlocked_santa');
+      localStorage.removeItem('glider_unlocked_krampus_ghost');
       impossibleDifficultyUnlocked = false;
       buildParagliderMesh();
       if (ghostDroneGroup) createGhostDroneMesh();
@@ -12974,6 +14765,7 @@ const resetBtn = document.getElementById('btn-reset-scores');
     btnSettingsToggle.addEventListener('click', () => {
       audio.init();
       if (settingsOverlay) settingsOverlay.style.display = 'flex';
+      updateHalloweenThemeVisibility();
     });
   }
 
@@ -12981,6 +14773,7 @@ const resetBtn = document.getElementById('btn-reset-scores');
     btnSettingsClose.addEventListener('click', () => {
       audio.init();
       if (settingsOverlay) settingsOverlay.style.display = 'none';
+      updateHalloweenThemeVisibility();
     });
   }
 
@@ -13040,7 +14833,16 @@ const resetBtn = document.getElementById('btn-reset-scores');
         });
       });
 
-      const encodedCode = AphelionEncoder.encode({ pbs, ghosts });
+      let xm = 0;
+      if (localStorage.getItem('glider_xmas_present_A') === 'true') xm |= 1;
+      if (localStorage.getItem('glider_xmas_present_B') === 'true') xm |= 2;
+      if (localStorage.getItem('glider_xmas_present_C') === 'true') xm |= 4;
+      if (localStorage.getItem('glider_xmas_minigame_won') === 'true') xm |= 8;
+      if (localStorage.getItem('glider_unlocked_santa') === 'true') xm |= 16;
+      if (localStorage.getItem('glider_unlocked_krampus_ghost') === 'true') xm |= 32;
+      const halloweenUnlocked = localStorage.getItem('glider_unlocked_halloween') === 'true';
+
+      const encodedCode = AphelionEncoder.encode({ pbs, ghosts, halloweenUnlocked, xm });
 
       modalTitle.innerText = 'Export Save Code';
       modalSubtitle.innerText = 'Copy This Encrypted Glider Save Key';
@@ -13114,6 +14916,18 @@ const resetBtn = document.getElementById('btn-reset-scores');
                 ghostCount++;
               }
             }
+          }
+
+          if (decoded.xm) {
+            if (decoded.xm & 1) localStorage.setItem('glider_xmas_present_A', 'true');
+            if (decoded.xm & 2) localStorage.setItem('glider_xmas_present_B', 'true');
+            if (decoded.xm & 4) localStorage.setItem('glider_xmas_present_C', 'true');
+            if (decoded.xm & 8) localStorage.setItem('glider_xmas_minigame_won', 'true');
+            if (decoded.xm & 16) localStorage.setItem('glider_unlocked_santa', 'true');
+            if (decoded.xm & 32) localStorage.setItem('glider_unlocked_krampus_ghost', 'true');
+          }
+          if (decoded.halloweenUnlocked) {
+            localStorage.setItem('glider_unlocked_halloween', 'true');
           }
 
           updatePBTags();
@@ -13211,7 +15025,6 @@ const resetBtn = document.getElementById('btn-reset-scores');
     });
   });
 
-  // Connect Controls Customization Modal in Settings
   const btnOpenKeybinds = document.getElementById('btn-open-keybinds');
   const keybindModal = document.getElementById('keybind-modal-overlay');
   const btnKeybindReset = document.getElementById('btn-keybind-reset');
@@ -13220,6 +15033,11 @@ const resetBtn = document.getElementById('btn-reset-scores');
   if (btnOpenKeybinds) {
     btnOpenKeybinds.addEventListener('click', () => {
       audio.init();
+      if (isMobileDevice()) {
+        if (settingsOverlay) settingsOverlay.style.display = 'none';
+        openMobileRepositionEditor();
+        return;
+      }
       activeRebindAction = null;
       activeRebindIndex = -1;
       renderKeybindList();
@@ -13254,7 +15072,6 @@ const resetBtn = document.getElementById('btn-reset-scores');
   });
   document.getElementById('btn-shop-back').addEventListener('click', () => showScreen('screen-select'));
 
-  // Halloween Seasonal Setup
   if (HALLOWEEN_EVENT_ACTIVE) {
     updateHalloweenThemeVisibility();
     updateCellarDoorVisibility();
@@ -13287,16 +15104,28 @@ const resetBtn = document.getElementById('btn-reset-scores');
       });
     }
 
-    const cellarWrap = document.getElementById('shop-cellar-door-wrap');
-    if (cellarWrap) {
-      cellarWrap.addEventListener('click', () => {
-        audio.init();
-        audio.playCreakAndDeadbolt();
+    }
 
+  const cellarWrap = document.getElementById('shop-cellar-door-wrap');
+  if (cellarWrap) {
+    cellarWrap.addEventListener('click', () => {
+      audio.init();
+      audio.playCreakAndDeadbolt();
+
+      if (CHRISTMAS_EVENT_ACTIVE && hasAllChristmasPresents()) {
+  if (localStorage.getItem('glider_xmas_minigame_won') === 'true') {
+    startKrampusBossRace();
+  } else {
+    openFlappyMinigame();
+  }
+  return;
+}
+
+      if (HALLOWEEN_EVENT_ACTIVE && halloween_door_unlocked) {
         isHalloweenBossDuel = true;
         grandPrixState.active = false;
         selectedCourseId = 'coastal';
-        selectedSubtrack = 'B'; // Ghost Fleet Track
+        selectedSubtrack = 'B';
         selectedDifficulty = 'hard';
         gameMode = 'race';
 
@@ -13310,8 +15139,8 @@ const resetBtn = document.getElementById('btn-reset-scores');
         stopMenuTheme(true);
 
         startGhostFleetCinematic();
-      });
-    }
+      }
+    });
   }
 
   document.getElementById('btn-start-race').addEventListener('click', () => {
@@ -13394,6 +15223,19 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
 
   updateInvertButtons();
 
+  document.querySelectorAll('.joystick-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      audio.init();
+      mobileJoystickMode = btn.getAttribute('data-joystick');
+      try {
+        localStorage.setItem('glider_mobile_joystick', mobileJoystickMode);
+      } catch (e) {}
+      updateJoystickVisibility();
+    });
+  });
+
+  updateJoystickVisibility();
+
   // Speedometer Needle Selector
   const pointerBox = document.getElementById('settings-pointer-box');
   if (pointerBox && localStorage.getItem('glider_unlocked_pointer2') === 'true') {
@@ -13427,6 +15269,9 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
         applySkySetting();
       }
       updateHalloweenThemeVisibility();
+    }
+    if (isKrampusBossDuel) {
+      isKrampusBossDuel = false;
     }
     if (grandPrixState.active) {
       grandPrixState.active = false;
@@ -13542,6 +15387,10 @@ const settingsBtn = document.getElementById('btn-settings-toggle');
   if (screenId) {
     document.getElementById(screenId).classList.remove('hidden');
     document.getElementById('hud-overlay').style.display = 'none';
+    const mobileWrap = document.getElementById('mobile-controls-wrap');
+    if (mobileWrap && !isRepositionMode) mobileWrap.style.display = 'none';
+    const mobileSpd = document.getElementById('mobile-speedometer');
+    if (mobileSpd) mobileSpd.style.display = 'none';
 
     if (screenId === 'screen-shop') {
       playMenuTheme('shop');
@@ -13607,6 +15456,19 @@ const settingsBtn = document.getElementById('btn-settings-toggle');
   } else {
     document.getElementById('hud-overlay').style.display = 'block';
     stopMenuTheme();
+    const mobileWrap = document.getElementById('mobile-controls-wrap');
+    if (mobileWrap) {
+      const showMobileWrap = isMobileDevice() ||
+        window.matchMedia('(pointer: coarse)').matches ||
+        window.innerWidth <= 950;
+      mobileWrap.style.display = showMobileWrap ? 'block' : 'none';
+    }
+    const mobileSpd = document.getElementById('mobile-speedometer');
+    if (mobileSpd) mobileSpd.style.display = isMobileDevice() ? 'flex' : 'none';
+    if (isMobileDevice()) {
+      applyMobileButtonPositions();
+      updateJoystickVisibility();
+    }
   }
 }
 
@@ -13620,6 +15482,19 @@ function updateHUD() {
   document.getElementById('hud-alt').innerText = Math.round(player.pos.y * 3.2);
   document.getElementById('hud-gate').innerText = `${player.nextGateIdx}/${activeSubtrack.waypoints.length - 1}`;
   document.getElementById('hud-time').innerText = formatTime(raceElapsedTime);
+
+  const mobileSpdVal = document.getElementById('mobile-speed-val');
+  if (mobileSpdVal) {
+    const spd = Math.round(player.speed || 0);
+    mobileSpdVal.innerText = String(spd).padStart(3, '0');
+    if (spd < 24) {
+      mobileSpdVal.style.color = 'var(--red)';
+    } else if (spd > 130) {
+      mobileSpdVal.style.color = 'var(--gold)';
+    } else {
+      mobileSpdVal.style.color = '#ffffff';
+    }
+  }
 
   const posLabel = document.getElementById('hud-pos-label');
   const posVal = document.getElementById('hud-pos');
@@ -13813,6 +15688,11 @@ function startCredits(options = {}) {
       creditsTotalDuration = creditsAudio.duration;
     }
   };
+
+  const creditsHw = document.getElementById('credits-halloween-final');
+  if (creditsHw) {
+    creditsHw.style.display = HALLOWEEN_EVENT_ACTIVE ? 'block' : 'none';
+  }
 
   loadCreditsStage(0);
 }
@@ -14089,6 +15969,12 @@ function animate() {
   const now = performance.now();
   const dt = Math.min((now - lastTime) / 1000, 0.1);
   lastTime = now;
+
+  if (gameState !== lastMobileCtrlGameState) {
+    lastMobileCtrlGameState = gameState;
+    if (isMobileDevice()) updateJoystickVisibility();
+  }
+
   handleGamepadUI(dt);
   updateBackGifFrame();
   updateTvStaticTexture();

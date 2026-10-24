@@ -24,14 +24,14 @@ const ASSETS = [
   './interact 3.mp3',
   './interact 4.mp3',
 
-  // Cursors & UI
+  // Cursors
   './glidercurser.png',
   './glidercurser_select.png',
   './Keycurser.png',
   './goldenkey.png',
   './input_file_1.png',
 
-  // Menu & Track Images
+  // Menu Images
   './gliderfontthing.png',
   './aphelionlogo.png',
   './singletrack.png',
@@ -52,7 +52,7 @@ const ASSETS = [
   './odysseycup.png',
   './aphelioncup.png',
 
-  // In-Game Assets
+  // In Game Assets
   './finishbanner.png',
   './finish.png',
   './lessthan1stbanner.png',
@@ -127,7 +127,15 @@ const ASSETS = [
   './juniorplay.png',
   './rip_n00bname.png',
   './foxbutbettername.png',
-  './specialthankseveryone.png'
+  './specialthankseveryone.png',
+
+  //christmas assets
+    './present.png',
+  './gliderbirdbackground.png',
+  './FlappyGlider.png',
+  './chimneytopclosed.png',
+  './brickwallforflappyglider.png',
+  './chimneytop.png',
 ];
 
 self.addEventListener('install', (e) => {
