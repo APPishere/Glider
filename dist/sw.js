@@ -1,4 +1,4 @@
-const CACHE_NAME = 'glider-cache-v1';
+const CACHE_NAME = 'glider-cache-v2';
 
 const ASSETS = [
   // Core Files
