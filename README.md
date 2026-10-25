@@ -28,7 +28,7 @@ The skies are waiting but the ground is closer than it seems.
 
 ## CONTROLS:
 
-Keyboard (WASD Mode + Mouse)
+> Keyboard (WASD Mode + Mouse)
 W / S – Pitch (nose down / nose up) Pull back to climb, push forward to dive and build speed.
 A / D – Roll (bank left / bank right) Tilt your wings to carve tight turns.
 Q / E – Rudder Yaw / Rudder Boost (yaw left / yaw right). Hold for 1s to charge an instant speed boost !
@@ -39,9 +39,8 @@ Q / E – Rudder Yaw (optional).
 Spacebar – Airbrake (if wanted)
 Esc – Pause / Resume
 
-Controller 
 
-
+> Controller 
 Left Stick – Pitch & Roll Push forward to dive, pull back to climb. Tilt left/right to bank.
 Right Stick (Horizontal) / L1 & R1 Bumpers – Rudder Yaw / Rudder Boost. Hold yaw to charge your rudder boost through coordinated turns!
 L2 / R2 Triggers – Airbrake Squeeze to slow down – Face buttons B or X also work as airbrake shortcuts.
@@ -53,7 +52,7 @@ B / Circle – Back / Cancel (Menus)
 Mobile friendly BUT requires a controller to be connected
 Check out the artist!
 
-Mobile?
+> Mobile?
 Its okay! its on your screen!
 (NOTE: Some UI is STILL work in progress!)
 
