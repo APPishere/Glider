@@ -1590,7 +1590,7 @@ button,
     width: 84px;
     height: 84px;
     font-size: 11px;
-    border-radius: 50% !important;
+    border-radius: 8px !important;
   }
 
   #mobile-btn-brake.rect-mode {
@@ -2419,7 +2419,6 @@ button,
 <div id="rotate-device-overlay">ROTATE YOUR DEVICE</div>
 
 <div id="mobile-controls-wrap">
-  <button id="mobile-btn-pause" class="mobile-ctrl-btn" aria-label="Pause">❚❚</button>
   <button id="mobile-btn-yaw-l" class="mobile-ctrl-btn" aria-label="Yaw Left (Q)">
     Q
     <div class="ctrl-resize-handle" title="Resize">
@@ -3253,11 +3252,7 @@ function updateJoystickVisibility() {
   }
 
   if (brake) {
-    if (isVisibleMode) {
-      brake.classList.add('rect-mode');
-    } else {
-      brake.classList.remove('rect-mode');
-    }
+    brake.classList.add('rect-mode');
   }
 
   applyMobileButtonPositions();
@@ -3272,8 +3267,7 @@ function applyMobileButtonPositions() {
 
   const isVisibleMode = (mobileJoystickMode !== 'invisible');
   if (brake) {
-    if (isVisibleMode) brake.classList.add('rect-mode');
-    else brake.classList.remove('rect-mode');
+    brake.classList.add('rect-mode');
   }
 
   let saved = null;
@@ -9377,14 +9371,23 @@ function updateInvertButtons() {
   });
 }
 
+let pauseStartTime = 0;
+
 function togglePauseMenu() {
   if (gameState === 'RACING' || gameState === 'RUNUP') {
     pausedState = gameState;
+    pauseStartTime = performance.now();
     gameState = 'PAUSED';
     audio.stopAllAudio();
     updateInvertButtons();
     showScreen('screen-pause');
   } else if (gameState === 'PAUSED') {
+    if (pauseStartTime > 0) {
+      if (pausedState === 'RACING') {
+        raceStartTime += (performance.now() - pauseStartTime);
+      }
+      pauseStartTime = 0;
+    }
     gameState = pausedState;
     mouseX = 0;
     mouseY = 0;
@@ -12230,11 +12233,31 @@ function spawnAI(course, activeSubtrack) {
   }
 }
 
+function getTrackProgress(pos, targetIdx, lap = 0) {
+  const course = COURSES[selectedCourseId];
+  if (!course) return 0;
+  const activeSubtrack = course.subtracks[selectedSubtrack];
+  if (!activeSubtrack || !activeSubtrack.waypoints || activeSubtrack.waypoints.length === 0) return 0;
+  const wps = activeSubtrack.waypoints;
+
+  if (!activeSubtrack.cumDist || activeSubtrack.cumDist.length !== wps.length) {
+    activeSubtrack.cumDist = [0];
+    for (let i = 0; i < wps.length - 1; i++) {
+      activeSubtrack.cumDist.push(activeSubtrack.cumDist[i] + wps[i].distanceTo(wps[i + 1]));
+    }
+    const isClosed = wps[0].distanceTo(wps[wps.length - 1]) < 50;
+    activeSubtrack.lapLength = activeSubtrack.cumDist[wps.length - 1] + (isClosed ? 0 : wps[wps.length - 1].distanceTo(wps[0]));
+  }
+
+  const safeIdx = Math.min(Math.max(targetIdx, 0), wps.length - 1);
+  const distToTarget = pos.distanceTo(wps[safeIdx]);
+  return (lap * activeSubtrack.lapLength) + activeSubtrack.cumDist[safeIdx] - distToTarget;
+}
+
 function updateAI(dt) {
   if (gameMode !== 'race') return;
   const course = COURSES[selectedCourseId];
   const activeSubtrack = course.subtracks[selectedSubtrack];
-  const lapSize = activeSubtrack.waypoints.length * 5000; 
   const rainThermalBonus = 1.0 + weather.rainIntensity * 0.45;
 
   const diveCapByDifficulty = {
@@ -12245,8 +12268,7 @@ function updateAI(dt) {
   };
   const currentDiveCap = diveCapByDifficulty[selectedDifficulty] || 155;
 
-  const playerDist = _tempVec1.subVectors(activeSubtrack.waypoints[player.nextGateIdx] || player.pos, player.pos).length();
-  const playerProgress = player.nextGateIdx * 5000 - playerDist;
+  const playerProgress = getTrackProgress(player.pos, player.nextGateIdx, 0);
 
   aiGliders.forEach((ai, idx) => {
     if (gameState === 'RUNUP') {
@@ -12557,7 +12579,7 @@ function updateAI(dt) {
       updateShadowMesh(ai.shadowMesh, ai.pos.x, ai.pos.y, ai.pos.z, ai.yaw, selectedCourseId);
     }
 
-    ai.progress = ai.lap * lapSize + ai.targetIdx * 5000 - dist;
+    ai.progress = getTrackProgress(ai.pos, ai.targetIdx, ai.lap);
   });
 
   let r = 1;
@@ -13976,6 +13998,8 @@ screenShake = 0;
 devFreeCam = false;
 devTimeFrozen = false;
 devWarpTimer = 0;
+raceElapsedTime = 0;
+pauseStartTime = 0;
 
 stallMechanic.active = false;
   stallMechanic.recoveryWindowTimer = 0;
@@ -14585,8 +14609,7 @@ grandPrixState.racers = [
 
 function handleGrandPrixRaceFinish(playerPos, playerTime, isDnf) {
   const activeSubtrack = COURSES[selectedCourseId].subtracks[selectedSubtrack];
-  const playerDist = _tempVec1.subVectors(activeSubtrack.waypoints[player.nextGateIdx] || player.pos, player.pos).length();
-  const playerProgress = player.nextGateIdx * 5000 - playerDist;
+  const playerProgress = getTrackProgress(player.pos, player.nextGateIdx, 0);
 
   const sortedAi = aiGliders.map((ai, idx) => ({
     index: idx,
@@ -16236,21 +16259,30 @@ if (gameMode === 'race') {
     if (liveBoard) liveBoard.style.display = 'none';
 
     if (aiGliders.length > 0) {
-      const playerDist = _tempVec1.subVectors(activeSubtrack.waypoints[player.nextGateIdx], player.pos).length();
-      const playerProgress = player.nextGateIdx * 5000 - playerDist;
-      let targetAI = aiGliders[0];
-      let smallestGap = Infinity;
-
-      aiGliders.forEach(ai => {
-        const gap = Math.abs(playerProgress - ai.progress);
-        if (gap < smallestGap) {
-          smallestGap = gap;
-          targetAI = ai;
+      const playerProgress = getTrackProgress(player.pos, player.nextGateIdx, 0);
+      let targetAI = null;
+      if (player.rank === 1) {
+        let maxAiProg = -Infinity;
+        aiGliders.forEach(ai => {
+          if (ai.progress > maxAiProg) {
+            maxAiProg = ai.progress;
+            targetAI = ai;
+          }
+        });
+      } else {
+        const aheadAIs = aiGliders.filter(ai => ai.progress > playerProgress);
+        if (aheadAIs.length > 0) {
+          aheadAIs.sort((a, b) => a.progress - b.progress);
+          targetAI = aheadAIs[0];
+        } else {
+          targetAI = aiGliders[0];
         }
-      });
+      }
+
+      if (!targetAI) targetAI = aiGliders[0];
 
       const progressDiff = playerProgress - targetAI.progress;
-      const deltaSeconds = progressDiff / Math.max(player.speed, 45);
+      const deltaSeconds = progressDiff / Math.max(player.speed * 2.2, 45);
 
       if (deltaElem) {
         if (deltaSeconds >= 0) {
