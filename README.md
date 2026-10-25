@@ -28,31 +28,48 @@ The skies are waiting but the ground is closer than it seems.
 
 ## CONTROLS:
 
-> Keyboard (WASD Mode + Mouse)
-W / S – Pitch (nose down / nose up) Pull back to climb, push forward to dive and build speed.
-A / D – Roll (bank left / bank right) Tilt your wings to carve tight turns.
-Q / E – Rudder Yaw / Rudder Boost (yaw left / yaw right). Hold for 1s to charge an instant speed boost !
-Spacebar – Airbrake Deploy drag to shed speed instantly – use it to avoid overshooting gates.
-Esc – Pause / Resume Halt the action and tweak your settings and here you can change between inverse and inverse inverse.
-Move Mouse – Pitch & Roll  left/right and up /down of screen
-Q / E – Rudder Yaw (optional).
-Spacebar – Airbrake (if wanted)
-Esc – Pause / Resume
+Keyboard (WASD Mode + Mouse):
+
+> W / S – Pitch (nose down / nose up) Pull back to climb, push forward to dive and build speed.
+
+> A / D – Roll (bank left / bank right) Tilt your wings to carve tight turns.
+
+> Q / E – Rudder Yaw / Rudder Boost (yaw left / yaw right). Hold for 1s to charge an instant speed boost !
+
+> Spacebar – Airbrake Deploy drag to shed speed instantly – use it to avoid overshooting gates.
+
+> Esc – Pause / Resume Halt the action and tweak your settings and here you can change between inverse and inverse inverse.
+
+> Move Mouse – Pitch & Roll  left/right and up /down of screen
+
+> Q / E – Rudder Yaw (optional).
+
+> Spacebar – Airbrake (if wanted)
+
+> Esc – Pause / Resume
 
 
-> Controller 
-Left Stick – Pitch & Roll Push forward to dive, pull back to climb. Tilt left/right to bank.
-Right Stick (Horizontal) / L1 & R1 Bumpers – Rudder Yaw / Rudder Boost. Hold yaw to charge your rudder boost through coordinated turns!
-L2 / R2 Triggers – Airbrake Squeeze to slow down – Face buttons B or X also work as airbrake shortcuts.
-L1 / R1 Bumpers – Rudder Yaw (alternative)
-D-Pad – Pitch / Roll (Flight) & Navigation (Menus) 
-Start / Options – Pause / Resume
-A / Cross – Select / Confirm (Menus)
-B / Circle – Back / Cancel (Menus)
-Mobile friendly BUT requires a controller to be connected
-Check out the artist!
+Controller:
 
-> Mobile?
+> Left Stick – Pitch & Roll Push forward to dive, pull back to climb. Tilt left/right to bank.
+
+> Right Stick (Horizontal) / L1 & R1 Bumpers – Rudder Yaw / Rudder Boost. Hold yaw to charge your rudder boost through coordinated turns!
+
+> L2 / R2 Triggers – Airbrake Squeeze to slow down – Face buttons B or X also work as airbrake shortcuts.
+
+> L1 / R1 Bumpers – Rudder Yaw (alternative)
+
+> D-Pad – Pitch / Roll (Flight) & Navigation (Menus) 
+
+> Start / Options – Pause / Resume
+
+> A / Cross – Select / Confirm (Menus)
+
+> B / Circle – Back / Cancel (Menus)
+
+
+ Mobile?
+
 Its okay! its on your screen!
 (NOTE: Some UI is STILL work in progress!)
 
