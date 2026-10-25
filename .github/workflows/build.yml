@@ -37,9 +37,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: app-v4.1.1
-          releaseName: "Glider Patch 4.1"
-          body: "Automated desktop release for Glider (Windows & macOS)"
-          draft: false
+          tagName: v4.1.5
+          releaseName: "Glider Patch 4.1.5"
+          releaseBody: "IDK IM RUNNING OUT OF NAMES FOR PATCHES"
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

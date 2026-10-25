@@ -1,4 +1,4 @@
-const CACHE_NAME = 'glider-cache-v2';
+const CACHE_NAME = 'glider-cache-v4';
 
 const ASSETS = [
   // Core Files
@@ -28,7 +28,6 @@ const ASSETS = [
   './glidercurser.png',
   './glidercurser_select.png',
   './Keycurser.png',
-  './goldenkey.png',
   './input_file_1.png',
 
   // Menu Images

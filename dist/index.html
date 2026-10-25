@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#1a1a1a">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>GLIDER</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>GLIDER</title>
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
 <script>
   if ('serviceWorker' in navigator) {
@@ -1527,16 +1530,18 @@ button,
     }
   }
 
-  .mobile-ctrl-btn {
+ .mobile-ctrl-btn {
     display: none;
     position: fixed;
-    background: rgba(0, 0, 0, 0.65);
-    border: 1.5px solid var(--mono-60);
-    border-radius: 4px;
-    color: var(--mono);
+    background: rgba(255, 255, 255, 0.12) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.4) !important;
+    border-radius: 50% !important;
+    color: #ffffff !important;
     font-family: var(--font-stack);
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 12px;
+    font-weight: 800;
     letter-spacing: 1px;
     text-transform: uppercase;
     align-items: center;
@@ -1545,87 +1550,108 @@ button,
     touch-action: none;
     z-index: 120;
     pointer-events: auto;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45), inset 0 0 12px rgba(255, 255, 255, 0.15) !important;
+    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .mobile-ctrl-btn:active, .mobile-ctrl-btn.active {
+    background: rgba(0, 240, 255, 0.35) !important;
+    border-color: var(--cyan) !important;
+    color: var(--cyan) !important;
+    box-shadow: 0 0 22px rgba(0, 240, 255, 0.65), inset 0 0 14px rgba(0, 240, 255, 0.3) !important;
+  }
+
+  #mobile-btn-pause {
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+    padding: 0;
+    top: env(safe-area-inset-top, 14px);
+    left: env(safe-area-inset-left, 14px);
+    border-radius: 50% !important;
+  }
+
+  #mobile-btn-yaw-l {
+    width: 68px;
+    height: 68px;
+    font-size: 18px;
+    border-radius: 50% !important;
+  }
+
+  #mobile-btn-yaw-r {
+    width: 68px;
+    height: 68px;
+    font-size: 18px;
+    border-radius: 50% !important;
+  }
+
+  #mobile-btn-brake {
+    width: 84px;
+    height: 84px;
+    font-size: 11px;
+    border-radius: 50% !important;
   }
 
   #mobile-btn-brake.rect-mode {
-    width: 100px !important;
-    height: 42px !important;
+    width: 84px;
+    height: 84px;
+    border-radius: 8px !important;
     font-size: 11px !important;
   }
 
   #mobile-joystick {
-    width: 104px;
-    height: 104px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.45);
-    border: 2px solid rgba(255, 255, 255, 0.35);
-    box-shadow: 0 0 14px rgba(0, 0, 0, 0.7);
-    bottom: 20px;
-    left: 20px;
+    width: 114px;
+    height: 114px;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 2.5px solid rgba(255, 255, 255, 0.45) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), inset 0 0 16px rgba(255, 255, 255, 0.12) !important;
     align-items: center;
     justify-content: center;
     touch-action: none;
   }
 
   #mobile-joystick.active {
-    border-color: var(--cyan);
-    box-shadow: 0 0 16px rgba(0, 240, 255, 0.5);
+    border-color: var(--cyan) !important;
+    box-shadow: 0 0 22px rgba(0, 240, 255, 0.6), inset 0 0 18px rgba(0, 240, 255, 0.25) !important;
   }
 
   #mobile-joystick-knob {
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background: radial-gradient(circle at 35% 35%, rgba(0, 240, 255, 0.95), rgba(0, 160, 200, 0.7));
     border: 2px solid #ffffff;
-    box-shadow: 0 0 10px rgba(0, 240, 255, 0.75);
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.75);
     pointer-events: none;
     transform: translate(0px, 0px);
     will-change: transform;
   }
 
-  .mobile-ctrl-btn:active, .mobile-ctrl-btn.active {
-    background: rgba(0, 240, 255, 0.35);
-    border-color: var(--cyan);
-    color: var(--cyan);
+  .ctrl-resize-handle {
+    display: none;
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 24px;
+    height: 24px;
+    cursor: nwse-resize !important;
+    z-index: 570;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+    pointer-events: auto;
   }
 
-  #mobile-btn-pause {
-    width: 32px;
-    height: 32px;
-    font-size: 12px;
-    padding: 0;
-    top: 14px;
-    left: 14px;
-  }
-
-  #mobile-btn-yaw-l {
-    width: 64px;
-    height: 64px;
-    font-size: 18px;
-    bottom: 20px;
-    left: 20px;
-  }
-
-  #mobile-btn-yaw-r {
-    width: 64px;
-    height: 64px;
-    font-size: 18px;
-    bottom: 20px;
-    left: 94px;
-  }
-
-  #mobile-btn-brake {
-    width: 64px;
-    height: 64px;
-    font-size: 10px;
-    bottom: 20px;
-    right: 20px;
+  .mobile-ctrl-btn.reposition-mode .ctrl-resize-handle {
+    display: flex;
   }
 
   .mobile-ctrl-btn.reposition-mode {
-    outline: none !important;
-    box-shadow: none !important;
+    outline: 2px dashed rgba(255, 255, 255, 0.8) !important;
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.5) !important;
     z-index: 555 !important;
     cursor: move !important;
   }
@@ -1664,6 +1690,332 @@ button,
     display: flex;
     gap: 16px;
     z-index: 560;
+  }
+
+  .menu-screen.ss-main-menu {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)) !important;
+    transform: none !important;
+    top: 0 !important;
+    left: 0 !important;
+    display: flex;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    align-items: stretch !important;
+    pointer-events: none !important;
+    z-index: 50;
+  }
+
+  .ss-top-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    max-width: 380px;
+    pointer-events: auto;
+  }
+
+  .ss-main-logo {
+    max-width: 250px;
+    height: auto;
+    display: block;
+    filter: drop-shadow(0 4px 14px rgba(0,0,0,0.9));
+  }
+
+  .ss-tip-box {
+    background: transparent !important;
+    border: none !important;
+    border-top: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    color: var(--mono-90);
+    font-size: 11px;
+    line-height: 1.45;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95), 0 0 4px rgba(0, 0, 0, 0.9);
+    pointer-events: none;
+    text-align: left;
+    max-width: 440px;
+  }
+
+  .ss-bottom-dock {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px 16px;
+    background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.75) 40%, rgba(0,0,0,0.95) 100%);
+    pointer-events: auto;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .ss-dock-left, .ss-dock-center, .ss-dock-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .ss-btn-primary {
+    background: var(--cyan) !important;
+    color: #000000 !important;
+    border: 2px solid var(--cyan) !important;
+    border-radius: 4px 4px 4px 14px !important;
+    font-size: 14px !important;
+    font-weight: 900 !important;
+    padding: 10px 24px !important;
+    letter-spacing: 2px !important;
+    box-shadow: none !important;
+    white-space: nowrap;
+  }
+
+  .ss-btn-primary:hover, .ss-btn-primary:active {
+    background: #ffffff !important;
+    border-color: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+  }
+
+  .ss-dock-btn {
+    background: #000000 !important;
+    border: 1.5px solid var(--mono-20) !important;
+    color: var(--mono) !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    padding: 10px 16px !important;
+    letter-spacing: 1.5px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.7) !important;
+  }
+
+  .ss-dock-btn:hover, .ss-dock-btn:active {
+    border-color: var(--mono) !important;
+    background: #111111 !important;
+  }
+
+  .ss-btn-danger {
+    color: #ff6666 !important;
+    border-color: rgba(255, 80, 80, 0.45) !important;
+  }
+  .ss-btn-danger:hover, .ss-btn-danger:active {
+    background: #ff4444 !important;
+    color: #000000 !important;
+  }
+
+  .menu-screen.grid-select-screen {
+    background: rgba(0, 0, 0, 0.35) !important;
+    border: none !important;
+    box-shadow: none !important;
+    max-width: 860px !important;
+    width: 95% !important;
+    padding: 14px 18px !important;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+
+  .course-grid-3x2 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 12px;
+    max-height: none;
+    overflow: visible;
+  }
+  .course-grid-3x2.hidden {
+    display: none !important;
+  }
+
+  .course-grid-card {
+    background: #000000 !important;
+    border: 1.5px solid var(--mono-20) !important;
+    border-radius: 4px;
+    padding: 10px 8px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.85);
+    min-height: 95px;
+    text-align: center;
+  }
+
+  .course-grid-card:hover, .course-grid-card:active, .course-grid-card.active,
+  .cup-opt:hover, .cup-opt.active {
+    border-color: var(--cyan) !important;
+    background: rgba(0, 240, 255, 0.08) !important;
+    box-shadow: 0 0 14px rgba(0, 240, 255, 0.3) !important;
+  }
+
+  #screen-start-mobile.hidden,
+  #screen-select-mobile.hidden,
+  .menu-screen.ss-main-menu.hidden {
+    display: none !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+  }
+
+  #mobile-controls-wrap {
+    display: none;
+  }
+
+  .course-grid-card img {
+    max-height: 52px;
+    max-width: 90%;
+    width: auto;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto 4px auto;
+    pointer-events: none;
+  }
+
+  .course-grid-name {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: var(--mono);
+    text-transform: uppercase;
+  }
+  .menu-screen.dispatch-split-screen {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    background: rgba(0, 0, 0, 0.45) !important;
+    border: none !important;
+    padding: max(14px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)) !important;
+    transform: none !important;
+    top: 0 !important;
+    left: 0 !important;
+    display: flex;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    align-items: stretch !important;
+    box-shadow: none !important;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+
+  .dispatch-body {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    width: 100%;
+    flex: 1;
+    padding-top: 6px;
+  }
+
+  .dispatch-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    max-width: 380px;
+    width: 44%;
+    gap: 10px;
+  }
+
+  .dispatch-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    width: 53%;
+  }
+
+  .dispatch-label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+    color: var(--mono-60);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .dispatch-section {
+    width: 100%;
+    background: #000000;
+    border: 1.5px solid var(--mono-20);
+    border-radius: 4px;
+    padding: 10px 14px;
+  }
+
+  .dispatch-track-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+
+  .dispatch-card {
+    background: #000000 !important;
+    border: 1.5px solid var(--mono-20) !important;
+    border-radius: 4px;
+    padding: 10px 12px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    text-align: left !important;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-height: 82px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.8);
+  }
+
+  .dispatch-card.active, .dispatch-card:hover {
+    border-color: var(--cyan) !important;
+    background: rgba(0, 240, 255, 0.08) !important;
+    box-shadow: 0 0 16px rgba(0, 240, 255, 0.35) !important;
+  }
+
+  .dispatch-tag {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: var(--cyan);
+    margin-bottom: 3px;
+  }
+
+  .dispatch-bottom-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding-top: 8px;
+  }
+
+  .dispatch-launch-btn {
+    background: var(--cyan) !important;
+    color: #000000 !important;
+    border: 2px solid var(--cyan) !important;
+    font-size: 15px !important;
+    font-weight: 900 !important;
+    padding: 14px 42px !important;
+    letter-spacing: 2px !important;
+    border-radius: 4px;
+    box-shadow: 0 0 24px rgba(0, 240, 255, 0.6) !important;
+    cursor: pointer;
+    transform: scale(1.04);
+  }
+
+  .dispatch-launch-btn:hover, .dispatch-launch-btn:active {
+    background: #ffffff !important;
+    border-color: #ffffff !important;
+    box-shadow: 0 0 30px rgba(0, 240, 255, 0.9) !important;
   }
 
   #mobile-speedometer {
@@ -1721,7 +2073,106 @@ button,
     }
   }
 
+  .dispatch-layout {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    width: 100%;
+    text-align: left;
+    flex: 1;
+  }
+  .dispatch-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .dispatch-right {
+    flex: 1.2;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  #screen-dispatch {
+    max-height: 95vh;
+    overflow-y: auto;
+  }
   @media (pointer: coarse), (max-width: 950px), (max-height: 600px) {
+    .desktop-layout {
+      display: none !important;
+    }
+    
+    #jukebox-btn {
+      width: 60px !important;
+    }
+
+    #jukebox-widget {
+      bottom: 85px;
+      right: 20px;
+      left: auto;
+    }
+    #btn-settings-toggle {
+      top: 14px;
+      right: 14px;
+      bottom: auto;
+    }
+    .dispatch-layout {
+      flex-direction: row !important;
+      gap: 8px !important;
+    }
+    .dispatch-left {
+      flex: 1;
+    }
+    .dispatch-right {
+      flex: 1.3;
+    }
+    .control-toggle-box {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 6px;
+      padding: 6px 8px !important;
+      margin-bottom: 6px !important;
+    }
+    .control-toggle-box .row-group {
+      width: 100% !important;
+      justify-content: flex-start !important;
+      flex-wrap: wrap !important;
+      gap: 4px !important;
+    }
+    .control-toggle-box .mono-btn {
+      padding: 4px 8px !important;
+      font-size: 9px !important;
+      flex: 1;
+      text-align: center;
+    }
+    .medals-grid {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 4px !important;
+      margin: 6px 0 !important;
+    }
+    .medal-item {
+      font-size: 8.5px !important;
+      padding: 3px 6px !important;
+      width: 100%;
+    }
+    #screen-dispatch .track-list {
+      max-height: 125px !important;
+    }
+    #screen-dispatch {
+      padding: 8px 14px !important;
+      max-width: 98vw !important;
+      max-height: 94vh !important;
+    }
+    #screen-dispatch .menu-title {
+      font-size: 14px !important;
+    }
+    #screen-dispatch .menu-subtitle {
+      margin-bottom: 8px !important;
+    }    .desktop-layout {
+      display: none !important;
+    }
+    
     .desktop-only-setting {
       display: none !important;
     }
@@ -1909,19 +2360,53 @@ button,
       letter-spacing: 4px !important;
     }
   }
-</style>
-</head>
+  @media (min-width: 951px) and (pointer: fine) {
+    #screen-start-mobile, #screen-select-mobile, #mobile-controls-wrap, .mobile-ctrl-btn, #mobile-joystick, #settings-joystick-box, #pause-joystick-box {
+      display: none !important;
+    }
+  }
+</style></head>
 <body>
 
 <div id="rotate-device-overlay">ROTATE YOUR DEVICE</div>
 
 <div id="mobile-controls-wrap">
   <button id="mobile-btn-pause" class="mobile-ctrl-btn" aria-label="Pause">❚❚</button>
-  <button id="mobile-btn-yaw-l" class="mobile-ctrl-btn" aria-label="Yaw Left (Q)">Q</button>
-  <button id="mobile-btn-yaw-r" class="mobile-ctrl-btn" aria-label="Yaw Right (E)">E</button>
-  <button id="mobile-btn-brake" class="mobile-ctrl-btn" aria-label="Airbrake">BRAKE</button>
+  <button id="mobile-btn-yaw-l" class="mobile-ctrl-btn" aria-label="Yaw Left (Q)">
+    Q
+    <div class="ctrl-resize-handle" title="Resize">
+      <svg viewBox="0 0 16 16" width="16" height="16">
+        <path d="M16 2 L16 16 L2 16 Z" fill="rgba(0, 240, 255, 0.75)" stroke="#ffffff" stroke-width="1.2"/>
+        <path d="M4 16 L16 16 L16 4" fill="none" stroke="#00f0ff" stroke-width="2"/>
+      </svg>
+    </div>
+  </button>
+  <button id="mobile-btn-yaw-r" class="mobile-ctrl-btn" aria-label="Yaw Right (E)">
+    E
+    <div class="ctrl-resize-handle" title="Resize">
+      <svg viewBox="0 0 16 16" width="16" height="16">
+        <path d="M16 2 L16 16 L2 16 Z" fill="rgba(0, 240, 255, 0.75)" stroke="#ffffff" stroke-width="1.2"/>
+        <path d="M4 16 L16 16 L16 4" fill="none" stroke="#00f0ff" stroke-width="2"/>
+      </svg>
+    </div>
+  </button>
+  <button id="mobile-btn-brake" class="mobile-ctrl-btn" aria-label="Airbrake">
+    BRAKE
+    <div class="ctrl-resize-handle" title="Resize">
+      <svg viewBox="0 0 16 16" width="16" height="16">
+        <path d="M16 2 L16 16 L2 16 Z" fill="rgba(0, 240, 255, 0.75)" stroke="#ffffff" stroke-width="1.2"/>
+        <path d="M4 16 L16 16 L16 4" fill="none" stroke="#00f0ff" stroke-width="2"/>
+      </svg>
+    </div>
+  </button>
   <div id="mobile-joystick" class="mobile-ctrl-btn" aria-label="Steering Joystick">
     <div id="mobile-joystick-knob"></div>
+    <div class="ctrl-resize-handle" title="Resize">
+      <svg viewBox="0 0 16 16" width="16" height="16">
+        <path d="M16 2 L16 16 L2 16 Z" fill="rgba(0, 240, 255, 0.75)" stroke="#ffffff" stroke-width="1.2"/>
+        <path d="M4 16 L16 16 L16 4" fill="none" stroke="#00f0ff" stroke-width="2"/>
+      </svg>
+    </div>
   </div>
 </div>
 
@@ -2090,7 +2575,7 @@ button,
 <div id="save-transfer-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 550; display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px);">
   <div class="menu-screen" style="position: relative; top: auto; left: auto; transform: none; width: 92%; max-width: 580px; z-index: 551;">
     <div class="menu-title" id="save-modal-title">SAVE TRANSFER</div>
-    <div class="menu-subtitle" id="save-modal-subtitle">APHELION 8-STEP ENCRYPTED SAVE CODE</div>
+    <div class="menu-subtitle" id="save-modal-subtitle">APHELION 8 STEP ENCRYPTED SAVE CODE</div>
 
     <textarea id="save-key-textarea" spellcheck="false" placeholder="PASTE APHELION SAVE CODE HERE..." style="width: 100%; height: 125px; background: rgba(0,0,0,0.75); border: 1px solid var(--mono-20); color: var(--cyan); font-family: monospace; font-size: 11px; padding: 10px; resize: none; word-break: break-all; margin-bottom: 12px; border-radius: 2px; outline: none;"></textarea>
 
@@ -2138,87 +2623,143 @@ button,
   </div>
 </div>
 
-<div id="screen-start" class="menu-screen">
+<div id="screen-start-mobile" class="menu-screen ss-main-menu hidden">
+  <div class="ss-top-left">
+    <img src="gliderfontthing.png" alt="Glider Logo" class="ss-main-logo">
+  </div>
+
+  <div style="display: flex; flex-direction: column; align-items: flex-start; width: 100%; gap: 8px; pointer-events: none;">
+    <div class="ss-tip-box instructions" style="margin-left: 16px;"></div>
+    <div class="ss-bottom-dock">
+      <div class="ss-dock-left">
+        <button class="mono-btn ss-btn-primary" id="btn-start-play">PLAY</button>
+        <button class="mono-btn ss-dock-btn" id="btn-start-shop" style="font-size: 13px !important; padding: 10px 22px !important;">SHOP</button>
+      </div>
+
+    <div class="ss-dock-center">
+      <button class="mono-btn ss-dock-btn ss-btn-danger" id="btn-reset-scores">RESET TIMES</button>
+    </div>
+
+    <div class="ss-dock-right">
+      <button class="mono-btn ss-dock-btn" id="btn-save-export">SAVE</button>
+      <button class="mono-btn ss-dock-btn" id="btn-save-import">IMPORT</button>
+    </div>
+  </div>
+</div>
+</div>
+  
+<div id="screen-start" class="menu-screen desktop-layout">
   <img src="gliderfontthing.png" alt="Glider Logo" class="start-logo">
   <button class="mono-btn" id="btn-to-select" style="padding: 12px 32px;">INITIALIZE FLIGHT</button>
   <div class="instructions"></div>
-  <button class="mono-btn" id="btn-reset-scores" style="margin-top: 14px; padding: 7px 18px; font-size: 9px; color: #ff6666; border-color: rgba(255, 100, 100, 0.35);">RESET SAVED TIMES</button>
+  <button class="mono-btn" id="btn-reset-scores-dt" style="margin-top: 14px; padding: 7px 18px; font-size: 9px; color: #ff6666; border-color: rgba(255, 100, 100, 0.35);">RESET SAVED TIMES</button>
   <div style="position: absolute; bottom: 14px; right: 18px; display: flex; gap: 8px;">
-  <button class="mono-btn" id="btn-save-export" style="padding: 6px 14px; font-size: 9px; border-color: var(--cyan); color: var(--cyan);">SAVE</button>
-  <button class="mono-btn" id="btn-save-import" style="padding: 6px 14px; font-size: 9px;">IMPORT</button>
-</div>
+    <button class="mono-btn" id="btn-save-export-dt" style="padding: 6px 14px; font-size: 9px; border-color: var(--cyan); color: var(--cyan);">SAVE</button>
+    <button class="mono-btn" id="btn-save-import-dt" style="padding: 6px 14px; font-size: 9px;">IMPORT</button>
+  </div>
 </div>
 
-<div id="screen-select" class="menu-screen hidden">
+<div id="screen-select" class="menu-screen hidden desktop-layout">
   <div class="menu-title">SELECT COURSE</div>
   <div class="menu-subtitle">CHOOSE FLIGHT MAP</div>
 
   <div class="row-group" id="select-mode-toggle" style="margin-bottom: 14px;">
-    <button class="mono-btn select-tab-btn active" id="btn-tab-single">
-      <!-- change 48 px to something bigger -->   
+    <button class="mono-btn select-tab-btn active" id="btn-tab-single-dt">
       <img src="singletrack.png" alt="SINGLE TRACK" style="max-height: 48px; width: auto; object-fit: contain; display: block; margin: 0 auto; pointer-events: none;">
     </button>
-    <button class="mono-btn select-tab-btn" id="btn-tab-gp">
+    <button class="mono-btn select-tab-btn" id="btn-tab-gp-dt">
       <img src="grandprix.png" alt="GRAND PRIX" style="max-height: 48px; width: auto; object-fit: contain; display: block; margin: 0 auto; pointer-events: none;">
     </button>
   </div>
 
-  <div class="track-list" id="single-track-list">
-    <div class="track-opt active" data-course="canyon">
-      <div>
-        <img src="canyon.png" alt="canyon" class="track-name">
-        <div class="track-desc">Expansive gorge cliffs, deep alpine valleys, river thermals.</div>
-      </div>
-    </div>
-    <div class="track-opt" data-course="islands">
-      <div>
-        <img src="islands.png" alt="island" class="track-name">
-        <div class="track-desc">Floating stone ruins, broken colonnades, void thermals.</div>
-      </div>
-    </div>
-    <div class="track-opt" data-course="coastal">
-      <div>
-        <img src="cliffs.png" alt="cliff" class="track-name">
-        <div class="track-desc">Oceanic mountain fjords, container ships, maritime rain.</div>
-      </div>
-    </div>
-    <div class="track-opt" data-course="volcano">
-      <div>
-        <img src="volcanomap.png" alt="volcano" class="track-name">
-        <div class="track-desc">Volcanic storm archipelago with an active central caldera.</div>
-      </div>
-    </div>
-<div class="track-opt" data-course="glacial">
-      <div>
-        <img src="glacial.png" alt="canyon" class="track-name">
-        <div class="track-desc">Frozen alpine tundra, towering diamond ice spikes & glacial crevasse thermals.</div>
-      </div>
-    </div>
-<div class="track-opt" data-course="moon">
-      <div>
-        <img src="moon.png" alt="canyon" class="track-name">
-        <div class="track-desc">Vacuum, Space, Apollo 11 relics, and meteors.</div>
-      </div>
-    </div>
+  <div class="track-list" id="single-track-list-dt">
+    <div class="track-opt active" data-course="canyon"><div><img src="canyon.png" class="track-name"><div class="track-desc">Expansive gorge cliffs.</div></div></div>
+    <div class="track-opt" data-course="islands"><div><img src="islands.png" class="track-name"><div class="track-desc">Floating stone ruins.</div></div></div>
+    <div class="track-opt" data-course="coastal"><div><img src="cliffs.png" class="track-name"><div class="track-desc">Oceanic mountain fjords.</div></div></div>
+    <div class="track-opt" data-course="volcano"><div><img src="volcanomap.png" class="track-name"><div class="track-desc">Volcanic storm archipelago.</div></div></div>
+    <div class="track-opt" data-course="glacial"><div><img src="glacial.png" class="track-name"><div class="track-desc">Frozen alpine tundra.</div></div></div>
+    <div class="track-opt" data-course="moon"><div><img src="moon.png" class="track-name"><div class="track-desc">Vacuum, Space, Apollo 11.</div></div></div>
   </div>
 
-  <div id="gp-select-container" style="display: none; width: 100%; flex-direction: column;">
-    <div class="track-list" id="gp-cup-list" style="max-height: 275px; margin-bottom: 12px;">
-    </div>
-
-    <div class="control-toggle-box" id="gp-diff-box" style="margin-bottom: 14px;">
+  <div id="gp-select-container-dt" style="display: none; width: 100%; flex-direction: column;">
+    <div class="track-list" id="gp-cup-list-dt" style="max-height: 275px; margin-bottom: 12px;"></div>
+    <div class="control-toggle-box" id="gp-diff-box-dt" style="margin-bottom: 14px;">
       <div class="control-toggle-label">AI DIFFICULTY</div>
       <div class="row-group" style="width: auto; margin-bottom: 0;">
-        <button class="mono-btn diff-btn gp-diff-btn" data-diff="easy">Easy</button>
-        <button class="mono-btn diff-btn gp-diff-btn active" data-diff="medium">Medium</button>
-        <button class="mono-btn diff-btn gp-diff-btn" data-diff="hard">Insane</button>
-        <button class="mono-btn diff-btn gp-diff-btn hidden" id="btn-gp-diff-impossible" data-diff="impossible" style="color: #ca8aff; border-color: #ca8aff;">Impossible</button>
+        <button class="mono-btn diff-btn gp-diff-btn-dt" data-diff="easy">Easy</button>
+        <button class="mono-btn diff-btn gp-diff-btn-dt active" data-diff="medium">Medium</button>
+        <button class="mono-btn diff-btn gp-diff-btn-dt" data-diff="hard">Insane</button>
       </div>
     </div>
   </div>
 
-  <button class="mono-btn" id="btn-start-race" style="padding: 12px 36px; border-color: var(--cyan); color: var(--cyan);">BEGIN FLIGHT</button>
-  <button class="mono-btn" id="btn-open-shop" style="margin-top: 10px; padding: 10px 32px;">OPEN SHOP</button>
+  <button class="mono-btn" id="btn-start-race-dt" style="padding: 12px 36px; border-color: var(--cyan); color: var(--cyan);">BEGIN FLIGHT</button>
+  <button class="mono-btn" id="btn-open-shop-dt" style="margin-top: 10px; padding: 10px 32px;">OPEN SHOP</button>
+</div>
+
+<div id="screen-select-mobile" class="menu-screen grid-select-screen hidden">
+  <div class="menu-title" id="select-menu-title">SELECT COURSE</div>
+  <div class="menu-subtitle" id="select-menu-sub">CHOOSE FLIGHT MAP</div>
+
+  <div class="row-group" id="select-mode-toggle" style="margin-bottom: 12px;">
+    <button class="mono-btn select-tab-btn active" id="btn-tab-single" style="padding: 6px 20px;">
+      <img src="singletrack.png" alt="SINGLE TRACK" style="max-height: 38px; width: auto; object-fit: contain; display: block; margin: 0 auto; pointer-events: none;">
+    </button>
+    <button class="mono-btn select-tab-btn" id="btn-tab-gp" style="padding: 6px 20px;">
+      <img src="grandprix.png" alt="GRAND PRIX" style="max-height: 38px; width: auto; object-fit: contain; display: block; margin: 0 auto; pointer-events: none;">
+    </button>
+  </div>
+
+  <div class="course-grid-3x2" id="single-track-list">
+    <div class="course-grid-card track-opt active" data-course="canyon">
+      <img src="canyon.png" alt="canyon">
+      <div class="course-grid-name">CANYON</div>
+    </div>
+    <div class="course-grid-card track-opt" data-course="islands">
+      <img src="islands.png" alt="island">
+      <div class="course-grid-name">SKY ISLANDS</div>
+    </div>
+    <div class="course-grid-card track-opt" data-course="coastal">
+      <img src="cliffs.png" alt="cliff">
+      <div class="course-grid-name">COASTAL CLIFFS</div>
+    </div>
+    <div class="course-grid-card track-opt" data-course="volcano">
+      <img src="volcanomap.png" alt="volcano">
+      <div class="course-grid-name">VOLCANO</div>
+    </div>
+    <div class="course-grid-card track-opt" data-course="glacial">
+      <img src="glacial.png" alt="glacial">
+      <div class="course-grid-name">GLACIAL PEAKS</div>
+    </div>
+    <div class="course-grid-card track-opt" data-course="moon">
+      <img src="moon.png" alt="moon">
+      <div class="course-grid-name">THE MOON</div>
+    </div>
+  </div>
+
+  <div id="gp-select-container" class="hidden" style="display: none; width: 100%; flex-direction: column; align-items: center;">
+    <div class="course-grid-3x2" id="gp-cup-list"></div>
+
+    <div style="display: flex; gap: 12px; align-items: center; width: 100%; justify-content: space-between; margin-top: 4px; flex-wrap: wrap;">
+      <button class="mono-btn" id="btn-gp-shuffle" style="padding: 5px 14px; border-color: var(--gold); color: var(--gold); display: flex; align-items: center; justify-content: center;">
+        <img src="randomshuffle.png" alt="RANDOM SHUFFLE" style="max-height: 22px; width: auto; object-fit: contain; display: block; pointer-events: none;">
+      </button>
+
+      <div class="control-toggle-box" id="gp-diff-box" style="margin-bottom: 0; padding: 4px 12px; width: auto;">
+        <div class="control-toggle-label" style="font-size: 9.5px; margin-right: 8px;">DIFFICULTY</div>
+        <div class="row-group" style="width: auto; margin-bottom: 0;">
+          <button class="mono-btn diff-btn gp-diff-btn" data-diff="easy" style="padding: 5px 10px; font-size: 9px;">Easy</button>
+          <button class="mono-btn diff-btn gp-diff-btn active" data-diff="medium" style="padding: 5px 10px; font-size: 9px;">Medium</button>
+          <button class="mono-btn diff-btn gp-diff-btn" data-diff="hard" style="padding: 5px 10px; font-size: 9px;">Insane</button>
+          <button class="mono-btn diff-btn gp-diff-btn hidden" id="btn-gp-diff-impossible" data-diff="impossible" style="padding: 5px 10px; font-size: 9px; color: #ca8aff; border-color: #ca8aff;">Impossible</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row-group" style="margin-top: 10px; margin-bottom: 0;">
+    <button class="mono-btn ss-dock-btn" id="btn-select-back" style="padding: 10px 36px;">BACK</button>
+  </div>
 </div>
 
 <div id="screen-shop" class="menu-screen hidden" style="max-width: 780px; width: 92%;">
@@ -2261,11 +2802,11 @@ button,
   </div>
 </div>
 
-<div id="screen-dispatch" class="menu-screen hidden">
+<div id="screen-dispatch" class="menu-screen hidden" style="max-width: 540px; width: 92%; max-height: 90vh; overflow-y: auto;">
   <div class="menu-title" id="dispatch-course-title">MOUNTAIN CANYONS</div>
   <div class="menu-subtitle">SELECT FLIGHT TRACK</div>
 
-  <div class="control-toggle-box">
+  <div class="control-toggle-box" id="dispatch-flight-mode-box" style="margin-bottom: 10px;">
     <div class="control-toggle-label">FLIGHT MODE</div>
     <div class="row-group" style="width: auto; margin-bottom: 0;">
       <button class="mono-btn mode-btn active" data-gmode="race">RACE AI</button>
@@ -2273,7 +2814,7 @@ button,
     </div>
   </div>
 
-  <div class="control-toggle-box" id="ai-diff-box">
+  <div class="control-toggle-box" id="ai-diff-box" style="margin-bottom: 12px;">
     <div class="control-toggle-label">AI DIFFICULTY</div>
     <div class="row-group" style="width: auto; margin-bottom: 0;">
       <button class="mono-btn diff-btn" data-diff="easy">Easy</button>
@@ -2283,11 +2824,9 @@ button,
     </div>
   </div>
 
-  <div id="mode-desc" style="font-size: 10px; color: var(--cyan); letter-spacing: 1.5px; margin-bottom: 14px; text-transform: uppercase;">
-    RACE AI
-  </div>
+  <div id="mode-desc" style="display: none;">RACE AI</div>
 
-  <div class="track-list" id="subtrack-list">
+  <div class="track-list" id="subtrack-list" style="margin-bottom: 12px; max-height: 240px; width: 100%;">
     <div class="track-opt subtrack-opt active" data-sub="A">
       <div>
         <div class="track-name" id="st-name-A">Red Rock Slalom</div>
@@ -2318,16 +2857,16 @@ button,
     </div>
   </div>
 
-  <div class="medals-grid">
+  <div class="medals-grid" id="dispatch-medals-grid" style="margin: 0 0 16px 0; width: 100%; justify-content: center; gap: 8px;">
     <div class="medal-item">🥉 BRONZE: <span id="m-bronze">--</span></div>
     <div class="medal-item">🥈 SILVER: <span id="m-silver">--</span></div>
     <div class="medal-item">🥇 GOLD: <span id="m-gold">--</span></div>
     <div class="medal-item">🏆 ACE: <span id="m-ace">--</span></div>
   </div>
 
-  <div class="row-group" style="margin-bottom: 0;">
-    <button class="mono-btn" id="btn-dispatch-back">BACK</button>
-    <button class="mono-btn" id="btn-launch-flight" style="padding: 12px 36px; border-color: var(--cyan); background: var(--cyan); color: #000; font-weight: 700;">LAUNCH FLIGHT</button>
+  <div class="row-group" style="margin-bottom: 0; width: 100%;">
+    <button class="mono-btn" id="btn-dispatch-back" style="flex: 1; padding: 11px 24px;">BACK</button>
+    <button class="mono-btn" id="btn-launch-flight" style="flex: 1.6; padding: 11px 28px; border-color: var(--cyan); background: var(--cyan); color: #000; font-weight: 900; letter-spacing: 2px;">LAUNCH FLIGHT</button>
   </div>
 </div>
 
@@ -2697,71 +3236,97 @@ function applyMobileButtonPositions() {
   const h = window.innerHeight;
   const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
 
-  if (saved && saved.yawL && saved.yawR && saved.brake) {
-    yawL.style.left = clamp(saved.yawL.xRatio * w, 10, w - 74) + 'px';
-    yawL.style.top = clamp(saved.yawL.yRatio * h, 10, h - 74) + 'px';
-    yawL.style.right = 'auto';
-    yawL.style.bottom = 'auto';
-
-    yawR.style.left = clamp(saved.yawR.xRatio * w, 10, w - 74) + 'px';
-    yawR.style.top = clamp(saved.yawR.yRatio * h, 10, h - 74) + 'px';
-    yawR.style.right = 'auto';
-    yawR.style.bottom = 'auto';
-
-    brake.style.left = clamp(saved.brake.xRatio * w, 10, w - 104) + 'px';
-    brake.style.top = clamp(saved.brake.yRatio * h, 10, h - 54) + 'px';
-    brake.style.right = 'auto';
-    brake.style.bottom = 'auto';
-
-    if (stick) {
-      if (saved.stick) {
-        stick.style.left = clamp(saved.stick.xRatio * w, 10, w - 114) + 'px';
-        stick.style.top = clamp(saved.stick.yRatio * h, 10, h - 114) + 'px';
-      } else {
-        stick.style.left = '20px';
-        stick.style.top = clamp(h - 124, 10, h - 114) + 'px';
-      }
-      stick.style.right = 'auto';
-      stick.style.bottom = 'auto';
+  if (saved) {
+    if (saved.yawL && saved.yawL.size) {
+      yawL.style.width = saved.yawL.size + 'px';
+      yawL.style.height = saved.yawL.size + 'px';
     }
-  } else {
-    if (isVisibleMode) {
+    if (saved.yawR && saved.yawR.size) {
+      yawR.style.width = saved.yawR.size + 'px';
+      yawR.style.height = saved.yawR.size + 'px';
+    }
+    if (saved.brake) {
+      if (saved.brake.width && saved.brake.height) {
+        brake.style.width = saved.brake.width + 'px';
+        brake.style.height = saved.brake.height + 'px';
+      } else if (saved.brake.size) {
+        brake.style.width = saved.brake.size + 'px';
+        brake.style.height = saved.brake.size + 'px';
+      }
+    }
+    if (stick && saved.stick && saved.stick.size) {
+      stick.style.width = saved.stick.size + 'px';
+      stick.style.height = saved.stick.size + 'px';
+    }
+
+    if (saved.yawL && saved.yawR && saved.brake) {
+      yawL.style.left = clamp(saved.yawL.xRatio * w, 10, w - (yawL.offsetWidth || 70)) + 'px';
+      yawL.style.top = clamp(saved.yawL.yRatio * h, 10, h - (yawL.offsetHeight || 70)) + 'px';
+      yawL.style.right = 'auto';
+      yawL.style.bottom = 'auto';
+
+      yawR.style.left = clamp(saved.yawR.xRatio * w, 10, w - (yawR.offsetWidth || 70)) + 'px';
+      yawR.style.top = clamp(saved.yawR.yRatio * h, 10, h - (yawR.offsetHeight || 70)) + 'px';
+      yawR.style.right = 'auto';
+      yawR.style.bottom = 'auto';
+
+      brake.style.left = clamp(saved.brake.xRatio * w, 10, w - (brake.offsetWidth || 84)) + 'px';
+      brake.style.top = clamp(saved.brake.yRatio * h, 10, h - (brake.offsetHeight || 84)) + 'px';
+      brake.style.right = 'auto';
+      brake.style.bottom = 'auto';
+
       if (stick) {
-        stick.style.left = '20px';
-        stick.style.top = clamp(h - 124, 10, h - 114) + 'px';
+        if (saved.stick) {
+          stick.style.left = clamp(saved.stick.xRatio * w, 10, w - (stick.offsetWidth || 114)) + 'px';
+          stick.style.top = clamp(saved.stick.yRatio * h, 10, h - (stick.offsetHeight || 114)) + 'px';
+        } else {
+          stick.style.left = '20px';
+          stick.style.top = clamp(h - 134, 10, h - 114) + 'px';
+        }
         stick.style.right = 'auto';
         stick.style.bottom = 'auto';
       }
-      brake.style.left = clamp(w - 146, 10, w - 104) + 'px';
-      brake.style.top = clamp(h - 132, 10, h - 54) + 'px';
-      brake.style.right = 'auto';
-      brake.style.bottom = 'auto';
-
-      yawL.style.left = clamp(w - 146, 10, w - 74) + 'px';
-      yawL.style.top = clamp(h - 80, 10, h - 74) + 'px';
-      yawL.style.right = 'auto';
-      yawL.style.bottom = 'auto';
-
-      yawR.style.left = clamp(w - 76, 10, w - 74) + 'px';
-      yawR.style.top = clamp(h - 80, 10, h - 74) + 'px';
-      yawR.style.right = 'auto';
-      yawR.style.bottom = 'auto';
-    } else {
-      yawL.style.left = '20px';
-      yawL.style.top = (h - 84) + 'px';
-      yawL.style.right = 'auto';
-      yawL.style.bottom = 'auto';
-
-      yawR.style.left = '94px';
-      yawR.style.top = (h - 84) + 'px';
-      yawR.style.right = 'auto';
-      yawR.style.bottom = 'auto';
-
-      brake.style.left = (w - 84) + 'px';
-      brake.style.top = (h - 84) + 'px';
-      brake.style.right = 'auto';
-      brake.style.bottom = 'auto';
+      return;
     }
+  }
+
+  // Default Bottom Corners Layout
+  if (isVisibleMode) {
+    if (stick) {
+      stick.style.left = '24px';
+      stick.style.top = clamp(h - 138, 10, h - 114) + 'px';
+      stick.style.right = 'auto';
+      stick.style.bottom = 'auto';
+    }
+    brake.style.left = clamp(w - 108, 10, w - 84) + 'px';
+    brake.style.top = clamp(h - 108, 10, h - 84) + 'px';
+    brake.style.right = 'auto';
+    brake.style.bottom = 'auto';
+
+    yawL.style.left = clamp(w - 180, 10, w - 68) + 'px';
+    yawL.style.top = clamp(h - 86, 10, h - 68) + 'px';
+    yawL.style.right = 'auto';
+    yawL.style.bottom = 'auto';
+
+    yawR.style.left = clamp(w - 112, 10, w - 68) + 'px';
+    yawR.style.top = clamp(h - 158, 10, h - 68) + 'px';
+    yawR.style.right = 'auto';
+    yawR.style.bottom = 'auto';
+  } else {
+    yawL.style.left = '24px';
+    yawL.style.top = (h - 88) + 'px';
+    yawL.style.right = 'auto';
+    yawL.style.bottom = 'auto';
+
+    yawR.style.left = '100px';
+    yawR.style.top = (h - 88) + 'px';
+    yawR.style.right = 'auto';
+    yawR.style.bottom = 'auto';
+
+    brake.style.left = (w - 108) + 'px';
+    brake.style.top = (h - 108) + 'px';
+    brake.style.right = 'auto';
+    brake.style.bottom = 'auto';
   }
 }
 
@@ -2776,12 +3341,12 @@ function saveMobileButtonPositions() {
   const h = window.innerHeight;
 
   const data = {
-    yawL: { xRatio: yawL.offsetLeft / w, yRatio: yawL.offsetTop / h },
-    yawR: { xRatio: yawR.offsetLeft / w, yRatio: yawR.offsetTop / h },
-    brake: { xRatio: brake.offsetLeft / w, yRatio: brake.offsetTop / h }
+    yawL: { xRatio: yawL.offsetLeft / w, yRatio: yawL.offsetTop / h, size: yawL.offsetWidth },
+    yawR: { xRatio: yawR.offsetLeft / w, yRatio: yawR.offsetTop / h, size: yawR.offsetWidth },
+    brake: { xRatio: brake.offsetLeft / w, yRatio: brake.offsetTop / h, size: brake.offsetWidth, width: brake.offsetWidth, height: brake.offsetHeight }
   };
   if (stick) {
-    data.stick = { xRatio: stick.offsetLeft / w, yRatio: stick.offsetTop / h };
+    data.stick = { xRatio: stick.offsetLeft / w, yRatio: stick.offsetTop / h, size: stick.offsetWidth };
   }
   try {
     localStorage.setItem('glider_mobile_button_positions', JSON.stringify(data));
@@ -2792,6 +3357,14 @@ function resetMobileButtonPositions() {
   try {
     localStorage.removeItem('glider_mobile_button_positions');
   } catch (e) {}
+  const yawL = document.getElementById('mobile-btn-yaw-l');
+  const yawR = document.getElementById('mobile-btn-yaw-r');
+  const brake = document.getElementById('mobile-btn-brake');
+  const stick = document.getElementById('mobile-joystick');
+  if (yawL) { yawL.style.width = ''; yawL.style.height = ''; }
+  if (yawR) { yawR.style.width = ''; yawR.style.height = ''; }
+  if (brake) { brake.style.width = ''; brake.style.height = ''; }
+  if (stick) { stick.style.width = ''; stick.style.height = ''; }
   applyMobileButtonPositions();
 }
 
@@ -2864,6 +3437,7 @@ function setupDraggableButton(btn) {
 
   btn.addEventListener('pointerdown', (e) => {
     if (!isRepositionMode) return;
+    if (e.target && e.target.closest && e.target.closest('.ctrl-resize-handle')) return;
     e.preventDefault();
     e.stopPropagation();
     isDragging = true;
@@ -2901,6 +3475,55 @@ function setupDraggableButton(btn) {
   btn.addEventListener('pointercancel', onDragEnd);
 }
 
+function setupResizableButton(btn) {
+  if (!btn) return;
+  const handle = btn.querySelector('.ctrl-resize-handle');
+  if (!handle) return;
+
+  let isResizing = false;
+  let startX = 0, startY = 0;
+  let startW = 0, startH = 0;
+
+  handle.addEventListener('pointerdown', (e) => {
+    if (!isRepositionMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+    isResizing = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    startW = btn.offsetWidth;
+    startH = btn.offsetHeight;
+    handle.setPointerCapture(e.pointerId);
+  });
+
+  handle.addEventListener('pointermove', (e) => {
+    if (!isResizing || !isRepositionMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (btn.id === 'mobile-btn-brake') {
+      const newW = Math.max(54, Math.min(220, startW + (e.clientX - startX)));
+      const newH = Math.max(48, Math.min(180, startH + (e.clientY - startY)));
+      btn.style.width = newW + 'px';
+      btn.style.height = newH + 'px';
+    } else {
+      const delta = Math.max(e.clientX - startX, e.clientY - startY);
+      const newSize = Math.max(48, Math.min(160, startW + delta));
+      btn.style.width = newSize + 'px';
+      btn.style.height = newSize + 'px';
+    }
+  });
+
+  const onResizeEnd = (e) => {
+    if (!isResizing) return;
+    isResizing = false;
+    try { handle.releasePointerCapture(e.pointerId); } catch (err) {}
+    saveMobileButtonPositions();
+  };
+
+  handle.addEventListener('pointerup', onResizeEnd);
+  handle.addEventListener('pointercancel', onResizeEnd);
+}
+
 function setupJoystick() {
   const stick = document.getElementById('mobile-joystick');
   const knob = document.getElementById('mobile-joystick-knob');
@@ -2927,7 +3550,7 @@ function setupJoystick() {
     const cy = rect.top + rect.height / 2;
     const dx = e.clientX - cx;
     const dy = e.clientY - cy;
-    const maxR = 30;
+    const maxR = (stick.offsetWidth || 104) * 0.28;
     const dist = Math.hypot(dx, dy);
     let clampedX = dx;
     let clampedY = dy;
@@ -2968,6 +3591,12 @@ function setupMobileControls() {
   setupDraggableButton(yawR);
   setupDraggableButton(brake);
   if (stick) setupDraggableButton(stick);
+
+  setupResizableButton(yawL);
+  setupResizableButton(yawR);
+  setupResizableButton(brake);
+  if (stick) setupResizableButton(stick);
+
   setupJoystick();
 
   const attachAction = (btn, onPress, onRelease) => {
@@ -3264,9 +3893,17 @@ function updateHalloweenThemeVisibility() {
     const isExcludedScreen = !activeScreen || ['screen-pause', 'screen-win', 'screen-lose'].includes(activeScreen.id);
 
     if (HALLOWEEN_EVENT_ACTIVE && !isRacing && !settingsOpen && !isExcludedScreen) {
-      const rect = activeScreen.getBoundingClientRect();
-      if (rect.height > 0) {
-        banner.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+      if (activeScreen && activeScreen.id === 'screen-start') {
+        banner.style.top = '50%';
+        banner.style.bottom = 'auto';
+        banner.style.transform = 'translate(-50%, -50%) scale(1.05)';
+      } else {
+        banner.style.top = 'auto';
+        const rect = activeScreen.getBoundingClientRect();
+        if (rect.height > 0) {
+          banner.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+        }
+        banner.style.transform = 'translateX(-50%) scale(1.05)';
       }
       banner.classList.add('visible');
     } else {
@@ -4230,6 +4867,7 @@ const audio = new SoundEngine();
 
 const bgStartup = new Audio('startup.mp3');
 bgStartup.loop = true;
+bgStartup.volume = parseFloat(localStorage.getItem('glider_music_volume') ?? 0.8);
 
 class GaplessAudio {
   constructor(url) {
@@ -5963,12 +6601,12 @@ const GHOST_SKINS = [
     colorName: 'Shadow Black & Horns',
     color: 0x0a0a0a,
     previewColor: '#0a0a0a',
-    emissive: 0xff1111,
-    emissiveIntensity: 0.85,
+    emissive: 0x000000,
+    emissiveIntensity: 0.0,
     roughness: 0.25,
     metalness: 0.85,
-    isGlowing: true,
-    reqText: 'Defeat Krampus on Razor Pass to unlock',
+    isGlowing: false,
+    reqText: 'Unlocked During Christmas Event.',
     checkUnlocked: () => !!localStorage.getItem('glider_unlocked_krampus_ghost')
   },
   {
@@ -7056,6 +7694,7 @@ hemiLight = new THREE.HemisphereLight(0xffffff, 0x445566, 0.95);
 buildParagliderMesh();
   initShopPreview();
   updateShopTvGif();
+  setGraphicsQuality(graphicsQuality);
 
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -9909,7 +10548,7 @@ applySkySetting();
     new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({ map: blobShadowTexture, transparent: true, opacity: 0, depthWrite: false })
   );
-  playerShadowMesh.visible = false;
+  playerShadowMesh.visible = (graphicsQuality === 'high');
   environmentGroup.add(playerShadowMesh);
 
 applySkySetting();
@@ -11487,7 +12126,7 @@ function spawnAI(course, activeSubtrack) {
       new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
       new THREE.MeshBasicMaterial({ map: blobShadowTexture, transparent: true, opacity: 0, depthWrite: false })
     );
-    aiShadow.visible = false;
+    aiShadow.visible = (graphicsQuality === 'high');
     environmentGroup.add(aiShadow);
 
     let assignedPersonality = PERSONALITY_TYPES[Math.floor(Math.random() * PERSONALITY_TYPES.length)];
@@ -12828,7 +13467,7 @@ function drawHudCanvas() {
     hudCtx.arc(0, 0, 20, 0, Math.PI * 2);
     hudCtx.stroke();
 
-    if (rudderBoost && (rudderBoost.charging || (rudderBoost.chargeTimer && rudderBoost.chargeTimer > 0))) {
+    if (isMobileDevice() && rudderBoost && (rudderBoost.charging || (rudderBoost.chargeTimer && rudderBoost.chargeTimer > 0))) {
       const chargeProgress = Math.min((rudderBoost.chargeTimer || 0) / 1.2, 1.0);
       if (chargeProgress > 0) {
         hudCtx.save();
@@ -13743,96 +14382,83 @@ function sortGrandPrixStandings(racers) {
 
 function renderGrandPrixCupList() {
   const listEl = document.getElementById('gp-cup-list');
-  if (!listEl) return;
-  listEl.innerHTML = '';
-
-  if (!shuffleTracksCache) {
-    shuffleTracksCache = generateRandomShuffleTracks();
-  }
-
-  const isShuffleActive = (selectedGpCupId === 'shuffle');
-  const shuffleCard = document.createElement('div');
-  shuffleCard.className = `track-opt cup-opt ${isShuffleActive ? 'active' : ''}`;
-  shuffleCard.setAttribute('data-cup', 'shuffle');
-
-  const shuffleBestPos = parseInt(localStorage.getItem('gp_best_pos_shuffle') || '99', 10);
-  const shuffleBestPts = localStorage.getItem('gp_best_pts_shuffle');
-  let shuffleBadge = '';
-  if (shuffleBestPos <= 5 && shuffleBestPts !== null) {
-    const posNames = { 1: 'CHAMPION', 2: '2ND', 3: '3RD', 4: '4TH', 5: '5TH' };
-    shuffleBadge = `<div class="pb-tag" style="margin-top: 5px;">BEST: ${posNames[shuffleBestPos]} (${shuffleBestPts} PTS)</div>`;
-  }
-
-  shuffleCard.innerHTML = `
-    <div style="width: 100%;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <img src="randomshuffle.png" alt="Random Shuffle" class="track-name">
-        <span style="font-size: 10px; color: var(--mono-60); letter-spacing: 1px;">4 RACES</span>
-      </div>
-      <div style="font-size: 8.5px; letter-spacing: 1px; color: var(--gold); margin-top: 6px; text-transform: uppercase;">
-        NO STARS RECIEVEABLE
-      </div>
-      ${shuffleBadge}
-    </div>
-  `;
-  shuffleCard.addEventListener('click', () => {
-    document.querySelectorAll('.cup-opt').forEach(c => c.classList.remove('active'));
-    shuffleCard.classList.add('active');
-    selectedGpCupId = 'shuffle';
-  });
-  listEl.appendChild(shuffleCard);
+  const listElDt = document.getElementById('gp-cup-list-dt');
+  
+  if (listEl) listEl.innerHTML = '';
+  if (listElDt) listElDt.innerHTML = '';
 
   GRAND_PRIX_CUPS.forEach(cup => {
     const isActive = (selectedGpCupId === cup.id);
-    const card = document.createElement('div');
-    card.className = `track-opt cup-opt ${isActive ? 'active' : ''}`;
-    card.setAttribute('data-cup', cup.id);
-
     const savedStars = parseInt(localStorage.getItem(`gp_stars_${cup.id}`) || '0', 10);
     const bestPos = parseInt(localStorage.getItem(`gp_best_pos_${cup.id}`) || '99', 10);
     const bestPts = localStorage.getItem(`gp_best_pts_${cup.id}`);
 
     let bestBadge = '';
     if (bestPos <= 5 && bestPts !== null) {
-      const posNames = { 1: 'CHAMPION', 2: '2ND', 3: '3RD', 4: '4TH', 5: '5TH' };
+      const posNames = { 1: '1ST', 2: '2ND', 3: '3RD', 4: '4TH', 5: '5TH' };
       const col = bestPos === 1 ? 'var(--gold)' : (bestPos === 2 ? '#d0d7de' : (bestPos === 3 ? '#cd7f32' : 'var(--mono-60)'));
-      bestBadge = `<div class="pb-tag" style="color: ${col}; margin-top: 5px;">BEST: ${posNames[bestPos]} (${bestPts} PTS)</div>`;
+      bestBadge = `<div class="pb-tag" style="color: ${col}; font-size: 8.5px; margin-top: 3px;">BEST: ${posNames[bestPos]} (${bestPts} PTS)</div>`;
     }
 
-    const diffs = ['EASY', 'MEDIUM', 'INSANE'];
     let starSlotsHtml = '';
-        for (let s = 0; s < 3; s++) {
-          const earned = s < savedStars;
-          const starChar = earned ? '★' : '☆';
-          const col = earned ? 'var(--gold)' : 'var(--mono-20)';
-          const glow = earned ? 'text-shadow: 0 0 8px var(--gold);' : '';
-          starSlotsHtml += `
-            <div class="cup-star-slot">
-              <span class="cup-star-icon" style="color: ${col}; ${glow}">${starChar}</span>
-              <span class="cup-star-label">${diffs[s]}</span>
-            </div>
-          `;
-        }
+    for (let s = 0; s < 3; s++) {
+      const earned = s < savedStars;
+      const starChar = earned ? '★' : '☆';
+      const col = earned ? 'var(--gold)' : 'var(--mono-20)';
+      starSlotsHtml += `<span style="color: ${col}; font-size: 13px; line-height: 1;">${starChar}</span>`;
+    }
 
-    card.innerHTML = `
-      <div style="width: 100%;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <img src="${cup.image}" alt="${cup.name}" class="track-name">
-          <span style="font-size: 10px; color: var(--mono-60); letter-spacing: 1px;">3 RACES</span>
-        </div>
-        <div style="display: flex; gap: 16px; margin-top: 7px; align-items: center;">${starSlotsHtml}</div>
+    if (listEl) {
+      const card = document.createElement('div');
+      card.className = `course-grid-card cup-opt ${isActive ? 'active' : ''}`;
+      card.setAttribute('data-cup', cup.id);
+      card.innerHTML = `
+        <img src="${cup.image}" alt="${cup.name}">
+        <div class="course-grid-name">${cup.name}</div>
+        <div style="display: flex; gap: 4px; margin-top: 4px; align-items: center;">${starSlotsHtml}</div>
         ${bestBadge}
-      </div>
-    `;
-
-    card.addEventListener('click', () => {
-      document.querySelectorAll('.cup-opt').forEach(c => c.classList.remove('active'));
-      card.classList.add('active');
-      selectedGpCupId = cup.id;
-    });
-
-    listEl.appendChild(card);
+      `;
+      card.addEventListener('click', () => {
+        audio.init();
+        document.querySelectorAll('.cup-opt').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll(`.cup-opt[data-cup="${cup.id}"]`).forEach(c => c.classList.add('active'));
+        selectedGpCupId = cup.id;
+        openGrandPrixPreview();
+      });
+      listEl.appendChild(card);
+    }
+    
+    if (listElDt) {
+      const cardDt = document.createElement('div');
+      cardDt.className = `track-opt cup-opt ${isActive ? 'active' : ''}`;
+      cardDt.setAttribute('data-cup', cup.id);
+      cardDt.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px; pointer-events: none;">
+          <img src="${cup.image}" alt="${cup.name}" style="max-height: 42px; width: auto; object-fit: contain;">
+          <div class="track-desc">${cup.tier}</div>
+          ${bestBadge}
+        </div>
+        <div style="display: flex; gap: 4px; align-items: center; pointer-events: none;">${starSlotsHtml}</div>
+      `;
+      cardDt.addEventListener('click', () => {
+        audio.init();
+        selectedGpCupId = cup.id;
+        document.querySelectorAll('.cup-opt').forEach(c => {
+          c.classList.toggle('active', c.getAttribute('data-cup') === cup.id);
+        });
+      });
+      listElDt.appendChild(cardDt);
+    }
   });
+
+  const btnShuffle = document.getElementById('btn-gp-shuffle') || document.getElementById('gp-cup-shuffle');
+  if (btnShuffle) {
+    btnShuffle.onclick = () => {
+      audio.init();
+      selectedGpCupId = 'shuffle';
+      openGrandPrixPreview();
+    };
+  }
 }
 
 function openGrandPrixPreview() {
@@ -14713,334 +15339,217 @@ function drawFlappyGame() {
 }
 
 function setupUI() {
-  document.getElementById('btn-to-select').addEventListener('click', () => showScreen('screen-select'));
-
-const resetBtn = document.getElementById('btn-reset-scores');
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
-      if (!confirm('Are you sure you want to reset all saved times and ghost runs?')) return;
-
-      const courses = ['canyon', 'islands', 'coastal', 'volcano', 'glacial', 'moon'];
-      const subs = ['A', 'B', 'C', 'D'];
-      courses.forEach(c => {
-        subs.forEach(s => {
-          try {
-            localStorage.removeItem(`pb_${c}_${s}`);
-            localStorage.removeItem(`ghost_${c}_${s}`);
-          } catch (e) {}
-          delete ghostCache[`ghost_${c}_${s}`];
-        });
-      });
-
-      ['sunrise', 'ember', 'gale', 'aether', 'odyssey', 'aphelion', 'shuffle'].forEach(cid => {
-        localStorage.removeItem(`gp_stars_${cid}`);
-        localStorage.removeItem(`gp_best_pos_${cid}`);
-        localStorage.removeItem(`gp_best_pts_${cid}`);
-      });
-      localStorage.removeItem('glider_achieve_apex');
-      localStorage.removeItem('glider_equipped_skin');
-      localStorage.removeItem('glider_equipped_ghost_skin');
-      localStorage.removeItem('glider_achieve_devtools');
-      localStorage.removeItem('glider_achieve_tv');
-      localStorage.removeItem('glider_credits_seen');
-      ['A', 'B', 'C'].forEach(p => localStorage.removeItem(`glider_xmas_present_${p}`));
-      localStorage.removeItem('glider_xmas_minigame_won');
-      localStorage.removeItem('glider_unlocked_santa');
-      localStorage.removeItem('glider_unlocked_krampus_ghost');
-      impossibleDifficultyUnlocked = false;
-      buildParagliderMesh();
-      if (ghostDroneGroup) createGhostDroneMesh();
-      savedGhostData = null;
-      updatePBTags();
-      resetBtn.innerText = 'TIMES RESET!';
-      audio.playBeep(440, 'triangle', 0.15);
-      setTimeout(() => {
-        resetBtn.innerText = 'RESET SAVED TIMES';
-      }, 1500);
-    }); 
-    document.querySelectorAll('.music-volume-slider').forEach(slider => {
-    slider.addEventListener('input', (e) => {
-      updateMusicVolume(parseFloat(e.target.value) / 100);
-    });
-  });
-
-  document.querySelectorAll('.sfx-volume-slider').forEach(slider => {
-    slider.addEventListener('input', (e) => {
-      updateSfxVolume(parseFloat(e.target.value) / 100);
-    });
-  });
-
-  updateMusicVolume(musicVolume);
-  updateSfxVolume(sfxVolume);
-  } 
-
-  const settingsOverlay = document.getElementById('settings-overlay');
-  const btnSettingsToggle = document.getElementById('btn-settings-toggle');
-  const btnSettingsClose = document.getElementById('btn-settings-close');
-
-  if (btnSettingsToggle) {
-    btnSettingsToggle.addEventListener('click', () => {
+  const btnCredits = document.getElementById('btn-settings-credits');
+  if (btnCredits) {
+    btnCredits.addEventListener('click', () => {
       audio.init();
-      if (settingsOverlay) settingsOverlay.style.display = 'flex';
-      updateHalloweenThemeVisibility();
+      const sOverlay = document.getElementById('settings-overlay');
+      if (sOverlay) sOverlay.style.display = 'none';
+      startCredits();
     });
   }
 
-  if (btnSettingsClose) {
-    btnSettingsClose.addEventListener('click', () => {
-      audio.init();
-      if (settingsOverlay) settingsOverlay.style.display = 'none';
-      updateHalloweenThemeVisibility();
+  function handleResetSavedScores() {
+    audio.init();
+    if (!confirm('Are you sure you want to reset all saved course times and ghost records?')) return;
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('pb_') || k.startsWith('ghost_'))) {
+        keysToRemove.push(k);
+      }
+    }
+    keysToRemove.forEach(k => {
+      localStorage.removeItem(k);
+      delete ghostCache[k];
     });
+    savedGhostData = null;
+    updatePBTags();
+    updateMedalDisplay();
+    audio.playCrash();
+    showAchievementNotifications([{ name: 'Saved Times Reset' }]);
   }
+  const btnResetMobile = document.getElementById('btn-reset-scores');
+  if (btnResetMobile) btnResetMobile.addEventListener('click', handleResetSavedScores);
+  const btnResetDt = document.getElementById('btn-reset-scores-dt');
+  if (btnResetDt) btnResetDt.addEventListener('click', handleResetSavedScores);
 
-  const btnSettingsCredits = document.getElementById('btn-settings-credits');
-  if (btnSettingsCredits) {
-    btnSettingsCredits.addEventListener('click', () => {
-      audio.init();
-      if (settingsOverlay) settingsOverlay.style.display = 'none';
-      startCredits({ isGreatestGliderUnlock: false, isFirstTime: false });
-    });
-  }
+  function openSaveModal(mode) {
+    audio.init();
+    const overlay = document.getElementById('save-transfer-overlay');
+    const title = document.getElementById('save-modal-title');
+    const sub = document.getElementById('save-modal-subtitle');
+    const textarea = document.getElementById('save-key-textarea');
+    const status = document.getElementById('save-modal-status');
+    const actionBtn = document.getElementById('btn-save-modal-action');
+    if (!overlay || !textarea || !actionBtn) return;
 
-  document.querySelectorAll('.gfx-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      audio.init();
-      setGraphicsQuality(btn.getAttribute('data-gfx'));
-    });
-  });
-
-  setGraphicsQuality(graphicsQuality);
-
-  const saveExportBtn = document.getElementById('btn-save-export');
-  const saveImportBtn = document.getElementById('btn-save-import');
-  const transferOverlay = document.getElementById('save-transfer-overlay');
-  const modalTitle = document.getElementById('save-modal-title');
-  const modalSubtitle = document.getElementById('save-modal-subtitle');
-  const modalTextarea = document.getElementById('save-key-textarea');
-  const modalStatus = document.getElementById('save-modal-status');
-  const modalActionBtn = document.getElementById('btn-save-modal-action');
-  const modalCloseBtn = document.getElementById('btn-save-modal-close');
-
-  if (saveExportBtn) {
-    saveExportBtn.addEventListener('click', () => {
-      audio.init();
-      const courses = ['canyon', 'islands', 'coastal', 'volcano', 'glacial', 'moon'];
-      const subs = ['A', 'B', 'C', 'D'];
+    overlay.style.display = 'flex';
+    if (mode === 'export') {
+      title.innerText = 'EXPORT SAVE CODE';
+      sub.innerText = 'COPY THIS CODE TO TRANSFER YOUR PROGRESS';
       const pbs = {};
       const ghosts = {};
-
-      courses.forEach(c => {
-        subs.forEach(s => {
-          const pbKey = `pb_${c}_${s}`;
-          const val = localStorage.getItem(pbKey);
-          if (val) pbs[`${c}_${s}`] = val;
-
-          const ghostKey = `ghost_${c}_${s}`;
-          let ghostData = ghostCache[ghostKey];
-          if (!ghostData) {
-            const raw = localStorage.getItem(ghostKey);
-            if (raw) {
-              try { ghostData = JSON.parse(raw); } catch (e) {}
-            }
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('pb_')) {
+          pbs[k.substring(3)] = parseFloat(localStorage.getItem(k));
+        } else if (k && k.startsWith('ghost_')) {
+          try {
+            ghosts[k.substring(6)] = JSON.parse(localStorage.getItem(k));
+          } catch (e) {}
+        }
+      }
+      for (const k in ghostCache) {
+        if (k.startsWith('ghost_') && !ghosts[k.substring(6)]) {
+          ghosts[k.substring(6)] = ghostCache[k];
+        }
+      }
+      const hw = !!localStorage.getItem('glider_unlocked_halloween');
+      const xm = hasAllChristmasPresents() ? 1 : 0;
+      try {
+        const code = AphelionEncoder.encode({ pbs, ghosts, halloweenUnlocked: hw, xm });
+        textarea.value = code;
+        status.innerText = 'SAVE CODE GENERATED';
+        status.style.color = 'var(--cyan)';
+        actionBtn.innerText = 'COPY TO CLIPBOARD';
+        actionBtn.onclick = () => {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(code).then(() => {
+              status.innerText = 'COPIED TO CLIPBOARD!';
+              status.style.color = 'var(--gold)';
+              audio.playRecoveryBoost();
+            }).catch(() => {
+              textarea.select();
+              document.execCommand('copy');
+              status.innerText = 'COPIED TO CLIPBOARD!';
+              status.style.color = 'var(--gold)';
+            });
+          } else {
+            textarea.select();
+            document.execCommand('copy');
+            status.innerText = 'COPIED TO CLIPBOARD!';
+            status.style.color = 'var(--gold)';
           }
-          if (ghostData && Array.isArray(ghostData) && ghostData.length > 0) {
-            ghosts[`${c}_${s}`] = ghostData;
-          }
-        });
-      });
-
-      let xm = 0;
-      if (localStorage.getItem('glider_xmas_present_A') === 'true') xm |= 1;
-      if (localStorage.getItem('glider_xmas_present_B') === 'true') xm |= 2;
-      if (localStorage.getItem('glider_xmas_present_C') === 'true') xm |= 4;
-      if (localStorage.getItem('glider_xmas_minigame_won') === 'true') xm |= 8;
-      if (localStorage.getItem('glider_unlocked_santa') === 'true') xm |= 16;
-      if (localStorage.getItem('glider_unlocked_krampus_ghost') === 'true') xm |= 32;
-      const halloweenUnlocked = localStorage.getItem('glider_unlocked_halloween') === 'true';
-
-      const encodedCode = AphelionEncoder.encode({ pbs, ghosts, halloweenUnlocked, xm });
-
-      modalTitle.innerText = 'Export Save Code';
-      modalSubtitle.innerText = 'Copy This Encrypted Glider Save Key';
-      modalTextarea.value = encodedCode;
-      modalTextarea.readOnly = true;
-      modalStatus.innerText = 'Save Code Generated! Keep it safe.';
-      modalStatus.style.color = 'var(--gold)';
-      modalActionBtn.innerText = 'Copy To Clipboard';
-
-      modalActionBtn.onclick = () => {
-        modalTextarea.select();
-        navigator.clipboard?.writeText(encodedCode).then(() => {
-          modalStatus.innerText = 'Copied To Clipboard!';
-          modalStatus.style.color = 'var(--gold)';
-          audio.playRecoveryBoost();
-        }).catch(() => {
-          document.execCommand('copy');
-          modalStatus.innerText = 'Copied To Clipboard!';
-          modalStatus.style.color = 'var(--gold)';
-          audio.playRecoveryBoost();
-        });
-      };
-
-      transferOverlay.style.display = 'flex';
-      audio.playRecoveryBoost();
-    });
-  }
-
-  if (saveImportBtn) {
-    saveImportBtn.addEventListener('click', () => {
-      audio.init();
-      modalTitle.innerText = 'Import Save Code';
-      modalSubtitle.innerText = 'Paste You Glider Save Key Below';
-      modalTextarea.value = '';
-      modalTextarea.readOnly = false;
-      modalTextarea.placeholder = 'PASTE KEY HERE (EX. APH_TYMoyy4EMdY3FCkpLcRLdTaXPBI/aMAJ0og7hQ==)';
-      modalStatus.innerText = 'WARNING: rewrites ALL times';
-      modalStatus.style.color = 'var(--mono-60)';
-      modalActionBtn.innerText = 'Restore Save';
-
-      modalActionBtn.onclick = () => {
-        const rawCode = modalTextarea.value.trim();
-        if (!rawCode) {
-          modalStatus.innerText = 'PLEASE PASTE A CODE FIRST!';
-          modalStatus.style.color = 'var(--red)';
-          audio.playCrash();
+        };
+      } catch (err) {
+        textarea.value = '';
+        status.innerText = 'ERROR ENCODING SAVE DATA';
+        status.style.color = 'var(--red)';
+      }
+    } else {
+      title.innerText = 'IMPORT SAVE CODE';
+      sub.innerText = 'PASTE AN ENCRYPTED SAVE CODE BELOW';
+      textarea.value = '';
+      status.innerText = 'PASTE YOUR CODE AND CLICK RESTORE';
+      status.style.color = 'var(--mono-60)';
+      actionBtn.innerText = 'RESTORE SAVE';
+      actionBtn.onclick = () => {
+        const raw = textarea.value.trim();
+        if (!raw) {
+          status.innerText = 'PLEASE PASTE A SAVE CODE';
+          status.style.color = 'var(--red)';
           return;
         }
-
         try {
-          const decoded = AphelionEncoder.decode(rawCode);
-          if (!decoded || (!decoded.pbs && !decoded.ghosts)) {
-            throw new Error('Save file is empty or unrecognized');
-          }
-
-          let pbCount = 0;
-          if (decoded.pbs) {
-            for (const key in decoded.pbs) {
-              localStorage.setItem(`pb_${key}`, decoded.pbs[key]);
-              pbCount++;
+          const data = AphelionEncoder.decode(raw);
+          if (!data || typeof data !== 'object') throw new Error('Invalid');
+          if (data.pbs) {
+            for (const trk in data.pbs) {
+              localStorage.setItem('pb_' + trk, data.pbs[trk]);
             }
           }
-
-          let ghostCount = 0;
-          if (decoded.ghosts) {
-            for (const key in decoded.ghosts) {
-              const frames = decoded.ghosts[key];
-              if (Array.isArray(frames) && frames.length > 0) {
-                localStorage.setItem(`ghost_${key}`, JSON.stringify(frames));
-                ghostCache[`ghost_${key}`] = frames;
-                ghostCount++;
-              }
+          if (data.ghosts) {
+            for (const trk in data.ghosts) {
+              localStorage.setItem('ghost_' + trk, JSON.stringify(data.ghosts[trk]));
+              ghostCache['ghost_' + trk] = data.ghosts[trk];
             }
           }
-
-          if (decoded.xm) {
-            if (decoded.xm & 1) localStorage.setItem('glider_xmas_present_A', 'true');
-            if (decoded.xm & 2) localStorage.setItem('glider_xmas_present_B', 'true');
-            if (decoded.xm & 4) localStorage.setItem('glider_xmas_present_C', 'true');
-            if (decoded.xm & 8) localStorage.setItem('glider_xmas_minigame_won', 'true');
-            if (decoded.xm & 16) localStorage.setItem('glider_unlocked_santa', 'true');
-            if (decoded.xm & 32) localStorage.setItem('glider_unlocked_krampus_ghost', 'true');
-          }
-          if (decoded.halloweenUnlocked) {
+          if (data.halloweenUnlocked) {
             localStorage.setItem('glider_unlocked_halloween', 'true');
           }
-
           updatePBTags();
           updateMedalDisplay();
-          loadGhostDrone();
-          buildParagliderMesh();
-
-          modalStatus.innerText = `SUCCESS! RESTORED ${pbCount} PBs & ${ghostCount} GHOST RUNS!`;
-          modalStatus.style.color = '#4cd137';
-          audio.playRecoveryBoost();
-
-          showAchievementNotifications([{
-            name: `Save Restored (${pbCount} PBs, ${ghostCount} Ghosts)`
-          }]);
-
-          setTimeout(() => {
-            transferOverlay.style.display = 'none';
-          }, 1800);
+          status.innerText = 'SAVE RESTORED SUCCESSFULLY!';
+          status.style.color = 'var(--gold)';
+          audio.playFinishFanfare();
+          setTimeout(() => { overlay.style.display = 'none'; }, 1200);
         } catch (err) {
-          console.error('Import failed:', err);
-          modalStatus.innerText = 'IMPORT FAILED: ' + (err.message || 'INVALID CODE');
-          modalStatus.style.color = 'var(--red)';
+          status.innerText = 'INVALID OR CORRUPTED CODE';
+          status.style.color = 'var(--red)';
           audio.playCrash();
         }
       };
+    }
+  }
 
-      transferOverlay.style.display = 'flex';
+  ['btn-save-export', 'btn-save-export-dt'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', () => openSaveModal('export'));
+  });
+  ['btn-save-import', 'btn-save-import-dt'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', () => openSaveModal('import'));
+  });
+  const btnSaveClose = document.getElementById('btn-save-modal-close');
+  if (btnSaveClose) {
+    btnSaveClose.addEventListener('click', () => {
+      document.getElementById('save-transfer-overlay').style.display = 'none';
     });
   }
 
-  if (modalCloseBtn) {
-    modalCloseBtn.addEventListener('click', () => {
-      transferOverlay.style.display = 'none';
-      audio.init();
-    });
-  }
+  document.getElementById('btn-to-select').addEventListener('click', () => {
+    audio.init();
+    showScreen('screen-select');
+  });
+
+  document.getElementById('btn-open-shop-dt').addEventListener('click', () => {
+    audio.init();
+    openShopMenu();
+    updateCellarDoorVisibility();
+  });
+
+  document.getElementById('btn-start-race-dt').addEventListener('click', () => {
+    audio.init();
+    if (btnTabGpDt && btnTabGpDt.classList.contains('active')) {
+      openGrandPrixPreview();
+      return;
+    }
+    grandPrixState.active = false;
+    refreshDispatchModal();
+    showScreen('screen-dispatch');
+  });
 
   document.querySelectorAll('#screen-select .track-opt').forEach(opt => {
-    if (opt.getAttribute('data-course') === selectedCourseId) {
-      opt.classList.add('active');
-    } else {
-      opt.classList.remove('active');
-    }
-
     opt.addEventListener('click', () => {
       document.querySelectorAll('#screen-select .track-opt').forEach(o => o.classList.remove('active'));
       opt.classList.add('active');
-      const nextCourse = opt.getAttribute('data-course');
-      setTimeout(() => {
-        selectedCourseId = nextCourse;
-        try {
-          localStorage.setItem('glider_last_course', selectedCourseId);
-        } catch (e) {}
-        buildCourse(selectedCourseId);
-        lastTime = performance.now();
-      }, 10);
+      selectedCourseId = opt.getAttribute('data-course');
+      try { localStorage.setItem('glider_last_course', selectedCourseId); } catch (e) {}
+      buildCourse(selectedCourseId);
     });
   });
 
-  const btnTabSingle = document.getElementById('btn-tab-single');
-  const btnTabGp = document.getElementById('btn-tab-gp');
-  const singleList = document.getElementById('single-track-list');
-  const gpContainer = document.getElementById('gp-select-container');
-  const btnStartFlight = document.getElementById('btn-start-race');
+  const btnTabSingleDt = document.getElementById('btn-tab-single-dt');
+  const btnTabGpDt = document.getElementById('btn-tab-gp-dt');
+  const singleListDt = document.getElementById('single-track-list-dt');
+  const gpContainerDt = document.getElementById('gp-select-container-dt');
 
-  function setSelectTab(tab) {
-    audio.init();
-    selectedSelectTab = tab;
-    if (tab === 'single') {
-      btnTabSingle.classList.add('active');
-      btnTabGp.classList.remove('active');
-      singleList.style.display = 'flex';
-      gpContainer.style.display = 'none';
-      btnStartFlight.innerText = 'BEGIN FLIGHT';
-    } else {
-      btnTabSingle.classList.remove('active');
-      btnTabGp.classList.add('active');
-      singleList.style.display = 'none';
-      gpContainer.style.display = 'flex';
-      btnStartFlight.innerText = 'LAUNCH CHAMPIONSHIP';
+  if (btnTabSingleDt && btnTabGpDt) {
+    btnTabSingleDt.addEventListener('click', () => {
+      btnTabSingleDt.classList.add('active');
+      btnTabGpDt.classList.remove('active');
+      singleListDt.style.display = 'flex';
+      gpContainerDt.style.display = 'none';
+    });
+    btnTabGpDt.addEventListener('click', () => {
+      btnTabSingleDt.classList.remove('active');
+      btnTabGpDt.classList.add('active');
+      singleListDt.style.display = 'none';
+      gpContainerDt.style.display = 'flex';
       renderGrandPrixCupList();
-    }
-  }
-
-  if (btnTabSingle && btnTabGp) {
-    btnTabSingle.addEventListener('click', () => setSelectTab('single'));
-    btnTabGp.addEventListener('click', () => setSelectTab('gp'));
-  }
-
-  document.querySelectorAll('.gp-diff-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.gp-diff-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      selectedGpDifficulty = btn.getAttribute('data-diff');
     });
-  });
+  }
 
   const btnOpenKeybinds = document.getElementById('btn-open-keybinds');
   const keybindModal = document.getElementById('keybind-modal-overlay');
@@ -15051,7 +15560,8 @@ const resetBtn = document.getElementById('btn-reset-scores');
     btnOpenKeybinds.addEventListener('click', () => {
       audio.init();
       if (isMobileDevice()) {
-        if (settingsOverlay) settingsOverlay.style.display = 'none';
+        const sOverlay = document.getElementById('settings-overlay');
+        if (sOverlay) sOverlay.style.display = 'none';
         openMobileRepositionEditor();
         return;
       }
@@ -15083,11 +15593,97 @@ const resetBtn = document.getElementById('btn-reset-scores');
     });
   }
 
-  document.getElementById('btn-open-shop').addEventListener('click', () => {
+  const btnTabSingle = document.getElementById('btn-tab-single');
+  const btnTabGp = document.getElementById('btn-tab-gp');
+  const singleList = document.getElementById('single-track-list');
+  const gpContainer = document.getElementById('gp-select-container');
+
+  function setSelectTab(tab) {
+    audio.init();
+    selectedSelectTab = tab;
+    if (tab === 'single') {
+      if (btnTabSingle) btnTabSingle.classList.add('active');
+      if (btnTabGp) btnTabGp.classList.remove('active');
+      if (singleList) {
+        singleList.classList.remove('hidden');
+        singleList.style.display = 'grid';
+      }
+      if (gpContainer) {
+        gpContainer.classList.add('hidden');
+        gpContainer.style.display = 'none';
+      }
+    } else {
+      if (btnTabSingle) btnTabSingle.classList.remove('active');
+      if (btnTabGp) btnTabGp.classList.add('active');
+      if (singleList) {
+        singleList.classList.add('hidden');
+        singleList.style.display = 'none';
+      }
+      if (gpContainer) {
+        gpContainer.classList.remove('hidden');
+        gpContainer.style.display = 'flex';
+      }
+      renderGrandPrixCupList();
+    }
+  }
+
+  if (btnTabSingle && btnTabGp) {
+    btnTabSingle.addEventListener('click', () => setSelectTab('single'));
+    btnTabGp.addEventListener('click', () => setSelectTab('gp'));
+  }
+
+  const btnStartPlay = document.getElementById('btn-start-play');
+  if (btnStartPlay) {
+    btnStartPlay.addEventListener('click', () => {
+      audio.init();
+      setSelectTab('single');
+      showScreen('screen-select');
+    });
+  }
+
+  const btnStartSingle = document.getElementById('btn-start-single');
+  if (btnStartSingle) {
+    btnStartSingle.addEventListener('click', () => {
+      audio.init();
+      setSelectTab('single');
+      showScreen('screen-select');
+    });
+  }
+
+  const btnStartGp = document.getElementById('btn-start-gp');
+  if (btnStartGp) {
+    btnStartGp.addEventListener('click', () => {
+      audio.init();
+      setSelectTab('gp');
+      showScreen('screen-select');
+    });
+  }
+
+  document.getElementById('btn-start-shop').addEventListener('click', () => {
+    audio.init();
     openShopMenu();
     updateCellarDoorVisibility();
   });
+
+  document.getElementById('btn-select-back').addEventListener('click', () => {
+    audio.init();
+    showScreen('screen-start');
+  });
+
   document.getElementById('btn-shop-back').addEventListener('click', () => showScreen('screen-select'));
+
+  document.querySelectorAll('#screen-select-mobile .track-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      document.querySelectorAll('#screen-select-mobile .track-opt').forEach(o => o.classList.remove('active'));
+      opt.classList.add('active');
+      selectedCourseId = opt.getAttribute('data-course');
+      try { localStorage.setItem('glider_last_course', selectedCourseId); } catch (e) {}
+      buildCourse(selectedCourseId);
+      grandPrixState.active = false;
+      refreshDispatchModal();
+      showScreen('screen-dispatch');
+    });
+  });
 
   if (HALLOWEEN_EVENT_ACTIVE) {
     updateHalloweenThemeVisibility();
@@ -15161,19 +15757,6 @@ const resetBtn = document.getElementById('btn-reset-scores');
     });
   }
 
-  document.getElementById('btn-start-race').addEventListener('click', () => {
-    if (selectedSelectTab === 'gp') {
-      openGrandPrixPreview();
-    } else {
-      grandPrixState.active = false;
-      try {
-        localStorage.setItem('glider_last_course', selectedCourseId);
-      } catch (e) {}
-      refreshDispatchModal();
-      showScreen('screen-dispatch');
-    }
-  });
-
 document.getElementById('btn-dispatch-back').addEventListener('click', () => {
     showScreen('screen-select');
   });
@@ -15214,9 +15797,18 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
 
   document.querySelectorAll('.diff-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      selectedDifficulty = btn.getAttribute('data-diff');
+      const diff = btn.getAttribute('data-diff');
+      if (btn.classList.contains('gp-diff-btn') || btn.classList.contains('gp-diff-btn-dt')) {
+        selectedGpDifficulty = diff;
+        document.querySelectorAll('.gp-diff-btn, .gp-diff-btn-dt').forEach(b => {
+          b.classList.toggle('active', b.getAttribute('data-diff') === diff);
+        });
+      } else {
+        selectedDifficulty = diff;
+        document.querySelectorAll('#ai-diff-box .diff-btn').forEach(b => {
+          b.classList.toggle('active', b.getAttribute('data-diff') === diff);
+        });
+      }
     });
   });
 
@@ -15236,6 +15828,24 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
         localStorage.setItem('glider_invert_controls', invertControls ? 'true' : 'false');
       } catch (e) {}
       updateInvertButtons();
+    });
+  });
+
+  document.querySelectorAll('.gfx-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      audio.init();
+      setGraphicsQuality(btn.getAttribute('data-gfx'));
+    });
+  });
+
+  document.querySelectorAll('.sfx-volume-slider').forEach(slider => {
+    slider.addEventListener('input', (e) => {
+      updateSfxVolume(e.target.value / 100);
+    });
+  });
+  document.querySelectorAll('.music-volume-slider').forEach(slider => {
+    slider.addEventListener('input', (e) => {
+      updateMusicVolume(e.target.value / 100);
     });
   });
 
@@ -15275,10 +15885,19 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
     });
   });
 
-  document.getElementById('btn-resume').addEventListener('click', togglePauseMenu);
-  document.querySelectorAll('.btn-retry').forEach(btn => btn.addEventListener('click', startCountdown));
+  document.getElementById('btn-settings-toggle').addEventListener('click', () => {
+    audio.init();
+    document.getElementById('settings-overlay').style.display = 'flex';
+  });
+  document.getElementById('btn-settings-close').addEventListener('click', () => {
+    audio.init();
+    document.getElementById('settings-overlay').style.display = 'none';
+  });
+  document.getElementById('btn-resume').addEventListener('click', togglePauseMenu);  document.querySelectorAll('.btn-retry').forEach(btn => btn.addEventListener('click', startCountdown));
   document.querySelectorAll('.btn-menu').forEach(btn => btn.addEventListener('click', () => {
     document.getElementById('countdown-box').style.display = 'none';
+    gameState = 'START';
+    audio.stopAllAudio();
     if (isHalloweenBossDuel) {
       isHalloweenBossDuel = false;
       if (!localStorage.getItem('glider_unlocked_halloween')) {
@@ -15326,7 +15945,7 @@ function refreshDispatchModal() {
     }
   });
 
-const optD = document.getElementById('subtrack-opt-D');
+  const optD = document.getElementById('subtrack-opt-D');
   if (optD) {
     if (selectedCourseId === 'canyon' || selectedCourseId === 'moon') {
       optD.classList.remove('hidden');
@@ -15358,6 +15977,24 @@ const optD = document.getElementById('subtrack-opt-D');
     }
   }
 
+  document.querySelectorAll('#dispatch-flight-mode-box .mode-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-gmode') === gameMode);
+  });
+
+  const diffBox = document.getElementById('ai-diff-box');
+  if (diffBox) {
+    diffBox.style.display = (gameMode === 'timetrial') ? 'none' : 'flex';
+  }
+
+  document.querySelectorAll('#ai-diff-box .diff-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-diff') === selectedDifficulty);
+  });
+
+  const modeDesc = document.getElementById('mode-desc');
+  if (modeDesc) {
+    modeDesc.innerText = (gameMode === 'timetrial') ? 'TIME TRIAL' : 'RACE AI';
+  }
+
   updatePBTags();
   updateMedalDisplay();
 }
@@ -15379,14 +16016,25 @@ function updateMedalDisplay() {
 }
 
 function showScreen(screenId) {
+  const isMobile = isMobileDevice() || window.innerWidth <= 950;
+  if (screenId === 'screen-start') {
+    screenId = isMobile ? 'screen-start-mobile' : 'screen-start';
+  }
+  if (screenId === 'screen-select') {
+    screenId = isMobile ? 'screen-select-mobile' : 'screen-select';
+  }
   if (screenId !== 'screen-shop') {
     clearShopTvTimer();
   }
   updateHalloweenThemeVisibility();
 
-const screens = ['screen-start', 'screen-select', 'screen-shop', 'screen-dispatch', 'screen-pause', 'screen-win', 'screen-lose', 'screen-gp-preview', 'screen-gp-interstitial', 'screen-gp-summary'];  screens.forEach(id => {
+  const screens = ['screen-start', 'screen-select', 'screen-start-mobile', 'screen-select-mobile', 'screen-shop', 'screen-dispatch', 'screen-pause', 'screen-win', 'screen-lose', 'screen-gp-preview', 'screen-gp-interstitial', 'screen-gp-summary'];  
+  screens.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.classList.add('hidden');
+    if (el) {
+      el.classList.add('hidden');
+      el.style.display = 'none';
+    }
   });
 
   lastActiveScreenId = null;
@@ -15405,7 +16053,11 @@ const settingsBtn = document.getElementById('btn-settings-toggle');
   }
 
   if (screenId) {
-    document.getElementById(screenId).classList.remove('hidden');
+    const targetEl = document.getElementById(screenId);
+    if (targetEl) {
+      targetEl.classList.remove('hidden');
+      targetEl.style.display = (screenId === 'screen-start-mobile') ? 'flex' : '';
+    }
     document.getElementById('hud-overlay').style.display = 'none';
     const mobileWrap = document.getElementById('mobile-controls-wrap');
     if (mobileWrap && !isRepositionMode) mobileWrap.style.display = 'none';
@@ -15420,7 +16072,7 @@ const settingsBtn = document.getElementById('btn-settings-toggle');
       playMenuTheme('menu');
     }
 
-    if (screenId === 'screen-start') {
+    if (screenId === 'screen-start' || screenId === 'screen-start-mobile') {
       const startMessages = [
         'PITCH / BANK / YAW FLIGHT SYSTEM<br>PRESS W + ctrl /cmd for free golden time trial ghost!',
         'Wait... you were expecting a tutorial? <br>Aphelion Code of Conduct says: "Git Gud."',
@@ -15466,11 +16118,12 @@ const settingsBtn = document.getElementById('btn-settings-toggle');
         "Due to recent events, this game will be renamed to America.",
       ];
 
+      const randomIndex = Math.floor(Math.random() * startMessages.length);
       const instrEl = document.querySelector('#screen-start .instructions');
-      if (instrEl) {
-        const randomIndex = Math.floor(Math.random() * startMessages.length);
-        instrEl.innerHTML = startMessages[randomIndex];
-      }
+      const instrElMobile = document.querySelector('#screen-start-mobile .instructions');
+      
+      if (instrEl) instrEl.innerHTML = startMessages[randomIndex];
+      if (instrElMobile) instrElMobile.innerHTML = startMessages[randomIndex];
     }
 
   } else {
