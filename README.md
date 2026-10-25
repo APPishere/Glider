@@ -56,6 +56,7 @@ Check out the artist!
 
 Mobile?
 Its okay! its on your screen!
+(NOTE: Some UI is STILL work in progress!)
 
 ### Check out the Artist!
 
