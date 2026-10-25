@@ -1,8 +1,8 @@
 {
   "name": "glider",
   "private": true,
-  "version": "4.0.0",
-  "description": "Glider paragliding game desktop wrapper",
+  "version": "4.1.6",
+  "description": "Glider",
   "scripts": {
     "tauri": "tauri"
   },
