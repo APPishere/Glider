@@ -37,9 +37,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v4.1.5
-          releaseName: "Glider Patch 4.1.5"
-          releaseBody: "IDK IM RUNNING OUT OF NAMES FOR PATCHES"
+          tagName: v4.1.6
+          releaseName: "Glider Patch 4.1.6"
+          releaseBody: "Body HERE"
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
