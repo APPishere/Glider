@@ -17,7 +17,6 @@ Open the app as normal!
   2.Click Run anyway.
 
 
-**Description + Controls:**
 # Glider
 A Free to play browser/ app game.
 
@@ -58,11 +57,17 @@ Mobile?
 Its okay! its on your screen!
 (NOTE: Some UI is STILL work in progress!)
 
-### Check out the Artist!
+> ### Check out the Artist!
 
-@konekofire (KonekoXArt)
+> @konekofire (KonekoXArt)
 
-https://www.instagram.com/konekoxart/
+> https://www.instagram.com/konekoxart/
+
+### Dont Want to Download the game? Its okay! play here:
+- →  [Play On Git Pages!](https://appishere.github.io/Glider/) - supports Sw.js   
+- → [Play On Itch!](https://app-here.itch.io/glider)  
+- → [Play On Cloudflare!](https://glider.pages.dev/)  - supports Sw.js 
+- → [Play On Gamejolt!](https://gamejolt.com/games/Glider/1097745)   
 
 
 
