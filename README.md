@@ -1,22 +1,3 @@
-Installation Troubleshooting:
-
-**macOS Users ("App is damaged and can't be opened"):**
-macOS Gatekeeper blocks un signed apps by default (I dont have money). To fix this:
-1. Drag `Glider.app` into your `/Applications` folder.
-   
-2. Open Terminal and run:
-
-   xattr -cr /Applications/Glider.app
-
-Open the app as normal!
-
-**Windows Users ("Windows protected your PC"):**
-
-  1. Click More info on the SmartScreen popup.
-
-  2.Click Run anyway.
-
-
 # Glider
 A Free to play browser/ app game.
 
@@ -83,7 +64,59 @@ Its okay! its on your screen!
 - →  [Play On Git Pages!](https://appishere.github.io/Glider/) - supports Sw.js   
 - → [Play On Itch!](https://app-here.itch.io/glider)  
 - → [Play On Cloudflare!](https://glider.pages.dev/)  - supports Sw.js 
-- → [Play On Gamejolt!](https://gamejolt.com/games/Glider/1097745)   
+- → [Play On Gamejolt!](https://gamejolt.com/games/Glider/1097745)
+
+
+## Installation Troubleshooting:
+
+**macOS Users ("App is damaged and can't be opened"):**
+macOS Gatekeeper blocks un signed apps by default (I dont have money). To fix this:
+1. Drag `Glider.app` into your `/Applications` folder.
+   
+2. Open Terminal and run:
+
+   xattr -cr /Applications/Glider.app
+
+Open the app as normal!
+
+**Windows Users ("Windows protected your PC"):**
+
+  1. Click More info on the SmartScreen popup.
+
+  2.Click Run anyway.
+
+
+
+## How to Install for Offline Mobile Play 
+
+*Glider* supports **Offline Play** by using Service Worker. You can install it directly to your phone's Home Screen without downloading it!
+
+### iOS (iPhone / iPad)
+
+> **Recommended App:** **Safari** *(Works on (iOS 16.4+) Chrome/Edge as well, but Safari gives the best experience)*.
+
+1. Open **Safari** and go to one of the playable links:
+   * [Play on Cloudflare](https://glider.pages.dev/)  - im on free plan, if possible use github pages
+   * [Play on GitHub Pages](https://appishere.github.io/Glider/) - (recommended)
+1. click 3 dots in bottom right
+2. Tap the **Share** button (the square icon with an arrow pointing up) 
+4. Scroll down the share menu and tap **Add to Home Screen**. (You may have to click View More)
+5. Tap **Add** in the top right corner.
+6. *Glider* will now appear on your home screen as a standalone app!
+
+
+
+### Android
+
+> **Recommended Apps:** **Google Chrome**, **Brave**, **Samsung Internet**, or **Firefox**.
+
+1. Open **Google Chrome** (or your browser of choice) and go to:
+   * [Play on Cloudflare](https://glider.pages.dev/) - im on free plan, if possible use github pages
+   * [Play on GitHub Pages](https://appishere.github.io/Glider/) - (recommended) 
+2. Wait a few seconds for the page to load, then tap the **Three-Dot Menu** in the top-right corner.
+3. Tap **Install App** or **Add to Home screen**.
+4. Tap **Install** / **Add** when prompted.
+5. The game app icon will appear in your App Drawer and on your Home Screen!
 
 
 
