@@ -21,7 +21,7 @@ Keyboard (WASD Mode + Mouse):
 
 > Esc – Pause / Resume Halt the action and tweak your settings and here you can change between inverse and inverse inverse.
 
-> Move Mouse – Pitch & Roll  left/right and up /down of screen
+> Move Mouse – Pitch / Roll  left/right and up /down of screen
 
 > Q / E – Rudder Yaw (optional).
 
@@ -50,9 +50,9 @@ Controller:
 
 
  Mobile?
-
-Its okay! its on your screen!
+Dont worry! You can use D-Pad, Analog, Touch anywhere on the screen OR Gyro!
 (NOTE: Some UI is STILL work in progress!)
+
 
 > ### Check out the Artist!
 
@@ -97,7 +97,7 @@ Open the app as normal!
 
 1. Open **Safari** and go to one of the playable links:
    * [Play on Cloudflare](https://glider.pages.dev/)  - Im on the free plan, so if possible, use GitHub Pages
-   * [Play on GitHub Pages](https://appishere.github.io/Glider/) - (recommended)
+   * [Play on GitHub Pages](https://appishere.github.io/Glider/) - **(recommended)**
 1. click 3 dots in bottom right
 2. Tap the **Share** button (the square icon with an arrow pointing up) 
 4. Scroll down the share menu and tap **Add to Home Screen**. (You may have to click View More)
@@ -112,11 +112,17 @@ Open the app as normal!
 
 1. Open **Google Chrome** (or your browser of choice) and go to:
    * [Play on Cloudflare](https://glider.pages.dev/) - Im on the free plan, so if possible, use GitHub Pages
-   * [Play on GitHub Pages](https://appishere.github.io/Glider/) - (recommended) 
+   * [Play on GitHub Pages](https://appishere.github.io/Glider/) - **(recommended)**
 2. Wait a few seconds for the page to load, then tap the **Three-Dot Menu** in the top-right corner.
 3. Tap **Install App** or **Add to Home screen**.
 4. Tap **Install** / **Add** when prompted.
 5. The game app icon will appear in your App Drawer and on your Home Screen!
+
+
+
+## Known Issues
+ **Mobile UI is still WIP.** Controls work but some UI elements arent finished
+- **Mouse-only mode** doesn't have rudder boost (no keyboard = no Q/E) Use WASD mode if you want rudder boost
 
 
 
