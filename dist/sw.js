@@ -1,4 +1,4 @@
-const CACHE_NAME = 'glider-cache-v5';
+const CACHE_NAME = 'glider-cache-v6';
 
 const ASSETS = [
   // Core Files
@@ -28,7 +28,6 @@ const ASSETS = [
   './glidercurser.png',
   './glidercurser_select.png',
   './Keycurser.png',
-  './input_file_1.png',
 
   // Mobile Controls 
   './rudderleft.png',
@@ -83,7 +82,6 @@ const ASSETS = [
   './upcomingevent.gif',
   './speed.png',
   './speedemeterpointer2.png',
-  './input_file_8.png',
   './bluering.png',
   './grayring.png',
   './16-bit_chaser_back.gif',
@@ -107,18 +105,12 @@ const ASSETS = [
 
   // Halloween Assets
   './halloweenbar.png',
-  './input_file_4.png',
   './halloweenminimap.png',
-  './input_file_9.png',
   './pumpkin.png',
   './cornercobweb.png',
-  './input_file_5.png',
   './bigcobweb.png',
-  './input_file_3.png',
   './halloweenfence.png',
-  './input_file_6.png',
   './halloweenfence2.png',
-  './input_file_7.png',
   './filter.png',
 
   // Credits
@@ -155,11 +147,15 @@ const ASSETS = [
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('Caching all Glider assets for offline play');
-      return cache.addAll(ASSETS);
-    }).catch((err) => {
-      console.error('Failed to cache some assets. Check your filenames!', err);
+    caches.open(CACHE_NAME).then(async (cache) => {
+      console.log('Caching Glider assets...');
+      await Promise.all(
+        ASSETS.map((url) =>
+          cache.add(url).catch((err) => {
+            console.warn(`Could not cache asset: ${url}`, err);
+          })
+        )
+      );
     })
   );
   self.skipWaiting();
@@ -167,24 +163,61 @@ self.addEventListener('install', (e) => {
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
+    caches.keys().then((keys) =>
+      Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('Clearing old cache', key);
+            console.log('Deleting old cache:', key);
             return caches.delete(key);
           }
         })
-      );
-    })
+      )
+    )
   );
   self.clients.claim();
 });
 
+async function handleRangeRequest(request, cachedResponse) {
+  const rangeHeader = request.headers.get('range');
+  if (!rangeHeader) return cachedResponse;
+
+  const arrayBuffer = await cachedResponse.arrayBuffer();
+  const bytes = rangeHeader.replace(/bytes=/, '').split('-');
+  const start = parseInt(bytes[0], 10);
+  const end = bytes[1] ? parseInt(bytes[1], 10) : arrayBuffer.byteLength - 1;
+  const slicedBuffer = arrayBuffer.slice(start, end + 1);
+
+  return new Response(slicedBuffer, {
+    status: 206,
+    statusText: 'Partial Content',
+    headers: {
+      ...Object.fromEntries(cachedResponse.headers.entries()),
+      'Content-Range': `bytes ${start}-${end}/${arrayBuffer.byteLength}`,
+      'Content-Length': slicedBuffer.byteLength,
+      'Accept-Ranges': 'bytes'
+    }
+  });
+}
+
 self.addEventListener('fetch', (e) => {
+  const url = new URL(e.request.url);
+
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request).catch(() => caches.match('./index.html') || caches.match('./'))
+    );
+    return;
+  }
+
   e.respondWith(
-    caches.match(e.request).then((response) => {
-      return response || fetch(e.request);
+    caches.match(e.request, { ignoreSearch: true }).then(async (cachedResponse) => {
+      if (cachedResponse) {
+        if (e.request.headers.get('range')) {
+          return handleRangeRequest(e.request, cachedResponse);
+        }
+        return cachedResponse;
+      }
+      return fetch(e.request);
     })
   );
 });
