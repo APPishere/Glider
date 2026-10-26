@@ -5959,7 +5959,7 @@ let devFreeCamPitch = 0;
 let devWarpTimer = 0;
 let devFadeInTimer = 0;
 
-let graphicsQuality = localStorage.getItem('glider_graphics_quality') || 'low';
+let graphicsQuality = isMobileDevice() ? 'low' : (localStorage.getItem('glider_graphics_quality') || 'low');
 let playerShadowMesh = null;
 
 const blobShadowTexture = (() => {
@@ -8262,11 +8262,16 @@ tvNoiseTexture.repeat.set(3, 1);
 
 let tvGlitchBarY = 0;
 
+let lastTvStaticUpdate = 0;
 function updateTvStaticTexture() {
   const isEquipped = getEquippedSkinId() === 'glider_tv_static';
   const isInspected = inspectedType === 'glider' && inspectedGliderId === 'glider_tv_static';
   const shopVisible = document.getElementById('screen-shop') && !document.getElementById('screen-shop').classList.contains('hidden');
   if (!isEquipped && !(shopVisible && isInspected)) return;
+
+  const now = performance.now();
+  if (now - lastTvStaticUpdate < 66) return;
+  lastTvStaticUpdate = now;
 
   const w = tvNoiseCanvas.width;
   const h = tvNoiseCanvas.height;
@@ -9768,6 +9773,7 @@ function clearAndDisposeGroup(group) {
           (obj.material === waypointMaterials.blue || obj.material === waypointMaterials.gray)) {
           return;
         }
+        
         if (Array.isArray(obj.material)) {
           obj.material.forEach(m => m.dispose());
         } else {
@@ -9779,6 +9785,7 @@ function clearAndDisposeGroup(group) {
 }
 
 function buildClouds(courseKey) {
+  const isHighGfx = (graphicsQuality === 'high');
   clearAndDisposeGroup(cloudsGroup);
   clearAndDisposeGroup(lowerCloudsGroup);
 
@@ -9793,7 +9800,7 @@ function buildClouds(courseKey) {
     depthWrite: false
   });
 
-  const cloudCount = (courseKey === 'coastal' || courseKey === 'volcano') ? 65 : 45;
+  const cloudCount = isHighGfx ? ((courseKey === 'coastal' || courseKey === 'volcano') ? 65 : 45) : 16;
   for (let i = 0; i < cloudCount; i++) {
     const cluster = new THREE.Group();
     const cx = (Math.random() - 0.5) * 8500;
@@ -9824,7 +9831,8 @@ if (courseKey === 'islands' || courseKey === 'coastal' || courseKey === 'volcano
       opacity: 0.34,
       depthWrite: false
     });
-    for (let j = 0; j < 55; j++) {
+    const seaCloudCount = isHighGfx ? 55 : 12;
+    for (let j = 0; j < seaCloudCount; j++) {
       const seaMesh = new THREE.Mesh(cloudGeom, seaCloudMat);
       const s = 220 + Math.random() * 240;
       seaMesh.scale.set(s * 1.8, s * 0.35, s * 1.8);
@@ -10580,25 +10588,25 @@ if (courseKey === 'moon') {
   }
 }
 
+const TT_SCHEDULE_STORMY = [
+  { spd: 22, ang: Math.PI * 0.85, rain: 0.85, cond: 'STAGE 1: 22 KT SE (RAIN)', stormy2x: false },
+  { spd: 34, ang: Math.PI * 1.15, rain: 1.0, cond: 'STAGE 2: 34 KT S (STORMY)', stormy2x: true },
+  { spd: 26, ang: Math.PI * 1.45, rain: 0.9, cond: 'STAGE 3: 26 KT SW (GALE)', stormy2x: false },
+  { spd: 38, ang: Math.PI * 1.85, rain: 1.0, cond: 'STAGE 4: 38 KT W (STORMY)', stormy2x: true }
+];
+const TT_SCHEDULE_CLEAR = [
+  { spd: 12, ang: Math.PI * 0.5, rain: 0.0, cond: 'STAGE 1: 12 KT E (CLEAR)', stormy2x: false },
+  { spd: 19, ang: Math.PI * 0.85, rain: 0.35, cond: 'STAGE 2: 19 KT SE (RAIN)', stormy2x: false },
+  { spd: 27, ang: Math.PI * 1.35, rain: 0.8, cond: 'STAGE 3: 27 KT SW (GUSTS)', stormy2x: false },
+  { spd: 34, ang: Math.PI * 1.65, rain: 1.0, cond: 'STAGE 4: 34 KT W (STORMY)', stormy2x: true }
+];
+
 function updateWeather(dt) {
   if (gameMode === 'timetrial') {
     const phase = Math.floor(raceElapsedTime / 15);
-    let schedule;
-    if (selectedCourseId === 'coastal' || selectedCourseId === 'volcano') {
-      schedule = [
-        { spd: 22, ang: Math.PI * 0.85, rain: 0.85, cond: 'STAGE 1: 22 KT SE (RAIN)', stormy2x: false },
-        { spd: 34, ang: Math.PI * 1.15, rain: 1.0, cond: 'STAGE 2: 34 KT S (STORMY)', stormy2x: true },
-        { spd: 26, ang: Math.PI * 1.45, rain: 0.9, cond: 'STAGE 3: 26 KT SW (GALE)', stormy2x: false },
-        { spd: 38, ang: Math.PI * 1.85, rain: 1.0, cond: 'STAGE 4: 38 KT W (STORMY)', stormy2x: true }
-      ];
-    } else {
-      schedule = [
-        { spd: 12, ang: Math.PI * 0.5, rain: 0.0, cond: 'STAGE 1: 12 KT E (CLEAR)', stormy2x: false },
-        { spd: 19, ang: Math.PI * 0.85, rain: 0.35, cond: 'STAGE 2: 19 KT SE (RAIN)', stormy2x: false },
-        { spd: 27, ang: Math.PI * 1.35, rain: 0.8, cond: 'STAGE 3: 27 KT SW (GUSTS)', stormy2x: false },
-        { spd: 34, ang: Math.PI * 1.65, rain: 1.0, cond: 'STAGE 4: 34 KT W (STORMY)', stormy2x: true }
-      ];
-    }
+    const schedule = (selectedCourseId === 'coastal' || selectedCourseId === 'volcano')
+      ? TT_SCHEDULE_STORMY
+      : TT_SCHEDULE_CLEAR;
     const cur = schedule[phase % schedule.length];
     weather.targetWindSpeed = cur.spd;
     weather.targetWindAngle = cur.ang;
@@ -11197,19 +11205,19 @@ applySkySetting();
     eCtx.fillRect(0, 0, 1024, 512);
 
     eCtx.fillStyle = '#2c5e38';
-    eCtx.beginPath(); // North America
+    eCtx.beginPath(); 
     eCtx.ellipse(260, 160, 140, 85, -0.22, 0, Math.PI * 2);
     eCtx.fill();
-    eCtx.beginPath(); // South America
+    eCtx.beginPath(); 
     eCtx.ellipse(360, 340, 75, 115, 0.22, 0, Math.PI * 2);
     eCtx.fill();
-    eCtx.beginPath(); // Eurasia
+    eCtx.beginPath(); 
     eCtx.ellipse(680, 155, 220, 90, 0.04, 0, Math.PI * 2);
     eCtx.fill();
-    eCtx.beginPath(); // Africa
+    eCtx.beginPath(); 
     eCtx.ellipse(560, 290, 95, 120, 0.12, 0, Math.PI * 2);
     eCtx.fill();
-    eCtx.beginPath(); // Australia
+    eCtx.beginPath(); 
     eCtx.ellipse(820, 370, 70, 48, -0.15, 0, Math.PI * 2);
     eCtx.fill();
 
@@ -11221,7 +11229,6 @@ applySkySetting();
     eCtx.ellipse(675, 205, 60, 28, 0.1, 0, Math.PI * 2);
     eCtx.fill();
 
-    // Polar Ice Caps
     eCtx.fillStyle = '#ebf6fc';
     eCtx.beginPath();
     eCtx.ellipse(512, 18, 490, 30, 0, 0, Math.PI * 2);
@@ -11230,7 +11237,6 @@ applySkySetting();
     eCtx.ellipse(512, 496, 490, 32, 0, 0, Math.PI * 2);
     eCtx.fill();
 
-    // Swirling Cloud Bands & Weather Fronts
     eCtx.fillStyle = 'rgba(255, 255, 255, 0.65)';
     for (let c = 0; c < 50; c++) {
       eCtx.beginPath();
@@ -11274,7 +11280,6 @@ applySkySetting();
     earthGroup.add(atmoMesh);
     environmentGroup.add(earthGroup);
 
-    // Deep Space Starfield
     const starCount = 2000;
     const starGeom = new THREE.BufferGeometry();
     const starPos = new Float32Array(starCount * 3);
@@ -11293,13 +11298,13 @@ applySkySetting();
       new THREE.PointsMaterial({ color: 0xffffff, size: 6.8, transparent: true, opacity: 0.95 })
     ));
 
-    // POPULATE BARREN LUNAR TERRAIN: 140+ MULTIFACETED BASALT BOULDERS
     let lSeed = 1969;
     const lRnd = () => { lSeed = (lSeed * 1664525 + 1013904223) >>> 0; return lSeed / 4294967296; };
     const boulderMat = new THREE.MeshStandardMaterial({ color: 0x484b52, roughness: 0.88, metalness: 0.12, flatShading: true });
     const brightRockMat = new THREE.MeshStandardMaterial({ color: 0x767a84, roughness: 0.82, metalness: 0.15, flatShading: true });
 
-    for (let b = 0; b < 145; b++) {
+    const boulderCount = isHighGfx ? 145 : 35;
+    for (let b = 0; b < boulderCount; b++) {
       const bx = (lRnd() - 0.5) * 11500;
       const bz = -lRnd() * 11800 - 300;
       if (bz > -350 && Math.abs(bx) < 320) continue;
@@ -11347,7 +11352,6 @@ applySkySetting();
       color: 0x0d121c, roughness: 0.05, metalness: 0.95, emissive: 0x00f0ff, emissiveIntensity: 0.18
     });
 
-    // Descent Stage Octagonal Body
     const descentStage = new THREE.Mesh(new THREE.CylinderGeometry(56, 62, 28, 8), foilMat);
     descentStage.position.y = 19;
     apolloGroup.add(descentStage);
@@ -11426,7 +11430,6 @@ applySkySetting();
     cabinCenter.position.y = 17;
     cabinGroup.add(cabinCenter);
 
-    // Angled Cockpit Face with Reflective Triangular Windows
     const cockpitNose = new THREE.Mesh(new THREE.BoxGeometry(42, 24, 26), silverMat);
     cockpitNose.position.set(0, 15, 24);
     cabinGroup.add(cockpitNose);
@@ -11438,12 +11441,10 @@ applySkySetting();
       cabinGroup.add(win);
     });
 
-    // Overhead Docking Tunnel & Collar
     const dockCollar = new THREE.Mesh(new THREE.CylinderGeometry(14, 14, 10, 16), blackFoilMat);
     dockCollar.position.y = 37;
     cabinGroup.add(dockCollar);
 
-    // 4 RCS Thruster Outrigger Quads
     for (let rq = 0; rq < 4; rq++) {
       const rAng = (rq / 4) * Math.PI * 2 + Math.PI / 4;
       const rcsArm = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 24, 6), silverMat);
@@ -11476,7 +11477,6 @@ applySkySetting();
     );
     pole.position.y = 37.5;
 
-    // Horizontal Telescoping Spreader Bar
     const crossBar = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 40, 8), new THREE.MeshStandardMaterial({ color: 0xd8d8d8, metalness: 0.9 }));
     crossBar.rotation.z = Math.PI / 2;
     crossBar.position.set(20, 73, 0);
@@ -11485,7 +11485,6 @@ applySkySetting();
     goldBall.position.set(0, 75, 0);
     flagGroup.add(pole, crossBar, goldBall);
 
-    // Realistic Ripple Waving Geometry
     const flagGeom = new THREE.PlaneGeometry(38, 24, 20, 8);
     const fPos = flagGeom.attributes.position;
     for (let i = 0; i < fPos.count; i++) {
@@ -11538,7 +11537,6 @@ applySkySetting();
     });
     apolloGroup.add(psep);
 
-    // Bootprint Trail Decal in Dust
     const trailGeom = new THREE.PlaneGeometry(16, 120);
     trailGeom.rotateX(-Math.PI / 2);
     const trailMesh = new THREE.Mesh(trailGeom, new THREE.MeshBasicMaterial({ color: 0x22242a, transparent: true, opacity: 0.45 }));
@@ -11546,7 +11544,6 @@ applySkySetting();
     trailMesh.rotation.y = -0.55;
     apolloGroup.add(trailMesh);
 
-    // Landmark Monument Beacon Light
     const apolloBeacon = new THREE.PointLight(0xfff1cc, 2.2, 450);
     apolloBeacon.position.set(0, 55, 0);
     apolloGroup.add(apolloBeacon);
@@ -11578,7 +11575,6 @@ applySkySetting();
       roverGroup.add(tire, hub, fender);
     });
 
-    // Two Open Mesh Crew Bucket Seats
     [-9, 9].forEach(sx => {
       const seatBottom = new THREE.Mesh(new THREE.BoxGeometry(13, 2.5, 14), blackFoilMat);
       seatBottom.position.set(sx, 16, 2);
@@ -11598,7 +11594,6 @@ applySkySetting();
     tHandle.position.set(0, 31, 8);
     roverGroup.add(consoleBox, tStick, tHandle);
 
-    // Front Bumper Color TV Camera & Umbrella High-Gain Antenna
     const rCam = new THREE.Mesh(new THREE.BoxGeometry(8, 7, 10), foilMat);
     rCam.position.set(0, 18, 38);
     const dishMast = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 32, 6), silverMat);
@@ -11608,12 +11603,10 @@ applySkySetting();
     umbrellaDish.rotation.set(-0.6, 0.35, 0);
     roverGroup.add(rCam, dishMast, umbrellaDish);
 
-    // Rear Sample Pallet with Collection Equipment
     const rearPallet = new THREE.Mesh(new THREE.BoxGeometry(32, 10, 22), silverMat);
     rearPallet.position.set(0, 18, -22);
     roverGroup.add(rearPallet);
 
-    // Dual Rover Tracks Trailing into the Distance
     const tracksGeom = new THREE.PlaneGeometry(36, 220);
     tracksGeom.rotateX(-Math.PI / 2);
     const tracksMesh = new THREE.Mesh(tracksGeom, new THREE.MeshBasicMaterial({ color: 0x1e2026, transparent: true, opacity: 0.5 }));
@@ -11641,7 +11634,6 @@ applySkySetting();
     clubHead.rotation.x = -0.4;
     golfGroup.add(golfBall1, tee, clubShaft, clubHead);
 
-    // Glowing Low-Gravity Flight Trajectory Arc
     const curve = new THREE.QuadraticBezierCurve3(
       new THREE.Vector3(0, 10, 0),
       new THREE.Vector3(120, 160, -220),
@@ -11653,7 +11645,6 @@ applySkySetting();
     arcMesh.computeLineDistances();
     golfGroup.add(arcMesh);
 
-    // Ball 2 (Landed 440m away)
     const golfBall2 = new THREE.Mesh(new THREE.SphereGeometry(7, 14, 14), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25 }));
     golfBall2.position.set(240, 20, -440);
     golfGroup.add(golfBall2);
@@ -11673,10 +11664,9 @@ applySkySetting();
       new THREE.MeshStandardMaterial({ color: 0x00f0ff, emissive: 0x006688, emissiveIntensity: 0.65, metalness: 0.95 })
     );
     retroPallet.position.y = 15;
-    retroPallet.rotation.x = 0.42; // Aimed up at Earth
+    retroPallet.rotation.x = 0.42; 
     retroGroup.add(retroStand, retroPallet);
 
-    // Emerald-Green Laser Beam shooting toward Earth in the sky
     const beamGeom = new THREE.CylinderGeometry(1.2, 5.0, 3600, 8);
     beamGeom.translate(0, 1800, 0);
     const beamMat = new THREE.MeshBasicMaterial({ color: 0x00ffaa, transparent: true, opacity: 0.45, depthWrite: false });
@@ -11711,7 +11701,6 @@ applySkySetting();
     const bsX = 2400, bsZ = -7500;
     baseGroup.position.set(bsX, getTerrainHeight(bsX, bsZ, 'moon'), bsZ);
 
-    // Geodesic Command Dome with Illuminated Cyan Cupola
     const mainDome = new THREE.Mesh(
       new THREE.SphereGeometry(135, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.5),
       new THREE.MeshStandardMaterial({ color: 0x1b2432, emissive: 0x00f0ff, emissiveIntensity: 0.25, metalness: 0.85 })
@@ -11720,7 +11709,6 @@ applySkySetting();
     observationRing.position.y = 45;
     baseGroup.add(mainDome, observationRing);
 
-    // Pressurized Corridors & Satellite Lab Domes
     [-180, 180].forEach(tx => {
       const tunnel = new THREE.Mesh(new THREE.CylinderGeometry(14, 14, 90, 8), silverMat);
       tunnel.rotation.z = Math.PI / 2;
@@ -11733,7 +11721,6 @@ applySkySetting();
       baseGroup.add(tunnel, subDome);
     });
 
-    // Deep Space Communications Array
     const commTower = new THREE.Mesh(new THREE.CylinderGeometry(4, 9, 210, 8), silverMat);
     commTower.position.set(190, 105, -60);
     const bigDish = new THREE.Mesh(new THREE.ConeGeometry(38, 14, 16, 1, true), silverMat);
@@ -11741,7 +11728,6 @@ applySkySetting();
     bigDish.rotation.set(-0.75, 0.45, 0);
     baseGroup.add(commTower, bigDish);
 
-    // Hexagonal Landing Pad with Glowing Approach Beacons
     const padHex = new THREE.Mesh(new THREE.CylinderGeometry(85, 85, 4, 6), new THREE.MeshStandardMaterial({ color: 0x2c3340, roughness: 0.7 }));
     padHex.position.set(0, 2, 220);
     baseGroup.add(padHex);
@@ -11787,28 +11773,23 @@ environmentGroup.add(baseGroup);
       emissiveIntensity: 0.35
     });
 
-    // Main Chassis & Lower Body
     const carBody = new THREE.Mesh(new THREE.BoxGeometry(22, 5, 48), roadsterRed);
     carBody.position.y = 7;
     roadsterGroup.add(carBody);
 
-    // Aerodynamic Sloped Hood
     const carHood = new THREE.Mesh(new THREE.BoxGeometry(20.5, 3.5, 18), roadsterRed);
     carHood.position.set(0, 8.5, 15);
     carHood.rotation.x = -0.08;
     roadsterGroup.add(carHood);
 
-    // Rear Trunk / Decklid
     const carRear = new THREE.Mesh(new THREE.BoxGeometry(20.5, 4.5, 14), roadsterRed);
     carRear.position.set(0, 9, -17);
     roadsterGroup.add(carRear);
 
-    // Interior Cockpit Tub
     const cockpitTub = new THREE.Mesh(new THREE.BoxGeometry(18, 4, 16), roadsterInterior);
     cockpitTub.position.set(0, 8.5, 0);
     roadsterGroup.add(cockpitTub);
 
-    // Driver & Passenger Bucket Seats
     [-4.5, 4.5].forEach(sx => {
       const carSeatBottom = new THREE.Mesh(new THREE.BoxGeometry(7, 2, 7), roadsterInterior);
       carSeatBottom.position.set(sx, 9.5, -0.5);
@@ -11843,13 +11824,11 @@ environmentGroup.add(baseGroup);
     screenMesh.rotation.x = -0.3;
     roadsterGroup.add(roadsterDash, screenMesh);
 
-    // Steering Wheel
     const wheelRing = new THREE.Mesh(new THREE.TorusGeometry(1.8, 0.35, 8, 16), roadsterInterior);
     wheelRing.position.set(-4.5, 12, 4.5);
     wheelRing.rotation.x = -0.7;
     roadsterGroup.add(wheelRing);
 
-    // 4 Sports Alloy Wheels
     [[-11.5, -13], [-11.5, 15], [11.5, -13], [11.5, 15]].forEach(([wx, wz]) => {
       const roadsterTire = new THREE.Mesh(new THREE.CylinderGeometry(5.5, 5.5, 3.5, 16), roadsterTireMat);
       roadsterTire.rotateZ(Math.PI / 2);
@@ -11860,7 +11839,6 @@ environmentGroup.add(baseGroup);
       roadsterGroup.add(roadsterTire, roadsterRim);
     });
 
-    // Glowing LED Headlights & Taillights
     [-8, 8].forEach(lx => {
       const roadsterHeadLight = new THREE.Mesh(new THREE.BoxGeometry(3, 1.2, 0.8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
       roadsterHeadLight.position.set(lx, 8, 24.1);
@@ -11918,7 +11896,6 @@ environmentGroup.add(baseGroup);
       environmentGroup.add(createGlacialIceArch(a.x, groundY, a.z, a.span, a.height, a.rotY));
     });
 
-    // diamond spike color
     const spikeColors = [0x7282e8, 0x8192f5, 0x6de4d6, 0x5cd8cb, 0x346b84, 0xcef5fc, 0xa6afff, 0x9ff3e9];
 
     const spawnCluster = (cx, cz, baseScale, count = 3, primaryCol = 0x7282e8, secondaryCol = 0x6de4d6) => {
@@ -11975,7 +11952,8 @@ environmentGroup.add(baseGroup);
     ];
     landmarkClusters.forEach(cl => spawnCluster(cl.x, cl.z, cl.scale, cl.count, cl.c1, cl.c2));
 
-    for (let i = 0; i < 65; i++) {
+    const spikeCount = isHighGfx ? 65 : 18;
+    for (let i = 0; i < spikeCount; i++) {
       let sx, sz, sy;
       let attempts = 0;
       do {
@@ -12010,7 +11988,8 @@ environmentGroup.add(baseGroup);
       }
     }
 
-    for (let i = 0; i < 90; i++) {
+    const pineCount = isHighGfx ? 90 : 22;
+    for (let i = 0; i < pineCount; i++) {
       let tx, tz, ty;
       let attempts = 0;
       let onLake = true;
@@ -12240,7 +12219,7 @@ if (graphicsQuality === 'high' && !isGlacial && realWater && waterRippleTexture)
 
 
   if (courseKey === 'canyon') {
-    const treeCount = 120;
+    const treeCount = isHighGfx ? 120 : 35;
     const treeScaleBase = 16;
     for (let i = 0; i < treeCount; i++) {
       let x, z, y;
@@ -12268,7 +12247,7 @@ if (graphicsQuality === 'high' && !isGlacial && realWater && waterRippleTexture)
     const bigTree = createBigPinkTree(treeX, groundY, treeZ, 75);
     environmentGroup.add(bigTree);
   } else if (courseKey === 'coastal') {
-    const treeCount = 90;
+    const treeCount = isHighGfx ? 90 : 28;
     const treeScaleBase = 16;
     for (let i = 0; i < treeCount; i++) {
       let x, z, y;
@@ -13470,8 +13449,8 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
       const distBehind = -_tempVec1.dot(aiForward);
 
       if (distBehind > 25 && distBehind < 280) {
-        const lateralVec = _tempVec1.sub(aiForward.clone().multiplyScalar(-distBehind));
-        const distLateral = lateralVec.length();
+        _tempVec2.copy(aiForward).multiplyScalar(-distBehind);
+        const distLateral = _tempVec1.sub(_tempVec2).length();
 
         if (distLateral < 38 && _playerForward.dot(aiForward) > 0.45) {
           isPlayerDrafting = true;
@@ -14081,8 +14060,13 @@ function drawCustomSpeedometer(ctx, x, y, speed, rBoost) {
   }
   ctx.restore();
 }
+let lastMinimapDrawTime = 0;
 function drawMinimap() {
   if (!minimapCtx) return;
+  const now = performance.now();
+  if (now - lastMinimapDrawTime < 55) return;
+  lastMinimapDrawTime = now;
+
   const mw = minimapCanvas.width;
   const mh = minimapCanvas.height;
   const course = COURSES[selectedCourseId];
@@ -16561,7 +16545,7 @@ const settingsBtn = document.getElementById('btn-settings-toggle');
         "Super Funny joke: I told my glider to ride the volcano's thermals <br> Now it's a 'lava' glider… and not in the cool way.",
         'Dont go pressing random keybinds like: <br> cmd/ctrl + W or cmd/ctrl + T or alt + shift+ D especially not that one',
         'i rate those 2 funny jokes a solid 6.25/10!',
-        'Did you know: this game alone is just about 11k lines <br> as of making this message, but it will hit 20k soon stay tuned!',
+        'Did you know: this game alone is just about 17k lines <br> as of making this message, but it will hit 20k soon stay tuned!',
         'Hey you better NOT get that greatest glider to ever live! <br> it costs TREE(3) EACH to make and that can get expensive yk',
         'Our state of the art anti theft and anti robbery Aphelion Encoder™ <br> will not allow cheators from editing their save files!',
         'Watch out! playing this game might cause you to get <br> BUTTERFINGERS',
@@ -16653,13 +16637,17 @@ if (gameMode === 'race') {
           }
         });
       } else {
-        const aheadAIs = aiGliders.filter(ai => ai.progress > playerProgress);
-        if (aheadAIs.length > 0) {
-          aheadAIs.sort((a, b) => a.progress - b.progress);
-          targetAI = aheadAIs[0];
-        } else {
-          targetAI = aiGliders[0];
-        }
+        let minAheadDist = Infinity;
+        aiGliders.forEach(ai => {
+          if (ai.progress > playerProgress) {
+            const diff = ai.progress - playerProgress;
+            if (diff < minAheadDist) {
+              minAheadDist = diff;
+              targetAI = ai;
+            }
+          }
+        });
+        if (!targetAI) targetAI = aiGliders[0];
       }
 
       if (!targetAI) targetAI = aiGliders[0];
