@@ -1,4 +1,4 @@
-const CACHE_NAME = 'glider-cache-v4';
+const CACHE_NAME = 'glider-cache-v5';
 
 const ASSETS = [
   // Core Files
@@ -29,6 +29,22 @@ const ASSETS = [
   './glidercurser_select.png',
   './Keycurser.png',
   './input_file_1.png',
+
+  // Mobile Controls 
+  './rudderleft.png',
+  './rudderRight.png',
+  './rudderleftclick.png',
+  './rudderrightclick.png',
+  './breakbutton.png',
+  './D-pad.png',
+  './dpadright.png',
+  './dpaddownright.png',
+  './dpaddown.png',
+  './dpaddownleft.png',
+  './dpadleft.png',
+  './dpadupleft.png',
+  './Dpadup.png',
+  './dpadupright.png',
 
   // Menu Images
   './gliderfontthing.png',
@@ -128,8 +144,8 @@ const ASSETS = [
   './foxbutbettername.png',
   './specialthankseveryone.png',
 
-  //christmas assets
-    './present.png',
+  // Christmas Assets
+  './present.png',
   './gliderbirdbackground.png',
   './FlappyGlider.png',
   './chimneytopclosed.png',
