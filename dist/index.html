@@ -4836,6 +4836,8 @@ const AphelionEncoder = (() => {
     const pbs = saveObj.pbs || {};
     const ghosts = saveObj.ghosts || {};
     const hw = saveObj.halloweenUnlocked ? 1 : 0;
+    const sn = saveObj.santaUnlocked ? 1 : 0;
+    const kr = saveObj.krampusUnlocked ? 1 : 0;
     const xm = saveObj.xm || 0;
     const packedGhosts = {};
     for (const track in ghosts) {
@@ -4851,7 +4853,7 @@ const AphelionEncoder = (() => {
         ]);
       }
     }
-    const jsonStr = JSON.stringify({ p: pbs, g: packedGhosts, hw, xm });
+    const jsonStr = JSON.stringify({ p: pbs, g: packedGhosts, hw, xm, sn, kr });
     if (typeof TextEncoder !== 'undefined') {
       return new TextEncoder().encode(jsonStr);
     }
@@ -4871,6 +4873,8 @@ const AphelionEncoder = (() => {
     const pbs = parsed.p || {};
     const ghosts = {};
     const halloweenUnlocked = (parsed.hw === 1);
+    const santaUnlocked = (parsed.sn === 1);
+    const krampusUnlocked = (parsed.kr === 1);
     const xm = parsed.xm || 0;
     if (parsed.g) {
       for (const track in parsed.g) {
@@ -4880,7 +4884,7 @@ const AphelionEncoder = (() => {
         }));
       }
     }
-    return { pbs, ghosts, halloweenUnlocked, xm };
+    return { pbs, ghosts, halloweenUnlocked, santaUnlocked, krampusUnlocked, xm };
   }
 
   function lzwCompress(bytes) {
@@ -7073,6 +7077,7 @@ let inspectedGhostId = 'ghost_default';
 
 const _tempVec1 = new THREE.Vector3();
 const _tempVec2 = new THREE.Vector3();
+const _trackDirVec = new THREE.Vector3();
 const _targetWp = new THREE.Vector3();
 const _toTarget = new THREE.Vector3();
 const _playerForward = new THREE.Vector3();
@@ -12625,7 +12630,9 @@ function updateAI(dt) {
 
     const toTrackWp = _tempVec2.subVectors(currentWp, ai.pos);
     const trackDist = toTrackWp.length();
-    const trackDir = _tempVec1.copy(toTrackWp).normalize();
+    const trackDir = _trackDirVec.copy(toTrackWp).normalize();
+    
+    _toTarget.subVectors(_targetWp, ai.pos).normalize();
 
     if (ai.personality.type === 'high_altitude_cruiser') {
       if (trackDist > 650) {
@@ -12752,10 +12759,6 @@ function updateAI(dt) {
         _targetWp.y = Math.max(_targetWp.y, bestThermal.pos.y + 140);
       }
     }
-
-    // Calculate directional vector to target
-    _toTarget.subVectors(_targetWp, ai.pos);
-    const dist = _toTarget.length();
 
     const realWp = activeSubtrack.waypoints[ai.targetIdx];
     const dist3D = ai.pos.distanceTo(realWp);
@@ -15220,7 +15223,8 @@ function finishRace() {
       localStorage.setItem('glider_unlocked_halloween', 'true');
       showAchievementNotifications([{ name: "Jack-o'-Lantern Glider Unlocked!" }]);
     } else {
-      localStorage.setItem('glider_equipped_skin', 'default');
+      localStorage.setItem('glider_equipped_skin', halloweenPreviousSkin || 'default');
+      halloweenPreviousSkin = null;
       buildParagliderMesh();
       applySkySetting();
     }
@@ -15447,10 +15451,6 @@ function openFlappyMinigame() {
     };
   }
 
-  flappyCanvas.onpointerdown = (e) => {
-    e.preventDefault();
-    flappyTriggerFlap();
-  };
 
   if (!flappyAnimId) {
     let lastT = performance.now();
@@ -15831,9 +15831,11 @@ function setupUI() {
         }
       }
       const hw = !!localStorage.getItem('glider_unlocked_halloween');
+      const sn = !!localStorage.getItem('glider_unlocked_santa');
+      const kr = !!localStorage.getItem('glider_unlocked_krampus_ghost');
       const xm = hasAllChristmasPresents() ? 1 : 0;
       try {
-        const code = AphelionEncoder.encode({ pbs, ghosts, halloweenUnlocked: hw, xm });
+        const code = AphelionEncoder.encode({ pbs, ghosts, halloweenUnlocked: hw, santaUnlocked: sn, krampusUnlocked: kr, xm });
         textarea.value = code;
         status.innerText = 'SAVE CODE GENERATED';
         status.style.color = 'var(--cyan)';
@@ -15892,6 +15894,15 @@ function setupUI() {
           }
           if (data.halloweenUnlocked) {
             localStorage.setItem('glider_unlocked_halloween', 'true');
+          }
+          if (data.santaUnlocked) {
+            localStorage.setItem('glider_unlocked_santa', 'true');
+          }
+          if (data.krampusUnlocked) {
+            localStorage.setItem('glider_unlocked_krampus_ghost', 'true');
+          }
+          if (data.xm) {
+            ['A', 'B', 'C'].forEach(s => localStorage.setItem(`glider_xmas_present_${s}`, 'true'));
           }
           updatePBTags();
           updateMedalDisplay();
@@ -16343,13 +16354,10 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
     audio.stopAllAudio();
     if (isHalloweenBossDuel) {
       isHalloweenBossDuel = false;
-      if (!localStorage.getItem('glider_unlocked_halloween')) {
-      } else {
-          localStorage.setItem('glider_equipped_skin', halloweenPreviousSkin || 'default');
-          halloweenPreviousSkin = null;
-          buildParagliderMesh();
-          applySkySetting();
-        }
+      localStorage.setItem('glider_equipped_skin', halloweenPreviousSkin || 'default');
+      halloweenPreviousSkin = null;
+      buildParagliderMesh();
+      applySkySetting();
       updateHalloweenThemeVisibility();
     }
     if (isKrampusBossDuel) {
