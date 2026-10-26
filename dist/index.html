@@ -149,7 +149,7 @@ button,
   }
 
   .hud-stats.halloween-theme {
-    background: url('halloweenbar.png') no-repeat center center / 100% 100%, url('input_file_4.png') no-repeat center center / 100% 100% !important;
+    background: url('halloweenbar.png') no-repeat center center / 100% 100% !important;
     border: none !important;
     width: 680px;
     max-width: 95vw;
@@ -170,7 +170,7 @@ button,
   }
 
   #minimap-container.halloween-theme {
-    background: url('halloweenminimap.png') no-repeat center center / 100% 100%, url('input_file_9.png') no-repeat center center / 100% 100% !important;
+    background: url('halloweenminimap.png') no-repeat center center / 100% 100% !important;
     border: none !important;
     padding: 34px 14px 28px 14px !important;
     box-shadow: none !important;
@@ -1572,33 +1572,173 @@ button,
     border-radius: 50% !important;
   }
 
-  #mobile-btn-yaw-l {
+body:not(.dpad-mode) #mobile-btn-yaw-l,
+body:not(.dpad-mode) #mobile-btn-yaw-r {
     width: 68px;
     height: 68px;
-    font-size: 18px;
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), inset 0 0 16px rgba(255, 255, 255, 0.12) !important;
+    padding: 0;
     border-radius: 50% !important;
-  }
+}
 
-  #mobile-btn-yaw-r {
-    width: 68px;
-    height: 68px;
-    font-size: 18px;
-    border-radius: 50% !important;
-  }
-
-  #mobile-btn-brake {
+body:not(.dpad-mode) #mobile-btn-brake {
     width: 84px;
-    height: 84px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), inset 0 0 16px rgba(255, 255, 255, 0.12) !important;
+    padding: 0;
+    border-radius: 0 !important;
+}
+
+body:not(.dpad-mode) #mobile-btn-brake.rect-mode {
+    width: 84px;
+    height: 60px;
+    border-radius: 0 !important;
+}
+
+body:not(.dpad-mode) #mobile-btn-yaw-l::before,
+body:not(.dpad-mode) #mobile-btn-yaw-r::before {
+    content: attr(data-label);
+    color: #ffffff;
+    font-family: var(--font-stack);
+    font-size: 18px;
+    font-weight: 700;
+    pointer-events: none;
+    user-select: none;
+}
+
+body:not(.dpad-mode) #mobile-btn-brake::before {
+    content: attr(data-label);
+    color: #ffffff;
+    font-family: var(--font-stack);
     font-size: 11px;
-    border-radius: 8px !important;
+    font-weight: 700;
+    letter-spacing: 2px;
+    pointer-events: none;
+    user-select: none;
+}
+
+body.dpad-mode #mobile-btn-yaw-l,
+body.dpad-mode #mobile-btn-yaw-r {
+    width: 68px;
+    height: 68px;
+    padding: 0;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body.dpad-mode #mobile-btn-brake {
+    width: 84px;
+    height: 60px;
+    padding: 0;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body.dpad-mode #mobile-btn-brake.rect-mode {
+    width: 84px;
+    height: 60px;
+    border-radius: 0 !important;
+}
+
+  #mobile-dpad img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
   }
 
-  #mobile-btn-brake.rect-mode {
-    width: 84px;
-    height: 84px;
-    border-radius: 8px !important;
-    font-size: 11px !important;
+  body.dpad-mode #mobile-btn-yaw-l img,
+  body.dpad-mode #mobile-btn-yaw-r img,
+  body.dpad-mode #mobile-btn-brake img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
   }
+
+  body:not(.dpad-mode) #mobile-btn-yaw-l img,
+  body:not(.dpad-mode) #mobile-btn-yaw-r img,
+  body:not(.dpad-mode) #mobile-btn-brake img {
+    display: none !important;
+  }
+
+body:not(.dpad-mode) #mobile-btn-yaw-l:active,
+body:not(.dpad-mode) #mobile-btn-yaw-l.active,
+body:not(.dpad-mode) #mobile-btn-yaw-r:active,
+body:not(.dpad-mode) #mobile-btn-yaw-r.active,
+body:not(.dpad-mode) #mobile-btn-brake:active,
+body:not(.dpad-mode) #mobile-btn-brake.active {
+    background: rgba(0, 240, 255, 0.25) !important;
+    border-color: var(--cyan) !important;
+    box-shadow: 0 0 22px rgba(0, 240, 255, 0.65), inset 0 0 14px rgba(0, 240, 255, 0.3) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+}
+
+body.dpad-mode #mobile-btn-yaw-l:active,
+body.dpad-mode #mobile-btn-yaw-l.active,
+body.dpad-mode #mobile-btn-yaw-r:active,
+body.dpad-mode #mobile-btn-yaw-r.active,
+body.dpad-mode #mobile-btn-brake:active,
+body.dpad-mode #mobile-btn-brake.active {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body.dpad-mode #mobile-btn-brake:active img,
+body.dpad-mode #mobile-btn-brake.active img {
+    transform: scale(0.92);
+    filter: drop-shadow(0 0 12px rgba(255, 140, 0, 0.85));
+}
+
+#mobile-dpad:active, #mobile-dpad.active {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+#mobile-dpad {
+    display: none;
+    position: fixed;
+    width: 130px;
+    height: 130px;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0;
+    touch-action: none;
+    z-index: 120;
+    pointer-events: auto;
+    user-select: none;
+    -webkit-user-select: none;
+}
 
   #mobile-joystick {
     width: 114px;
@@ -2419,8 +2559,8 @@ button,
 <div id="rotate-device-overlay">ROTATE YOUR DEVICE</div>
 
 <div id="mobile-controls-wrap">
-  <button id="mobile-btn-yaw-l" class="mobile-ctrl-btn" aria-label="Yaw Left (Q)">
-    Q
+  <button id="mobile-btn-yaw-l" class="mobile-ctrl-btn" data-label="Q" aria-label="Yaw Left (Q)">
+    <img id="mobile-img-yaw-l" src="rudderleft.png" alt="Yaw Left" draggable="false">
     <div class="ctrl-resize-handle" title="Resize">
       <svg viewBox="0 0 16 16" width="16" height="16">
         <path d="M16 2 L16 16 L2 16 Z" fill="rgba(0, 240, 255, 0.75)" stroke="#ffffff" stroke-width="1.2"/>
@@ -2428,8 +2568,8 @@ button,
       </svg>
     </div>
   </button>
-  <button id="mobile-btn-yaw-r" class="mobile-ctrl-btn" aria-label="Yaw Right (E)">
-    E
+  <button id="mobile-btn-yaw-r" class="mobile-ctrl-btn" data-label="E" aria-label="Yaw Right (E)">
+    <img id="mobile-img-yaw-r" src="rudderRight.png" alt="Yaw Right" draggable="false">
     <div class="ctrl-resize-handle" title="Resize">
       <svg viewBox="0 0 16 16" width="16" height="16">
         <path d="M16 2 L16 16 L2 16 Z" fill="rgba(0, 240, 255, 0.75)" stroke="#ffffff" stroke-width="1.2"/>
@@ -2437,8 +2577,8 @@ button,
       </svg>
     </div>
   </button>
-  <button id="mobile-btn-brake" class="mobile-ctrl-btn" aria-label="Airbrake">
-    BRAKE
+  <button id="mobile-btn-brake" class="mobile-ctrl-btn" data-label="BRAKE" aria-label="Airbrake">
+    <img id="mobile-img-brake" src="breakbutton.png" alt="Airbrake" draggable="false">
     <div class="ctrl-resize-handle" title="Resize">
       <svg viewBox="0 0 16 16" width="16" height="16">
         <path d="M16 2 L16 16 L2 16 Z" fill="rgba(0, 240, 255, 0.75)" stroke="#ffffff" stroke-width="1.2"/>
@@ -2448,6 +2588,15 @@ button,
   </button>
   <div id="mobile-joystick" class="mobile-ctrl-btn" aria-label="Steering Joystick">
     <div id="mobile-joystick-knob"></div>
+    <div class="ctrl-resize-handle" title="Resize">
+      <svg viewBox="0 0 16 16" width="16" height="16">
+        <path d="M16 2 L16 16 L2 16 Z" fill="rgba(0, 240, 255, 0.75)" stroke="#ffffff" stroke-width="1.2"/>
+        <path d="M4 16 L16 16 L16 4" fill="none" stroke="#00f0ff" stroke-width="2"/>
+      </svg>
+    </div>
+  </div>
+  <div id="mobile-dpad" class="mobile-ctrl-btn" aria-label="D-Pad Steering">
+    <img id="mobile-dpad-img" src="D-pad.png" alt="D-Pad" draggable="false">
     <div class="ctrl-resize-handle" title="Resize">
       <svg viewBox="0 0 16 16" width="16" height="16">
         <path d="M16 2 L16 16 L2 16 Z" fill="rgba(0, 240, 255, 0.75)" stroke="#ffffff" stroke-width="1.2"/>
@@ -2531,10 +2680,12 @@ button,
     </div>
 
     <div class="control-toggle-box" id="settings-joystick-box">
-      <div class="control-toggle-label">MOBILE ANALOG STICK</div>
-      <div class="row-group" style="width: auto; margin-bottom: 0;">
-        <button class="mono-btn joystick-btn active" data-joystick="visible">VISIBLE</button>
-        <button class="mono-btn joystick-btn" data-joystick="invisible">INVISIBLE</button>
+      <div class="control-toggle-label" style="margin-bottom: 8px;">MOBILE CONTROL SCHEME</div>
+      <div class="row-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; margin-bottom: 0;">
+        <button class="mono-btn joystick-btn active" data-joystick="analog">ANALOG</button>
+        <button class="mono-btn joystick-btn" data-joystick="invisible">INVISIBLE ANALOG</button>
+        <button class="mono-btn joystick-btn" data-joystick="dpad">D-PAD</button>
+        <button class="mono-btn joystick-btn" data-joystick="gyro">GYRO</button>
       </div>
     </div>
 
@@ -2583,8 +2734,8 @@ button,
     </div>
   </div>
 
-  <img id="settings-pumpkin-prop" src="pumpkin.png" onerror="this.src='input_file_1.png'" alt="Pumpkin" title="Seasonal Pumpkin" style="position: absolute; bottom: 20px; left: 24px; width: 44px; height: 44px; image-rendering: pixelated; cursor: pointer; transition: transform 0.15s ease; z-index: 565; display: none;">
-  <img id="settings-pumpkin-decoy" src="pumpkin.png" onerror="this.src='input_file_1.png'" alt="Pumpkin" title="Seasonal Pumpkin" style="position: absolute; bottom: 20px; right: 24px; width: 44px; height: 44px; image-rendering: pixelated; cursor: pointer; transition: transform 0.15s ease; z-index: 565; display: none;">
+  <img id="settings-pumpkin-prop" src="pumpkin.png" alt="Pumpkin" title="Seasonal Pumpkin" style="position: absolute; bottom: 20px; left: 24px; width: 44px; height: 44px; image-rendering: pixelated; cursor: pointer; transition: transform 0.15s ease; z-index: 565; display: none;">
+  <img id="settings-pumpkin-decoy" src="pumpkin.png"  alt="Pumpkin" title="Seasonal Pumpkin" style="position: absolute; bottom: 20px; right: 24px; width: 44px; height: 44px; image-rendering: pixelated; cursor: pointer; transition: transform 0.15s ease; z-index: 565; display: none;">
 </div>
 
 <div id="keybind-modal-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 570; display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(5px);">
@@ -2611,11 +2762,11 @@ button,
 <div id="happy-halloween-banner">Happy Halloween</div>
 
 <div id="halloween-decor-wrap" style="position: fixed; inset: 0; pointer-events: none; z-index: 45; display: none;">
-  <img src="cornercobweb.png" onerror="this.src='input_file_5.png'" alt="Cobweb" class="hw-decor hw-corner-web left" style="position: absolute; top: 0; left: 0; width: 180px; height: auto; image-rendering: pixelated; opacity: 0.82; filter: drop-shadow(0 0 8px rgba(0,0,0,0.9));">
-  <img src="cornercobweb.png" onerror="this.src='input_file_5.png'" alt="Cobweb" class="hw-decor hw-corner-web right" style="position: absolute; top: 0; right: 0; width: 180px; height: auto; transform: scaleX(-1); image-rendering: pixelated; opacity: 0.82; filter: drop-shadow(0 0 8px rgba(0,0,0,0.9));">
-  <img src="bigcobweb.png" onerror="this.src='input_file_3.png'" alt="Big Cobweb" class="hw-decor hw-big-web" style="position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 135px; height: auto; image-rendering: pixelated; opacity: 0.50; filter: drop-shadow(0 0 10px rgba(0,0,0,0.95));">
-  <img src="halloweenfence.png" onerror="this.src='input_file_6.png'" alt="Spooky Fence" class="hw-decor hw-fence-left" style="position: absolute; bottom: 0; left: -10px; width: 280px; max-width: 32vw; height: auto; image-rendering: pixelated; opacity: 0.95; filter: drop-shadow(0 -5px 12px rgba(0,0,0,0.95));">
-  <img src="halloweenfence2.png" onerror="this.src='input_file_7.png'" alt="Spooky Fence" class="hw-decor hw-fence-right" style="position: absolute; bottom: 0; right: -10px; width: 280px; max-width: 32vw; height: auto; image-rendering: pixelated; opacity: 0.95; filter: drop-shadow(0 -5px 12px rgba(0,0,0,0.95));">
+  <img src="cornercobweb.png" alt="Cobweb" class="hw-decor hw-corner-web left" style="position: absolute; top: 0; left: 0; width: 180px; height: auto; image-rendering: pixelated; opacity: 0.82; filter: drop-shadow(0 0 8px rgba(0,0,0,0.9));">
+  <img src="cornercobweb.png" alt="Cobweb" class="hw-decor hw-corner-web right" style="position: absolute; top: 0; right: 0; width: 180px; height: auto; transform: scaleX(-1); image-rendering: pixelated; opacity: 0.82; filter: drop-shadow(0 0 8px rgba(0,0,0,0.9));">
+  <img src="bigcobweb.png" alt="Big Cobweb" class="hw-decor hw-big-web" style="position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 135px; height: auto; image-rendering: pixelated; opacity: 0.50; filter: drop-shadow(0 0 10px rgba(0,0,0,0.95));">
+  <img src="halloweenfence.png"  alt="Spooky Fence" class="hw-decor hw-fence-left" style="position: absolute; bottom: 0; left: -10px; width: 280px; max-width: 32vw; height: auto; image-rendering: pixelated; opacity: 0.95; filter: drop-shadow(0 -5px 12px rgba(0,0,0,0.95));">
+  <img src="halloweenfence2.png" alt="Spooky Fence" class="hw-decor hw-fence-right" style="position: absolute; bottom: 0; right: -10px; width: 280px; max-width: 32vw; height: auto; image-rendering: pixelated; opacity: 0.95; filter: drop-shadow(0 -5px 12px rgba(0,0,0,0.95));">
 </div>
 
 <img id="dev-filter-overlay" src="filter.png" alt="Dev Tools Filter">
@@ -3025,10 +3176,12 @@ button,
   </div>
 
   <div class="control-toggle-box" id="pause-joystick-box">
-    <div class="control-toggle-label">MOBILE ANALOG STICK</div>
-    <div class="row-group" style="width: auto; margin-bottom: 0;">
-      <button class="mono-btn joystick-btn active" data-joystick="visible">VISIBLE</button>
-      <button class="mono-btn joystick-btn" data-joystick="invisible">INVISIBLE</button>
+    <div class="control-toggle-label" style="margin-bottom: 8px;">MOBILE CONTROL SCHEME</div>
+    <div class="row-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; margin-bottom: 0;">
+      <button class="mono-btn joystick-btn active" data-joystick="analog">ANALOG</button>
+      <button class="mono-btn joystick-btn" data-joystick="invisible">INVISIBLE ANALOG</button>
+      <button class="mono-btn joystick-btn" data-joystick="dpad">D-PAD</button>
+      <button class="mono-btn joystick-btn" data-joystick="gyro">GYRO</button>
     </div>
   </div>
 
@@ -3230,13 +3383,94 @@ let lastMobileCtrlGameState = null;
 let mobileJoystickMode = localStorage.getItem('glider_mobile_joystick') || 'visible';
 const activeSteeringTouches = new Map();
 
+let gyroCurrentBeta = 0;
+let gyroCurrentGamma = 0;
+let gyroCalBeta = 0;
+let gyroCalGamma = 0;
+let gyroListenerAttached = false;
+
+function onDeviceOrientation(e) {
+  if (e.beta !== null && e.gamma !== null) {
+    gyroCurrentBeta = e.beta;
+    gyroCurrentGamma = e.gamma;
+  }
+}
+
+function initGyroListener() {
+  if (gyroListenerAttached) return;
+  gyroListenerAttached = true;
+  window.addEventListener('deviceorientation', onDeviceOrientation, true);
+}
+
+function requestGyroPermission() {
+  if (!isMobileDevice()) return;
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission()
+      .then(permissionState => {
+        if (permissionState === 'granted') {
+          initGyroListener();
+        }
+      })
+      .catch(console.error);
+  } else {
+    initGyroListener();
+  }
+}
+
+function calibrateGyro() {
+  gyroCalBeta = gyroCurrentBeta;
+  gyroCalGamma = gyroCurrentGamma;
+}
+
+function updateGyroSteering() {
+  if (!isMobileDevice() || mobileJoystickMode !== 'gyro') return;
+  const isReverse = (screen.orientation && (screen.orientation.angle === 270 || screen.orientation.angle === -90)) || window.orientation === -90 || window.orientation === 270;
+  const sign = isReverse ? 1 : -1;
+  let diffPitch = (gyroCurrentGamma - gyroCalGamma) * sign;
+  let diffRoll = (gyroCurrentBeta - gyroCalBeta) * sign;
+
+  if (Math.abs(diffPitch) < 3.0) {
+    diffPitch = 0;
+  } else {
+    diffPitch = Math.sign(diffPitch) * (Math.abs(diffPitch) - 3.0);
+  }
+
+  if (Math.abs(diffRoll) < 3.0) {
+    diffRoll = 0;
+  } else {
+    diffRoll = Math.sign(diffRoll) * (Math.abs(diffRoll) - 3.0);
+  }
+
+  const maxTilt = 25.0;
+  mobilePitchInput = THREE.MathUtils.clamp(diffPitch / maxTilt, -1, 1);
+  mobileRollInput = THREE.MathUtils.clamp(diffRoll / maxTilt, -1, 1);
+}
+
+function updateRudderVisuals() {
+  const imgL = document.getElementById('mobile-img-yaw-l');
+  const imgR = document.getElementById('mobile-img-yaw-r');
+  if (!imgL || !imgR) return;
+  if (!invertControls) {
+    imgL.src = mobileYawLeft ? 'rudderleftclick.png' : 'rudderleft.png';
+    imgR.src = mobileYawRight ? 'rudderrightclick.png' : 'rudderRight.png';
+  } else {
+    imgL.src = mobileYawLeft ? 'rudderrightclick.png' : 'rudderRight.png';
+    imgR.src = mobileYawRight ? 'rudderleftclick.png' : 'rudderleft.png';
+  }
+}
+
 function updateJoystickVisibility() {
   const stick = document.getElementById('mobile-joystick');
+  const dpad = document.getElementById('mobile-dpad');
   const brake = document.getElementById('mobile-btn-brake');
-  const isVisibleMode = (mobileJoystickMode !== 'invisible');
+  const showStick = (mobileJoystickMode === 'analog' || mobileJoystickMode === 'visible');
+  const showDpad = (mobileJoystickMode === 'dpad');
+
+  document.body.classList.toggle('dpad-mode', mobileJoystickMode === 'dpad');
 
   document.querySelectorAll('.joystick-btn').forEach(btn => {
-    if (btn.getAttribute('data-joystick') === (isVisibleMode ? 'visible' : 'invisible')) {
+    const val = btn.getAttribute('data-joystick');
+    if (val === mobileJoystickMode || (val === 'analog' && mobileJoystickMode === 'visible') || (val === 'visible' && mobileJoystickMode === 'analog')) {
       btn.classList.add('active');
     } else {
       btn.classList.remove('active');
@@ -3244,10 +3478,18 @@ function updateJoystickVisibility() {
   });
 
   if (stick) {
-    if (isVisibleMode && (gameState === 'RACING' || gameState === 'RUNUP' || isRepositionMode)) {
+    if (showStick && (gameState === 'RACING' || gameState === 'RUNUP' || isRepositionMode)) {
       stick.style.display = 'flex';
     } else {
       stick.style.display = 'none';
+    }
+  }
+
+  if (dpad) {
+    if (showDpad && (gameState === 'RACING' || gameState === 'RUNUP' || isRepositionMode)) {
+      dpad.style.display = 'block';
+    } else {
+      dpad.style.display = 'none';
     }
   }
 
@@ -3255,6 +3497,7 @@ function updateJoystickVisibility() {
     brake.classList.add('rect-mode');
   }
 
+  updateRudderVisuals();
   applyMobileButtonPositions();
 }
 
@@ -3263,9 +3506,10 @@ function applyMobileButtonPositions() {
   const yawR = document.getElementById('mobile-btn-yaw-r');
   const brake = document.getElementById('mobile-btn-brake');
   const stick = document.getElementById('mobile-joystick');
+  const dpad = document.getElementById('mobile-dpad');
   if (!yawL || !yawR || !brake) return;
 
-  const isVisibleMode = (mobileJoystickMode !== 'invisible');
+  const isVisibleMode = (mobileJoystickMode === 'analog' || mobileJoystickMode === 'visible' || mobileJoystickMode === 'dpad');
   if (brake) {
     brake.classList.add('rect-mode');
   }
@@ -3301,6 +3545,11 @@ function applyMobileButtonPositions() {
       stick.style.width = saved.stick.size + 'px';
       stick.style.height = saved.stick.size + 'px';
     }
+    if (dpad) {
+      const dpadSize = (saved.dpad && saved.dpad.size) || (saved.stick && saved.stick.size) || 130;
+      dpad.style.width = dpadSize + 'px';
+      dpad.style.height = dpadSize + 'px';
+    }
 
     if (saved.yawL && saved.yawR && saved.brake) {
       yawL.style.left = clamp(saved.yawL.xRatio * w, 10, w - (yawL.offsetWidth || 70)) + 'px';
@@ -3329,17 +3578,34 @@ function applyMobileButtonPositions() {
         stick.style.right = 'auto';
         stick.style.bottom = 'auto';
       }
+      if (dpad) {
+        const dpadData = saved.dpad || saved.stick;
+        if (dpadData) {
+          dpad.style.left = clamp(dpadData.xRatio * w, 10, w - (dpad.offsetWidth || 130)) + 'px';
+          dpad.style.top = clamp(dpadData.yRatio * h, 10, h - (dpad.offsetHeight || 130)) + 'px';
+        } else {
+          dpad.style.left = '20px';
+          dpad.style.top = clamp(h - 144, 10, h - 130) + 'px';
+        }
+        dpad.style.right = 'auto';
+        dpad.style.bottom = 'auto';
+      }
       return;
     }
   }
 
-  // Default Bottom Corners Layout
   if (isVisibleMode) {
     if (stick) {
       stick.style.left = '24px';
       stick.style.top = clamp(h - 138, 10, h - 114) + 'px';
       stick.style.right = 'auto';
       stick.style.bottom = 'auto';
+    }
+    if (dpad) {
+      dpad.style.left = '24px';
+      dpad.style.top = clamp(h - 148, 10, h - 130) + 'px';
+      dpad.style.right = 'auto';
+      dpad.style.bottom = 'auto';
     }
     brake.style.left = clamp(w - 108, 10, w - 84) + 'px';
     brake.style.top = clamp(h - 108, 10, h - 84) + 'px';
@@ -3378,6 +3644,7 @@ function saveMobileButtonPositions() {
   const yawR = document.getElementById('mobile-btn-yaw-r');
   const brake = document.getElementById('mobile-btn-brake');
   const stick = document.getElementById('mobile-joystick');
+  const dpad = document.getElementById('mobile-dpad');
   if (!yawL || !yawR || !brake) return;
 
   const w = window.innerWidth;
@@ -3390,6 +3657,9 @@ function saveMobileButtonPositions() {
   };
   if (stick) {
     data.stick = { xRatio: stick.offsetLeft / w, yRatio: stick.offsetTop / h, size: stick.offsetWidth };
+  }
+  if (dpad) {
+    data.dpad = { xRatio: dpad.offsetLeft / w, yRatio: dpad.offsetTop / h, size: dpad.offsetWidth };
   }
   try {
     localStorage.setItem('glider_mobile_button_positions', JSON.stringify(data));
@@ -3404,10 +3674,12 @@ function resetMobileButtonPositions() {
   const yawR = document.getElementById('mobile-btn-yaw-r');
   const brake = document.getElementById('mobile-btn-brake');
   const stick = document.getElementById('mobile-joystick');
+  const dpad = document.getElementById('mobile-dpad');
   if (yawL) { yawL.style.width = ''; yawL.style.height = ''; }
   if (yawR) { yawR.style.width = ''; yawR.style.height = ''; }
   if (brake) { brake.style.width = ''; brake.style.height = ''; }
   if (stick) { stick.style.width = ''; stick.style.height = ''; }
+  if (dpad) { dpad.style.width = ''; dpad.style.height = ''; }
   applyMobileButtonPositions();
 }
 
@@ -3426,6 +3698,7 @@ function openMobileRepositionEditor() {
   const yawR = document.getElementById('mobile-btn-yaw-r');
   const brake = document.getElementById('mobile-btn-brake');
   const stick = document.getElementById('mobile-joystick');
+  const dpad = document.getElementById('mobile-dpad');
 
   [yawL, yawR, brake].forEach(btn => {
     if (btn) {
@@ -3433,9 +3706,13 @@ function openMobileRepositionEditor() {
       btn.classList.add('reposition-mode');
     }
   });
-  if (stick && mobileJoystickMode !== 'invisible') {
+  if (stick && (mobileJoystickMode === 'analog' || mobileJoystickMode === 'visible')) {
     stick.style.display = 'flex';
     stick.classList.add('reposition-mode');
+  }
+  if (dpad && mobileJoystickMode === 'dpad') {
+    dpad.style.display = 'block';
+    dpad.classList.add('reposition-mode');
   }
   applyMobileButtonPositions();
 }
@@ -3453,8 +3730,9 @@ function closeMobileRepositionEditor(save) {
   const yawR = document.getElementById('mobile-btn-yaw-r');
   const brake = document.getElementById('mobile-btn-brake');
   const stick = document.getElementById('mobile-joystick');
+  const dpad = document.getElementById('mobile-dpad');
 
-  [yawL, yawR, brake, stick].forEach(btn => {
+  [yawL, yawR, brake, stick, dpad].forEach(btn => {
     if (btn) {
       btn.classList.remove('reposition-mode');
     }
@@ -3465,7 +3743,8 @@ function closeMobileRepositionEditor(save) {
     if (wrap) wrap.style.display = 'none';
   } else {
     if (pauseBtn) pauseBtn.style.display = 'flex';
-    if (stick && mobileJoystickMode !== 'invisible') stick.style.display = 'flex';
+    if (stick && (mobileJoystickMode === 'analog' || mobileJoystickMode === 'visible')) stick.style.display = 'flex';
+    if (dpad && mobileJoystickMode === 'dpad') dpad.style.display = 'block';
   }
 
   const settingsOverlay = document.getElementById('settings-overlay');
@@ -3622,25 +3901,100 @@ function setupJoystick() {
   stick.addEventListener('pointercancel', handleEnd);
 }
 
+function setupDpad() {
+  const dpad = document.getElementById('mobile-dpad');
+  const dpadImg = document.getElementById('mobile-dpad-img');
+  if (!dpad || !dpadImg) return;
+
+  let pointerId = null;
+
+  const dpadTable = [
+    { roll: 1, pitch: 0, img: 'dpadright.png' },
+    { roll: 1, pitch: 1, img: 'dpaddownright.png' },
+    { roll: 0, pitch: 1, img: 'dpaddown.png' },
+    { roll: -1, pitch: 1, img: 'dpaddownleft.png' },
+    { roll: -1, pitch: 0, img: 'dpadleft.png' },
+    { roll: -1, pitch: -1, img: 'dpadupleft.png' },
+    { roll: 0, pitch: -1, img: 'Dpadup.png' },
+    { roll: 1, pitch: -1, img: 'dpadupright.png' }
+  ];
+
+  const handlePointer = (e) => {
+    if (e.pointerId !== pointerId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = dpad.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = e.clientX - cx;
+    const dy = e.clientY - cy;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist < rect.width * 0.12) {
+      dpadImg.src = 'D-pad.png';
+      mobileRollInput = 0;
+      mobilePitchInput = 0;
+      return;
+    }
+
+    const deg = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+    const sector = Math.floor(((deg + 22.5) % 360) / 45);
+    const entry = dpadTable[sector];
+    if (entry) {
+      dpadImg.src = entry.img;
+      mobileRollInput = entry.roll;
+      mobilePitchInput = entry.pitch;
+    }
+  };
+
+  dpad.addEventListener('pointerdown', (e) => {
+    if (isRepositionMode) return;
+    if (e.target && e.target.closest && e.target.closest('.ctrl-resize-handle')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    pointerId = e.pointerId;
+    dpad.setPointerCapture(e.pointerId);
+    handlePointer(e);
+  });
+
+  dpad.addEventListener('pointermove', handlePointer);
+
+  const handleEnd = (e) => {
+    if (e.pointerId !== pointerId) return;
+    pointerId = null;
+    dpadImg.src = 'D-pad.png';
+    mobileRollInput = 0;
+    mobilePitchInput = 0;
+    try { dpad.releasePointerCapture(e.pointerId); } catch (err) {}
+  };
+
+  dpad.addEventListener('pointerup', handleEnd);
+  dpad.addEventListener('pointercancel', handleEnd);
+}
+
 function setupMobileControls() {
   const yawL = document.getElementById('mobile-btn-yaw-l');
   const yawR = document.getElementById('mobile-btn-yaw-r');
   const brake = document.getElementById('mobile-btn-brake');
   const pause = document.getElementById('mobile-btn-pause');
   const stick = document.getElementById('mobile-joystick');
+  const dpad = document.getElementById('mobile-dpad');
   const hudPause = document.getElementById('btn-hud-pause');
 
   setupDraggableButton(yawL);
   setupDraggableButton(yawR);
   setupDraggableButton(brake);
   if (stick) setupDraggableButton(stick);
+  if (dpad) setupDraggableButton(dpad);
 
   setupResizableButton(yawL);
   setupResizableButton(yawR);
   setupResizableButton(brake);
   if (stick) setupResizableButton(stick);
+  if (dpad) setupResizableButton(dpad);
 
   setupJoystick();
+  setupDpad();
 
   const attachAction = (btn, onPress, onRelease) => {
     if (!btn) return;
@@ -3663,8 +4017,8 @@ function setupMobileControls() {
     btn.addEventListener('pointerleave', release);
   };
 
-  attachAction(yawL, () => { mobileYawLeft = true; }, () => { mobileYawLeft = false; });
-  attachAction(yawR, () => { mobileYawRight = true; }, () => { mobileYawRight = false; });
+  attachAction(yawL, () => { mobileYawLeft = true; updateRudderVisuals(); }, () => { mobileYawLeft = false; updateRudderVisuals(); });
+  attachAction(yawR, () => { mobileYawRight = true; updateRudderVisuals(); }, () => { mobileYawRight = false; updateRudderVisuals(); });
   attachAction(brake, () => { mobileAirbrake = true; player.airbrake = true; }, () => { mobileAirbrake = false; if (!keys['Space'] && !gpAirbrake) player.airbrake = false; });
 
   if (pause) {
@@ -3720,6 +4074,7 @@ function setupMobileControls() {
   }
 
   function updateSteeringFromTouches() {
+    if (mobileJoystickMode === 'gyro' || mobileJoystickMode === 'dpad') return;
     if (activeSteeringTouches.size === 0) {
       if (mobileJoystickMode === 'invisible' || !stick || stick.style.display === 'none') {
         mobilePitchInput = 0;
@@ -6771,8 +7126,9 @@ const player = {
   verticalVelocity: 0
 };
 
+const isMobileDeviceCheck = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.matchMedia('(pointer: coarse)').matches;
 const rainParticles = [];
-for (let i = 0; i < 110; i++) {
+for (let i = 0; i < (isMobileDeviceCheck ? 50 : 110); i++) {
   rainParticles.push({
     x: (Math.random() - 0.5) * 800,
     y: (Math.random() - 0.5) * 600,
@@ -7677,12 +8033,14 @@ function init() {
   const canvas = document.getElementById('webgl-canvas');
   scene = new THREE.Scene();
 
-  camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.5, 32000);
+  const isMobileDeviceCheck = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.matchMedia('(pointer: coarse)').matches;
+  camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.5, isMobileDeviceCheck ? 16000 : 32000);
   scene.add(camera);
 
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: !isMobileDeviceCheck });
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   hudCanvas = document.getElementById('hud-canvas');
@@ -9369,6 +9727,7 @@ function updateInvertButtons() {
       btn.classList.remove('active');
     }
   });
+  updateRudderVisuals();
 }
 
 let pauseStartTime = 0;
@@ -12283,19 +12642,17 @@ function updateAI(dt) {
     if (gameState !== 'RACING') return;
 
     const currentWp = activeSubtrack.waypoints[ai.targetIdx];
-    // Always base the target on the active race waypoint
     _targetWp.copy(currentWp).add(ai.personality.apexOffset);
 
-    // Track vector from AI toward the next waypoint
-    const toTrackWp = new THREE.Vector3().subVectors(currentWp, ai.pos);
+    const toTrackWp = _tempVec2.subVectors(currentWp, ai.pos);
     const trackDist = toTrackWp.length();
-    const trackDir = toTrackWp.clone().normalize();
+    const trackDir = _tempVec1.copy(toTrackWp).normalize();
 
     if (ai.personality.type === 'high_altitude_cruiser') {
       if (trackDist > 650) {
-        _targetWp.y += 120; // Climb high on approaches
+        _targetWp.y += 120; 
       } else {
-        _targetWp.y -= 25;  // Dive into the gate
+        _targetWp.y -= 25; 
       }
     }
 
@@ -12787,6 +13144,7 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
   }
 
   handleGamepad();
+  updateGyroSteering();
 
   let pitchInput = 0;
   let rollInput = 0;
@@ -14059,6 +14417,10 @@ stallMechanic.active = false;
   countdownElapsed = 0;
   countdownStage = 3;
 
+  if (mobileJoystickMode === 'gyro') {
+    calibrateGyro();
+  }
+
   const countBox = document.getElementById('countdown-box');
   countBox.style.display = 'block';
   countBox.innerText = '3';
@@ -14082,6 +14444,9 @@ function updateRunup(dt) {
     audio.playBeep(440, 'sine', 0.15);
   } else if (countdownElapsed >= 2.7 && countdownStage === 1) {
     countdownStage = 0;
+    if (mobileJoystickMode === 'gyro') {
+      calibrateGyro();
+    }
     document.getElementById('countdown-box').innerText = 'GO!';
     audio.playBeep(880, 'triangle', 0.3);
     camera.fov = 88;
@@ -15576,6 +15941,9 @@ function setupUI() {
 
   document.getElementById('btn-to-select').addEventListener('click', () => {
     audio.init();
+    if (mobileJoystickMode === 'gyro') {
+      requestGyroPermission();
+    }
     showScreen('screen-select');
   });
 
@@ -15712,6 +16080,9 @@ function setupUI() {
   if (btnStartPlay) {
     btnStartPlay.addEventListener('click', () => {
       audio.init();
+      if (mobileJoystickMode === 'gyro') {
+        requestGyroPermission();
+      }
       setSelectTab('single');
       showScreen('screen-select');
     });
@@ -15838,6 +16209,9 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
   });
 
   document.getElementById('btn-launch-flight').addEventListener('click', () => {
+    if (mobileJoystickMode === 'gyro') {
+      requestGyroPermission();
+    }
     startCountdown();
   });
 
@@ -15846,6 +16220,9 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
   });
 
   document.getElementById('btn-gp-start').addEventListener('click', () => {
+    if (mobileJoystickMode === 'gyro') {
+      requestGyroPermission();
+    }
     startGrandPrixCup();
   });
 
@@ -15931,6 +16308,12 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
     btn.addEventListener('click', () => {
       audio.init();
       mobileJoystickMode = btn.getAttribute('data-joystick');
+      if (mobileJoystickMode === 'gyro') {
+        requestGyroPermission();
+      } else {
+        mobilePitchInput = 0;
+        mobileRollInput = 0;
+      }
       try {
         localStorage.setItem('glider_mobile_joystick', mobileJoystickMode);
       } catch (e) {}
@@ -16835,7 +17218,12 @@ if (lighthouseBeams.length > 0) {
   }
 
 renderer.render(scene, camera);
-  drawHudCanvas();
+  
+  if (!window.lastHudDrawTime) window.lastHudDrawTime = 0;
+  if (now - window.lastHudDrawTime > 33.3) { // ~30 FPS
+    drawHudCanvas();
+    window.lastHudDrawTime = now;
+  }
 }
 function initSplashIntro() {
   const splash = document.getElementById('splash-intro');
