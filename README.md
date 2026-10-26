@@ -96,7 +96,7 @@ Open the app as normal!
 > **Recommended App:** **Safari** *(Works on (iOS 16.4+) Chrome/Edge as well, but Safari gives the best experience)*.
 
 1. Open **Safari** and go to one of the playable links:
-   * [Play on Cloudflare](https://glider.pages.dev/)  - im on free plan, if possible use github pages
+   * [Play on Cloudflare](https://glider.pages.dev/)  - Im on the free plan, so if possible, use GitHub Pages
    * [Play on GitHub Pages](https://appishere.github.io/Glider/) - (recommended)
 1. click 3 dots in bottom right
 2. Tap the **Share** button (the square icon with an arrow pointing up) 
@@ -111,7 +111,7 @@ Open the app as normal!
 > **Recommended Apps:** **Google Chrome**, **Brave**, **Samsung Internet**, or **Firefox**.
 
 1. Open **Google Chrome** (or your browser of choice) and go to:
-   * [Play on Cloudflare](https://glider.pages.dev/) - im on free plan, if possible use github pages
+   * [Play on Cloudflare](https://glider.pages.dev/) - Im on the free plan, so if possible, use GitHub Pages
    * [Play on GitHub Pages](https://appishere.github.io/Glider/) - (recommended) 
 2. Wait a few seconds for the page to load, then tap the **Three-Dot Menu** in the top-right corner.
 3. Tap **Install App** or **Add to Home screen**.
