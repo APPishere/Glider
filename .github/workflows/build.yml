@@ -37,8 +37,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v4.2.2
-          releaseName: "Glider Patch 4.2.2"
+          tagName: v4.2.3
+          releaseName: "Glider Patch 4.2.3"
           releaseBody: "Body HERE"
           releaseDraft: false
           prerelease: false

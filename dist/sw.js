@@ -1,11 +1,16 @@
-const CACHE_NAME = 'glider-cache-v6';
+const CACHE_NAME = 'glider-cache-v7';
 
 const ASSETS = [
-  // Core Files
+  // CORE very important files no check these files bad bad
   './',
   './index.html',
+  './style.css',
   './manifest.json',
+  './sw.js',
   './icon.png',
+  './js/core.js',
+  './js/game.js',
+  './js/ui.js',
   'https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js',
 
   // Audio Files
