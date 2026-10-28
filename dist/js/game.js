@@ -939,7 +939,6 @@ let tvClickCount = 0;
 
 const speedometerPointer2Img = new Image();
 speedometerPointer2Img.src = 'speedemeterpointer2.png';
-speedometerPointer2Img.onerror = () => { speedometerPointer2Img.src = 'input_file_8.png'; };
 
 function onShopTvClick() {
   audio.init();
@@ -1382,10 +1381,7 @@ for (let i = 0; i < pos.count; i++) {
 }
 geom.computeVertexNormals();
 
-  let currentSkinId = getEquippedSkinId();
-  if (HALLOWEEN_EVENT_ACTIVE) {
-    currentSkinId = 'glider_halloween';
-  }
+  const currentSkinId = getEquippedSkinId();
   const wingMat = createSkinMaterial(currentSkinId);
   const skinDef = GLIDER_SKINS.find(s => s.id === currentSkinId) || GLIDER_SKINS[0];
 
@@ -1866,7 +1862,7 @@ function createThermalParticles(th) {
 
   geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
-const isHwWitch = (isHalloweenGliderEquipped() || isHalloweenBossDuel);
+  const isHwWitch = isHalloweenThemeActive();
   const thermalColor = isHwWitch ? (Math.random() > 0.5 ? 0x00ff66 : 0xa020f0) : 0x00f0ff;
   const mat = new THREE.PointsMaterial({
     color: thermalColor,
@@ -2057,7 +2053,7 @@ function createBirdFlockMesh(flockDef) {
   const subClusters = [];
   const birdWings = [];
 
-  const isBatMode = (isHalloweenGliderEquipped() || isHalloweenBossDuel);
+  const isBatMode = isHalloweenThemeActive();
   const wingMat = new THREE.MeshBasicMaterial({ color: isBatMode ? 0x050505 : 0x1f2429, side: THREE.DoubleSide });
 
   flockDef.tiers.forEach((tier, tIdx) => {
@@ -4318,7 +4314,6 @@ const outerRing = new THREE.Mesh(
 
   if (activeSubtrack.sinks) {
     activeSubtrack.sinks.forEach(sink => {
-      sink.strength = 150; 
       const hGround = getTerrainHeight(sink.pos.x, sink.pos.z, courseKey);
       if (sink.pos.y < hGround + 30) {
         sink.pos.y = hGround + 30;
@@ -4346,9 +4341,10 @@ setupTrackHazards(courseKey, activeSubtrack);
     }
     if (selectedSubtrack === 'B' && localStorage.getItem('glider_xmas_present_B') !== 'true') {
       const mB = new THREE.Mesh(pGeom, pMat);
-      mB.position.set(0, 65, -9600);
+      const presentBPos = new THREE.Vector3(0, 250, -9600);
+      mB.position.copy(presentBPos);
       environmentGroup.add(mB);
-      activePresents3D.push({ id: 'glider_xmas_present_B', mesh: mB, pos: new THREE.Vector3(0, 50, -9600) });
+      activePresents3D.push({ id: 'glider_xmas_present_B', mesh: mB, pos: presentBPos });
     }
     if (selectedSubtrack === 'C' && localStorage.getItem('glider_xmas_present_C') !== 'true') {
       const mC = new THREE.Mesh(pGeom, pMat);

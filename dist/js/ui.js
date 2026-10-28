@@ -150,7 +150,7 @@ function drawHudCanvas() {
     const ry = isHw ? (h - 138) : (h - 122);
     const circleRadius = 22;
     const ringRadius = 25.5;
-    const progress = Math.min(restartHoldTimer / 3.0, 1.0);
+    const progress = Math.min(restartHoldTimer / 2.0, 1.0);
 
     hudCtx.save();
     hudCtx.globalAlpha = restartPromptOpacity;
@@ -190,7 +190,7 @@ function drawHudCanvas() {
     hudCtx.textAlign = 'center';
     hudCtx.textBaseline = 'top';
     hudCtx.letterSpacing = '1.5px';
-    hudCtx.fillText('HOLD FOR 3 SECONDS', rx, ry + circleRadius + 9);
+    hudCtx.fillText('HOLD FOR 2 SECONDS', rx, ry + circleRadius + 9);
 
     hudCtx.restore();
   }
@@ -773,7 +773,6 @@ if (runupProgress >= 1.0) {
 
 
 function getPlayerGliderColor() {
-  if (HALLOWEEN_EVENT_ACTIVE) return '#ff6600';
   const skinId = getEquippedSkinId();
   switch (skinId) {
     case 'glider_santa':
@@ -3436,7 +3435,7 @@ function updateRestartHold(dt) {
     if (keys['KeyR']) {
       restartHoldTimer += dt;
       restartPromptOpacity = Math.min(1.0, restartPromptOpacity + dt * 6.0);
-      if (restartHoldTimer >= 3.0) {
+      if (restartHoldTimer >= 2.0) {
         restartHoldTimer = 0;
         restartPromptOpacity = 0;
         keys['KeyR'] = false;

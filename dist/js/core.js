@@ -2838,8 +2838,7 @@ function applySkySetting() {
     return;
   }
 
-  if (isHalloweenGliderEquipped()) {
-    // Eerie Blood-Moon Twilight Sky
+  if (isHalloweenThemeActive()) {
     scene.background = new THREE.Color(0x220516);
     if (sunLight) { sunLight.color.setHex(0xff4422); sunLight.intensity = 0.85; }
     if (hemiLight) { hemiLight.color.setHex(0x3a1240); hemiLight.groundColor.setHex(0x180612); hemiLight.intensity = 0.70; }
@@ -3476,7 +3475,11 @@ const { santaGliderTexture, santaGliderEmissiveTexture } = (() => {
 })();
 
 function isHalloweenGliderEquipped() {
-  return HALLOWEEN_EVENT_ACTIVE || getEquippedSkinId() === 'glider_halloween';
+  return getEquippedSkinId() === 'glider_halloween';
+}
+
+function isHalloweenThemeActive() {
+  return HALLOWEEN_EVENT_ACTIVE || isHalloweenBossDuel || isHalloweenGliderEquipped();
 }
 
 const GLIDER_SKINS = [
