@@ -121,8 +121,9 @@ Open the app as normal!
 
 
 ## Known Issues
- **Mobile UI is still WIP.** Controls work but some UI elements arent finished
+- **Mobile UI is still WIP.** Controls work but some UI elements arent finished
 - **Mouse-only mode** doesn't have rudder boost (no keyboard = no Q/E) Use WASD mode if you want rudder boost
+- **Heavy Front Loading On Mobile Devices / All devices really but specifically on slower internet for service workers causes the devices to be locked at the logo screen for quite a while**
 
 
 
