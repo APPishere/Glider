@@ -71,8 +71,16 @@ buildParagliderMesh();
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     resizeHudCanvas();
+    const isFlight = (gameState === 'RACING' || gameState === 'RUNUP' || gameState === 'FINISHING' || gameState === 'CREDITS' || gameState === 'GHOST_FLEET_CINEMATIC');
+    if (!isFlight) {
+      const activeScreen = document.querySelector('.menu-screen[id]:not(.hidden)');
+      if (activeScreen) {
+        showScreen(activeScreen.id);
+      } else if (gameState === 'START' || gameState === 'SELECT' || gameState === 'DISPATCH') {
+        showScreen('screen-start');
+      }
+    }
     updateHalloweenThemeVisibility();
-    showScreen(document.querySelector('.menu-screen:not(.hidden)')?.id || null);
     applyMobileButtonPositions();
     updateJoystickVisibility();
   });

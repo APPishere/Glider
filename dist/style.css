@@ -75,6 +75,7 @@ button,
 }
 
   #happy-halloween-banner {
+    display: none;
     position: fixed;
     left: 50%;
     transform: translateX(-50%);
@@ -94,8 +95,14 @@ button,
   }
 
   #happy-halloween-banner.visible {
+    display: block;
     opacity: 1;
     transform: translateX(-50%) scale(1.05);
+  }
+
+  body.in-flight #happy-halloween-banner,
+  body.in-flight #halloween-decor-wrap {
+    display: none !important;
   }
 
   #happy-halloween-banner::before,

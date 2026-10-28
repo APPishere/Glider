@@ -1,4 +1,13 @@
-const CACHE_NAME = 'glider-cache-v7';
+const CACHE_NAME = 'glider-cache-v9';
+
+function isHalloweenSeason() {
+  const md = (new Date().getMonth() + 1) * 100 + new Date().getDate();
+  return md >= 1027 && md <= 1102;
+}
+function isChristmasSeason() {
+  const md = (new Date().getMonth() + 1) * 100 + new Date().getDate();
+  return (md >= 1220 && md <= 1231) || (md === 101);
+}
 
 const ASSETS = [
   // CORE very important files no check these files bad bad
@@ -210,6 +219,21 @@ self.addEventListener('fetch', (e) => {
   if (e.request.mode === 'navigate') {
     e.respondWith(
       fetch(e.request).catch(() => caches.match('./index.html') || caches.match('./'))
+    );
+    return;
+  }
+
+  if (url.origin === self.location.origin && /\.(js|css|html)$/.test(url.pathname)) {
+    e.respondWith(
+      fetch(e.request)
+        .then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(e.request, copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match(e.request, { ignoreSearch: true }))
     );
     return;
   }

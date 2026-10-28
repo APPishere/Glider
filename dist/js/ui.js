@@ -576,6 +576,14 @@ function startCountdown() {
   if (screen.orientation && screen.orientation.lock) {
     screen.orientation.lock('landscape').catch(() => {});
   }
+  gameState = 'RUNUP';
+  const hwDecor = document.getElementById('halloween-decor-wrap');
+  if (hwDecor) hwDecor.style.display = 'none';
+  const hwBanner = document.getElementById('happy-halloween-banner');
+  if (hwBanner) {
+    hwBanner.style.display = 'none';
+    hwBanner.classList.remove('visible');
+  }
   showScreen(null);
   stopMenuTheme(true);
   buildCourse(selectedCourseId);
@@ -681,6 +689,10 @@ stallMechanic.active = false;
   countdownElapsed = 0;
   countdownStage = 3;
 
+  if (typeof updateHalloweenThemeVisibility === 'function') {
+    updateHalloweenThemeVisibility();
+  }
+
   if (mobileJoystickMode === 'gyro') {
     calibrateGyro();
   }
@@ -735,21 +747,30 @@ function updateRunup(dt) {
     update2DDroneMesh(ghostDroneGroup, camera);
   }
 
-  if (runupProgress >= 1.0) {
+if (runupProgress >= 1.0) {
     player.flightPathPitch = 0;
     raceStartTime = performance.now();
     gameState = 'RACING';
     document.getElementById('countdown-box').style.display = 'none';
     updateJoystickVisibility();
+    const hwDecor = document.getElementById('halloween-decor-wrap');
+    if (hwDecor) hwDecor.style.display = 'none';
+    const hwBanner = document.getElementById('happy-halloween-banner');
+    if (hwBanner) {
+      hwBanner.style.display = 'none';
+      hwBanner.classList.remove('visible');
+    }
+    if (typeof updateHalloweenThemeVisibility === 'function') {
+      updateHalloweenThemeVisibility();
+    }
   }
 
   updateCameraView(0, 0);
-
-updateShadowMesh(playerShadowMesh, player.pos.x, player.pos.y, player.pos.z, player.yaw, selectedCourseId);
-
+  updateShadowMesh(playerShadowMesh, player.pos.x, player.pos.y, player.pos.z, player.yaw, selectedCourseId);
   audio.updateWind(player.speed, false);
   updateAI(dt);
 }
+
 
 function getPlayerGliderColor() {
   if (HALLOWEEN_EVENT_ACTIVE) return '#ff6600';
@@ -2767,18 +2788,17 @@ function updateMedalDisplay() {
 
 function showScreen(screenId) {
   const isMobile = isMobileDevice() || window.innerWidth <= 950 || window.innerHeight <= 600;
-  if (screenId === 'screen-start') {
+  if (screenId === 'screen-start' || screenId === 'screen-start-mobile') {
     screenId = isMobile ? 'screen-start-mobile' : 'screen-start';
   }
-  if (screenId === 'screen-select') {
+  if (screenId === 'screen-select' || screenId === 'screen-select-mobile') {
     screenId = isMobile ? 'screen-select-mobile' : 'screen-select';
   }
   if (screenId !== 'screen-shop') {
     clearShopTvTimer();
   }
-  updateHalloweenThemeVisibility();
 
-  const screens = ['screen-start', 'screen-select', 'screen-start-mobile', 'screen-select-mobile', 'screen-shop', 'screen-dispatch', 'screen-pause', 'screen-win', 'screen-lose', 'screen-gp-preview', 'screen-gp-interstitial', 'screen-gp-summary'];  
+  const screens = ['screen-start', 'screen-select', 'screen-start-mobile', 'screen-select-mobile', 'screen-shop', 'screen-dispatch', 'screen-pause', 'screen-win', 'screen-lose', 'screen-gp-preview', 'screen-gp-interstitial', 'screen-gp-summary'];
   screens.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
@@ -2793,7 +2813,7 @@ function showScreen(screenId) {
     el.style.boxShadow = '';
   });
 
-const settingsBtn = document.getElementById('btn-settings-toggle');
+  const settingsBtn = document.getElementById('btn-settings-toggle');
   const jbWidget = document.getElementById('jukebox-widget');
   if (settingsBtn) {
     settingsBtn.style.display = screenId ? 'flex' : 'none';
@@ -2873,14 +2893,20 @@ const settingsBtn = document.getElementById('btn-settings-toggle');
       const randomIndex = Math.floor(Math.random() * startMessages.length);
       const instrEl = document.querySelector('#screen-start .instructions');
       const instrElMobile = document.querySelector('#screen-start-mobile .instructions');
-      
+
       if (instrEl) instrEl.innerHTML = startMessages[randomIndex];
       if (instrElMobile) instrElMobile.innerHTML = startMessages[randomIndex];
     }
-
-  } else {
+} else {
     document.getElementById('hud-overlay').style.display = 'block';
     stopMenuTheme();
+    const hwDecor = document.getElementById('halloween-decor-wrap');
+    if (hwDecor) hwDecor.style.display = 'none';
+    const hwBanner = document.getElementById('happy-halloween-banner');
+    if (hwBanner) {
+      hwBanner.style.display = 'none';
+      hwBanner.classList.remove('visible');
+    }
     const mobileWrap = document.getElementById('mobile-controls-wrap');
     if (mobileWrap) {
       const showMobileWrap = isMobile || window.matchMedia('(pointer: coarse)').matches;
@@ -2892,6 +2918,12 @@ const settingsBtn = document.getElementById('btn-settings-toggle');
       applyMobileButtonPositions();
       updateJoystickVisibility();
     }
+  }
+
+  try {
+    updateHalloweenThemeVisibility();
+  } catch (e) {
+    console.warn('[showScreen] theme update failed (non-fatal):', e);
   }
 }
 
@@ -3424,6 +3456,11 @@ function updateRestartHold(dt) {
 
 function animate() {
   requestAnimationFrame(animate);
+
+  document.body.classList.toggle('in-flight',
+    gameState === 'RUNUP' || gameState === 'RACING' ||
+    gameState === 'FINISHING' || gameState === 'CREDITS' ||
+    gameState === 'GHOST_FLEET_CINEMATIC');
 
   const now = performance.now();
   const dt = Math.min((now - lastTime) / 1000, 0.1);

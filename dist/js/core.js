@@ -942,11 +942,20 @@ function updateHalloweenThemeVisibility() {
   const hwDecor = document.getElementById('halloween-decor-wrap');
   const hudStatsBar = document.querySelector('.hud-stats');
   const mmContainer = document.getElementById('minimap-container');
+  const banner = document.getElementById('happy-halloween-banner');
 
-  const inMenu = (gameState === 'START' || gameState === 'SELECT' || gameState === 'DISPATCH' || gameState === 'PAUSED' || gameState === 'FINISHED');
+  const isFlight = (gameState === 'RACING' || gameState === 'RUNUP' || gameState === 'FINISHING' || gameState === 'CREDITS' || gameState === 'GHOST_FLEET_CINEMATIC');
+  const activeScreen = document.querySelector('.menu-screen[id]:not(.hidden)');
+  const settingsOverlay = document.getElementById('settings-overlay');
+  const settingsOpen = settingsOverlay && window.getComputedStyle(settingsOverlay).display !== 'none';
+  const hudOverlay = document.getElementById('hud-overlay');
+  const hudActive = hudOverlay && window.getComputedStyle(hudOverlay).display !== 'none';
+
+  const isMenuScreen = !isFlight && !hudActive && !!activeScreen;
+  const showHalloweenMenu = HALLOWEEN_EVENT_ACTIVE && isMenuScreen && !settingsOpen;
 
   if (hwDecor) {
-    hwDecor.style.display = (HALLOWEEN_EVENT_ACTIVE && inMenu) ? 'block' : 'none';
+    hwDecor.style.display = showHalloweenMenu ? 'block' : 'none';
   }
   if (hudStatsBar) {
     hudStatsBar.classList.toggle('halloween-theme', HALLOWEEN_EVENT_ACTIVE || isHalloweenBossDuel);
@@ -955,29 +964,15 @@ function updateHalloweenThemeVisibility() {
     mmContainer.classList.toggle('halloween-theme', HALLOWEEN_EVENT_ACTIVE || isHalloweenBossDuel);
   }
 
-  const banner = document.getElementById('happy-halloween-banner');
   if (banner) {
-    const activeScreen = document.querySelector('.menu-screen:not(.hidden)');
-    const settingsOverlay = document.getElementById('settings-overlay');
-    const settingsOpen = settingsOverlay && window.getComputedStyle(settingsOverlay).display !== 'none';
-    const isRacing = (gameState === 'RACING' || gameState === 'RUNUP' || gameState === 'FINISHING' || gameState === 'CREDITS');
-    const isExcludedScreen = !activeScreen || ['screen-pause', 'screen-win', 'screen-lose'].includes(activeScreen.id);
-
-    if (HALLOWEEN_EVENT_ACTIVE && !isRacing && !settingsOpen && !isExcludedScreen) {
-      if (activeScreen && activeScreen.id === 'screen-start') {
-        banner.style.top = '50%';
-        banner.style.bottom = 'auto';
-        banner.style.transform = 'translate(-50%, -50%) scale(1.05)';
-      } else {
-        banner.style.top = 'auto';
-        const rect = activeScreen.getBoundingClientRect();
-        if (rect.height > 0) {
-          banner.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
-        }
-        banner.style.transform = 'translateX(-50%) scale(1.05)';
-      }
+    if (showHalloweenMenu && activeScreen) {
+      banner.style.display = 'block';
+      banner.style.top = '20px';
+      banner.style.bottom = 'auto';
+      banner.style.transform = 'translateX(-50%) scale(1.05)';
       banner.classList.add('visible');
     } else {
+      banner.style.display = 'none';
       banner.classList.remove('visible');
     }
   }
@@ -991,6 +986,10 @@ function startGhostFleetCinematic() {
   ghostFleetCinematicActive = true;
   ghostFleetCinematicTimer = 0;
   gameState = 'GHOST_FLEET_CINEMATIC';
+
+  if (typeof updateHalloweenThemeVisibility === 'function') {
+    updateHalloweenThemeVisibility();
+  }
 
   if (paragliderWingGroup) paragliderWingGroup.visible = false;
   if (gateMeshes) gateMeshes.forEach(g => { g.group.visible = false; });
