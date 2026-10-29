@@ -4378,6 +4378,7 @@ glacial: {
           new THREE.Vector3(0, 470, -180)
         ],
         thermals: [
+          { pos: new THREE.Vector3(0, 470, -180), radius: 440, boost: 48 },
           { pos: new THREE.Vector3(-2800, 320, -4200), radius: 440, boost: 48 },
           { pos: new THREE.Vector3(800, 260, -9200), radius: 440, boost: 46 }
         ],
