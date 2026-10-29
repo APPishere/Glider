@@ -1199,54 +1199,24 @@ let finishSavedRank = 1;
 let finishSequenceTimer = 0;
 
 function updateCameraView(shakeX = 0, shakeY = 0, snap = false) {
-if (!paragliderWingGroup) return;
-
-const podObj = paragliderWingGroup.getObjectByName('podHarnessGroup');
-const is16Bit = (getEquippedSkinId() === 'glider_16bit');
-
-if (podObj) podObj.visible = devFreeCam ? true : false;
-
-paragliderWingGroup.position.set(player.pos.x + shakeX, player.pos.y + shakeY, player.pos.z);
-paragliderWingGroup.rotation.set(0, 0, 0);
-paragliderWingGroup.rotation.order = 'YXZ';
-paragliderWingGroup.rotation.y = player.yaw + (player.rudderDeflection * 0.85);
-paragliderWingGroup.rotation.x = player.pitch * 0.92;
-paragliderWingGroup.rotation.z = player.roll * 0.35;
-
-if (devFreeCam) {
-  if (is16Bit) {
-    update2DDroneMesh(paragliderWingGroup, camera);
+  if (devFreeCam) {
+    if (paragliderWingGroup) paragliderWingGroup.visible = false;
+    return;
   }
-  return;
-}
+  if (paragliderWingGroup && !paragliderWingGroup.visible && gameState !== 'CREDITS' && gameState !== 'GHOST_FLEET_CINEMATIC') {
+    paragliderWingGroup.visible = true;
+  }
 
-const targetCamYaw = player.yaw + (player.rudderDeflection * 0.85) - (player.roll * 0.12);
-const targetCamPitch = player.pitch * 0.92;
-const targetCamRoll = player.roll * 0.30;
+  camera.position.set(player.pos.x + shakeX, player.pos.y + shakeY, player.pos.z);
+  camera.rotation.set(0, 0, 0);
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = player.yaw + (player.rudderDeflection * 0.85);
+  camera.rotation.x = player.pitch;
+  camera.rotation.z = -player.roll * 0.35;
 
-if (snap || gameState !== 'RACING') {
-  camSmoothYaw = targetCamYaw;
-  camSmoothPitch = targetCamPitch;
-  camSmoothRoll = targetCamRoll;
-} else {
-  let dYaw = targetCamYaw - camSmoothYaw;
-  while (dYaw > Math.PI) dYaw -= Math.PI * 2;
-  while (dYaw < -Math.PI) dYaw += Math.PI * 2;
-  camSmoothYaw += dYaw * 0.22;
-  camSmoothPitch = THREE.MathUtils.lerp(camSmoothPitch, targetCamPitch, 0.22);
-  camSmoothRoll = THREE.MathUtils.lerp(camSmoothRoll, targetCamRoll, 0.22);
-}
-
-camera.position.set(player.pos.x + shakeX, player.pos.y + shakeY, player.pos.z);
-camera.rotation.set(0, 0, 0);
-camera.rotation.order = 'YXZ';
-camera.rotation.y = camSmoothYaw;
-camera.rotation.x = camSmoothPitch;
-camera.rotation.z = camSmoothRoll;
-
-if (is16Bit) {
-  update2DDroneMesh(paragliderWingGroup, camera);
-}
+  camSmoothYaw = camera.rotation.y;
+  camSmoothPitch = camera.rotation.x;
+  camSmoothRoll = camera.rotation.z;
 }
 
 function updateFreeCam(dt) {
@@ -1319,248 +1289,49 @@ startCountdown();
 }
 
 function buildParagliderMesh() {
-if (paragliderWingGroup) {
-  scene.remove(paragliderWingGroup);
-  paragliderWingGroup.traverse(obj => {
-    if (obj.geometry) obj.geometry.dispose();
-    if (obj.material) {
-      if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-      else obj.material.dispose();
-    }
-  });
-}
+  if (paragliderWingGroup) camera.remove(paragliderWingGroup);
 
-paragliderWingGroup = new THREE.Group();
+  paragliderWingGroup = new THREE.Group();
 
-if (getEquippedSkinId() === 'glider_16bit') {
-  const quadGeom = new THREE.PlaneGeometry(24, 12.8);
-  const quadMat = new THREE.MeshBasicMaterial({
-    map: spriteTextures.back,
-    transparent: true,
-    alphaTest: 0.1,
-    depthWrite: false,
-    side: THREE.DoubleSide
-  });
-  const pMesh = new THREE.Mesh(quadGeom, quadMat);
-  pMesh.name = 'spriteDroneQuad';
-  paragliderWingGroup.add(pMesh);
-  scene.add(paragliderWingGroup);
-  return;
-}
+  if (getEquippedSkinId() === 'glider_16bit') {
+    const pGeom = new THREE.PlaneGeometry(16, 8.5);
+    const pMat = new THREE.MeshBasicMaterial({
+      map: spriteTextures.top,
+      transparent: true,
+      alphaTest: 0.1,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+    const pMesh = new THREE.Mesh(pGeom, pMat);
+    pMesh.rotation.x = Math.PI / 3;
+    paragliderWingGroup.add(pMesh);
+    paragliderWingGroup.position.set(0, 4.3, -2.2);
+    camera.add(paragliderWingGroup);
+    return;
+  }
 
-const span = 26;
-const chord = 5.4;
-const segX = 32;
-const segZ = 12;
+  const wingWidth = 24;
+  const geom = new THREE.PlaneGeometry(wingWidth, 4.2, 20, 6);
+  const pos = geom.attributes.position;
 
-const geom = new THREE.PlaneGeometry(span, chord, segX, segZ);
-geom.rotateX(-Math.PI / 2);
-const pos = geom.attributes.position;
-const halfSpan = span / 2;
-const halfChord = chord / 2;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const arch = Math.cos((x / (wingWidth / 2)) * (Math.PI / 2.3)) * 2.2;
+    const sweep = -Math.pow(Math.abs(x) / (wingWidth / 2), 2) * 1.2;
+    pos.setY(i, y + arch);
+    pos.setZ(i, pos.getZ(i) + sweep);
+  }
+  geom.computeVertexNormals();
 
-for (let i = 0; i < pos.count; i++) {
-  const x = pos.getX(i);
-  const z = pos.getZ(i);
+  const wingMat = createSkinMaterial(getEquippedSkinId());
 
-  const u = x / halfSpan; 
-  const normZ = (z + halfChord) / chord; 
+  const canopyMesh = new THREE.Mesh(geom, wingMat);
+  canopyMesh.rotation.x = Math.PI / 10;
+  paragliderWingGroup.add(canopyMesh);
 
-
-  const archY = (Math.cos(u * Math.PI * 0.72) - Math.cos(Math.PI * 0.72)) / (1.0 - Math.cos(Math.PI * 0.72)) * 3.6;
-
-
-  const camberY = Math.sin(normZ * Math.PI) * 0.65 - (1.0 - normZ) * 0.35;
-
-  const sweepZ = (u * u) * 1.5;
-
-  const y = 1.7 + archY + camberY;
-  const finalZ = z + sweepZ - 1.2;
-
-  pos.setXYZ(i, x, y, finalZ);
-}
-geom.computeVertexNormals();
-
-  const currentSkinId = getEquippedSkinId();
-  const wingMat = createSkinMaterial(currentSkinId);
-  const skinDef = GLIDER_SKINS.find(s => s.id === currentSkinId) || GLIDER_SKINS[0];
-
-const canopyMesh = new THREE.Mesh(geom, wingMat);
-canopyMesh.name = 'canopyMesh';
-canopyMesh.rotation.x = -0.05; 
-paragliderWingGroup.add(canopyMesh);
-
-
-const podHarnessGroup = new THREE.Group();
-podHarnessGroup.name = 'podHarnessGroup';
-podHarnessGroup.position.set(0, -1.6, -1.8);
-
-const podDarkMat = new THREE.MeshStandardMaterial({
-  color: 0x181b22,
-  roughness: 0.58,
-  metalness: 0.28,
-  side: THREE.DoubleSide
-});
-
-let accentHex = skinDef.color || 0xee2233;
-let accentEmissive = skinDef.emissive || 0x000000;
-let accentEmissiveInt = skinDef.emissiveIntensity ? skinDef.emissiveIntensity * 0.6 : 0;
-if (currentSkinId === 'lunar_voyager') {
-  accentHex = 0xe5a93b;
-  accentEmissive = 0xffaa00;
-  accentEmissiveInt = 0.35;
-} else if (currentSkinId === 'aphelion_apex') {
-  accentHex = 0xa020f0;
-  accentEmissive = 0xa020f0;
-  accentEmissiveInt = 0.5;
-} else if (currentSkinId === 'glider_santa') {
-  accentHex = 0xc41220;
-  accentEmissive = 0xdfb12c;
-  accentEmissiveInt = 0.45;
-}
-
-const podAccentMat = new THREE.MeshStandardMaterial({
-  color: accentHex,
-  roughness: 0.32,
-  metalness: 0.65,
-  emissive: accentEmissive,
-  emissiveIntensity: accentEmissiveInt
-});
-
-const pilotSuitMat = new THREE.MeshStandardMaterial({
-  color: 0x222732,
-  roughness: 0.68,
-  metalness: 0.18
-});
-
-const helmetMat = new THREE.MeshStandardMaterial({
-  color: accentHex,
-  roughness: 0.22,
-  metalness: 0.52,
-  emissive: accentEmissive,
-  emissiveIntensity: accentEmissiveInt * 0.5
-});
-
-const visorMat = new THREE.MeshStandardMaterial({
-  color: 0x060910,
-  roughness: 0.05,
-  metalness: 0.98
-});
-
-
-const midGeom = new THREE.CylinderGeometry(0.95, 1.05, 3.2, 16);
-midGeom.rotateX(-Math.PI / 2);
-const midMesh = new THREE.Mesh(midGeom, podDarkMat);
-midMesh.scale.set(0.92, 0.88, 1.0);
-midMesh.position.set(0, -0.1, 0.1);
-podHarnessGroup.add(midMesh);
-
-const noseGeom = new THREE.ConeGeometry(0.95, 3.4, 16);
-noseGeom.rotateX(-Math.PI / 2);
-const noseMesh = new THREE.Mesh(noseGeom, podDarkMat);
-noseMesh.scale.set(0.88, 0.78, 1.0);
-noseMesh.position.set(0, -0.25, -3.2);
-podHarnessGroup.add(noseMesh);
-
-const tailGeom = new THREE.ConeGeometry(1.05, 4.0, 16);
-tailGeom.rotateX(Math.PI / 2);
-const tailMesh = new THREE.Mesh(tailGeom, podDarkMat);
-tailMesh.scale.set(0.85, 0.95, 1.0);
-tailMesh.position.set(0, 0.08, 3.7);
-podHarnessGroup.add(tailMesh);
-
-[-0.92, 0.92].forEach(side => {
-  const stripeGeom = new THREE.BoxGeometry(0.08, 0.18, 5.8);
-  const stripeMesh = new THREE.Mesh(stripeGeom, podAccentMat);
-  stripeMesh.position.set(side, -0.05, 0.3);
-  stripeMesh.rotation.y = side > 0 ? 0.04 : -0.04;
-  podHarnessGroup.add(stripeMesh);
-});
-
-const deckGeom = new THREE.BoxGeometry(1.0, 0.16, 0.82);
-const deckMesh = new THREE.Mesh(deckGeom, new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.5 }));
-deckMesh.position.set(0, 0.55, -1.2);
-deckMesh.rotation.x = 0.52;
-podHarnessGroup.add(deckMesh);
-
-const screenGeom = new THREE.PlaneGeometry(0.65, 0.42);
-screenGeom.rotateX(-Math.PI / 2);
-const screenMesh = new THREE.Mesh(screenGeom, new THREE.MeshBasicMaterial({ color: 0x00f0ff }));
-screenMesh.position.set(0, 0.65, -1.2);
-screenMesh.rotation.x = 0.52;
-podHarnessGroup.add(screenMesh);
-
-const torsoGeom = new THREE.BoxGeometry(1.05, 1.15, 0.92);
-const torsoMesh = new THREE.Mesh(torsoGeom, pilotSuitMat);
-torsoMesh.position.set(0, 0.6, -0.1);
-torsoMesh.rotation.x = -0.32;
-podHarnessGroup.add(torsoMesh);
-
-const helmetGeom = new THREE.SphereGeometry(0.48, 16, 16);
-helmetGeom.scale(0.92, 1.0, 1.15);
-const helmetMesh = new THREE.Mesh(helmetGeom, helmetMat);
-helmetMesh.position.set(0, 1.35, 0.38);
-podHarnessGroup.add(helmetMesh);
-
-const helmTailGeom = new THREE.ConeGeometry(0.36, 0.82, 12);
-helmTailGeom.rotateX(Math.PI / 2);
-const helmTailMesh = new THREE.Mesh(helmTailGeom, helmetMat);
-helmTailMesh.position.set(0, 1.35, 0.85);
-podHarnessGroup.add(helmTailMesh);
-
-const visorGeom = new THREE.SphereGeometry(0.42, 14, 14, 0, Math.PI, 0, Math.PI * 0.65);
-visorGeom.rotateY(-Math.PI / 2);
-visorGeom.rotateX(-0.15);
-const visorMesh = new THREE.Mesh(visorGeom, visorMat);
-visorMesh.position.set(0, 1.36, 0.18);
-podHarnessGroup.add(visorMesh);
-
-[-1, 1].forEach(side => {
-  const armGeom = new THREE.CylinderGeometry(0.12, 0.15, 1.05, 8);
-  armGeom.rotateX(0.7);
-  armGeom.rotateZ(side * 0.25);
-  const armMesh = new THREE.Mesh(armGeom, pilotSuitMat);
-  armMesh.position.set(side * 0.65, 0.75, -0.4);
-  podHarnessGroup.add(armMesh);
-
-  const carabinerGeom = new THREE.TorusGeometry(0.09, 0.03, 8, 12);
-  const carabinerMesh = new THREE.Mesh(carabinerGeom, podAccentMat);
-  carabinerMesh.position.set(side * 0.82, 0.95, -0.45);
-  podHarnessGroup.add(carabinerMesh);
-});
-
-const lCar = [-0.82, 0.95, -0.45];
-const rCar = [ 0.82, 0.95, -0.45];
-
-const lineCoords = [
-  -12.8, 3.4,  1.2,   lCar[0], lCar[1], lCar[2],
-    -9.5, 5.0,  0.6,   lCar[0], lCar[1], lCar[2], 
-    -6.0, 6.2,  0.2,   lCar[0], lCar[1], lCar[2], 
-    -2.2, 7.0, -0.2,   lCar[0], lCar[1], lCar[2], 
-    -9.8, 3.5,  2.8,   lCar[0], lCar[1], lCar[2], 
-
-    12.8, 3.4,  1.2,   rCar[0], rCar[1], rCar[2], 
-    9.5, 5.0,  0.6,   rCar[0], rCar[1], rCar[2], 
-    6.0, 6.2,  0.2,   rCar[0], rCar[1], rCar[2], 
-    2.2, 7.0, -0.2,   rCar[0], rCar[1], rCar[2], 
-    9.8, 3.5,  2.8,   rCar[0], rCar[1], rCar[2], 
-
-    -0.8, 7.2, -0.2,   lCar[0], lCar[1], lCar[2],
-    0.8, 7.2, -0.2,   rCar[0], rCar[1], rCar[2]
-];
-
-const lineGeom = new THREE.BufferGeometry();
-lineGeom.setAttribute('position', new THREE.Float32BufferAttribute(lineCoords, 3));
-const lineMat = new THREE.LineBasicMaterial({
-  color: 0x111111,
-  transparent: true,
-  opacity: 0.82
-});
-const linesMesh = new THREE.LineSegments(lineGeom, lineMat);
-podHarnessGroup.add(linesMesh);
-
-paragliderWingGroup.add(podHarnessGroup);
-scene.add(paragliderWingGroup);
+  paragliderWingGroup.position.set(0, 2.5, -3.2);
+  camera.add(paragliderWingGroup);
 }
 
 
@@ -1592,7 +1363,7 @@ function triggerRaceFinishSequence() {
   gameState = 'FINISHING';
   finishSavedTime = raceElapsedTime;
   finishSavedRank = player.rank;
-  finishSequenceTimer = 5.0; // 5 full seconds of finish sequence
+  finishSequenceTimer = 5.0; 
 
   const activeSubtrack = COURSES[selectedCourseId].subtracks[selectedSubtrack];
   player.nextGateIdx = 0;
@@ -5164,7 +4935,7 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
     hasPitchInput = true;
   }
   if (mobileRollInput !== 0) {
-    rollInput += mobileRollInput;
+    rollInput -= mobileRollInput;
     hasRollInput = true;
   }
   if (mobileYawLeft) yawInput -= 1.0;
@@ -5617,7 +5388,7 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
     const wingSpan = 11.5;
     const rightX = Math.cos(player.yaw);
     const rightZ = -Math.sin(player.yaw);
-    const rollSin = Math.sin(player.roll);
+    const rollSin = -Math.sin(player.roll);
 
     const lx = player.pos.x - rightX * wingSpan;
     const lz = player.pos.z - rightZ * wingSpan;

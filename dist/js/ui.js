@@ -3145,7 +3145,6 @@ function startCredits(options = {}) {
     scrollContent.style.transform = `translateY(${window.innerHeight * 0.40}px)`;
   }
 
-  // Play credits track at 100% volume
   creditsAudio.currentTime = 0;
   creditsAudio.volume = 1.0;
   creditsAudio.play().catch(() => {});
