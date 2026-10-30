@@ -1,3 +1,4 @@
+// this part of the code is for index.html NOT for the game i was lying about the names hehehe
 function init() {
   const canvas = document.getElementById('webgl-canvas');
   scene = new THREE.Scene();
@@ -71,7 +72,7 @@ buildParagliderMesh();
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     resizeHudCanvas();
-    const isFlight = (gameState === 'RACING' || gameState === 'RUNUP' || gameState === 'FINISHING' || gameState === 'CREDITS' || gameState === 'GHOST_FLEET_CINEMATIC');
+    const isFlight = isFlightState();
     if (!isFlight) {
       const activeScreen = document.querySelector('.menu-screen[id]:not(.hidden)');
       if (activeScreen) {
@@ -125,9 +126,10 @@ buildParagliderMesh();
     audio.init();
     keys[e.code] = true;
     if (e.repeat) return;
-    if (gameState === 'GHOST_FLEET_CINEMATIC') {
+    if (gameState === 'GHOST_FLEET_CINEMATIC' || gameState === 'KRAMPUS_CINEMATIC') {
       if (e.code === 'Escape' || e.code === 'Space') {
-        finishGhostFleetCinematic();
+        if (gameState === 'KRAMPUS_CINEMATIC') finishKrampusCinematic();
+        else finishGhostFleetCinematic();
         return;
       }
     }
@@ -178,6 +180,17 @@ buildParagliderMesh();
   window.addEventListener('keyup', (e) => {
     keys[e.code] = false;
     if (e.code === 'Space') player.airbrake = false;
+  });
+
+  window.addEventListener('pointerdown', () => {
+    if (gameState === 'GHOST_FLEET_CINEMATIC' && ghostFleetCinematicTimer > 2.0) {
+      finishGhostFleetCinematic();
+    } else if (gameState === 'KRAMPUS_CINEMATIC' && krampusCinematicTimer > 2.0) {
+      finishKrampusCinematic();
+    } else if (gameState === 'CREDITS' && canSkipCredits && creditsTimer > 2.0 &&
+               !greatestGliderSplashActive && !aphelionApexCinematicActive) {
+      finishCreditsSequence();
+    }
   });
 
   window.addEventListener('mousedown', (e) => {
@@ -686,36 +699,12 @@ function buildGoldDrone(group, mat) {
 
 function buildKrampusDrone(group, mat) {
   const krampusMat = mat || createGhostSkinMaterial('ghost_krampus');
-  const redAccentMat = new THREE.MeshStandardMaterial({
-    color: 0xff1111,
-    emissive: 0xff0000,
-    emissiveIntensity: 0.85,
-    roughness: 0.2,
-    metalness: 0.5
-  });
 
   const body = new THREE.Mesh(new THREE.ConeGeometry(5, 26, 4), krampusMat);
   body.rotateX(-Math.PI / 2);
   const wings = new THREE.Mesh(new THREE.BoxGeometry(44, 0.5, 7), krampusMat);
   wings.position.set(0, 0, 3);
   group.add(body, wings);
-
-  const stripe = new THREE.Mesh(new THREE.BoxGeometry(42, 0.7, 0.8), redAccentMat);
-  stripe.position.set(0, 0, 0.5);
-  group.add(stripe);
-
-  [-1, 1].forEach(side => {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.9, 8, 8), redAccentMat);
-    eye.position.set(side * 1.5, 1.2, -8.5);
-    group.add(eye);
-
-    const hornGeom = new THREE.ConeGeometry(1.2, 7.5, 6);
-    hornGeom.rotateX(0.45);
-    hornGeom.rotateZ(-side * 0.5);
-    const horn = new THREE.Mesh(hornGeom, krampusMat);
-    horn.position.set(side * 2.5, 3.2, -6.5);
-    group.add(horn);
-  });
 }
 
 function getTrackStats() {
@@ -778,17 +767,22 @@ function getTrackStats() {
   };
 }
 
+const ACHIEVEMENT_SUBTITLES = {
+  'Wait What was that?!': 'What was that?'
+};
+
 function showAchievementNotifications(unlockedItems) {
   const container = document.getElementById('notif-container');
   if (!container) return;
 
   unlockedItems.forEach((item, idx) => {
     setTimeout(() => {
+      const sub = item.sub || ACHIEVEMENT_SUBTITLES[item.name] || 'Open shop to equip it!';
       const card = document.createElement('div');
       card.className = 'notif-card';
       card.innerHTML = `
         <div class="notif-title">Achievement Unlocked: ${item.name}</div>
-        <div class="notif-sub">Open shop to equip it!</div>
+        <div class="notif-sub">${sub}</div>
       `;
       container.appendChild(card);
       audio.playRecoveryBoost();
@@ -1203,7 +1197,7 @@ function updateCameraView(shakeX = 0, shakeY = 0, snap = false) {
     if (paragliderWingGroup) paragliderWingGroup.visible = false;
     return;
   }
-  if (paragliderWingGroup && !paragliderWingGroup.visible && gameState !== 'CREDITS' && gameState !== 'GHOST_FLEET_CINEMATIC') {
+  if (paragliderWingGroup && !paragliderWingGroup.visible && gameState !== 'CREDITS' && gameState !== 'GHOST_FLEET_CINEMATIC' && gameState !== 'KRAMPUS_CINEMATIC') {
     paragliderWingGroup.visible = true;
   }
 
@@ -5208,7 +5202,7 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
         }
       }
 
-      const aiForward = _tempVec2.copy(ai.vel).normalize();
+      const aiForward = _draftAiForward.copy(ai.vel).normalize();
       const distBehind = -_tempVec1.dot(aiForward);
 
       if (distBehind > 25 && distBehind < 280) {
@@ -5464,13 +5458,9 @@ updateShadowMesh(playerShadowMesh, player.pos.x, player.pos.y, player.pos.z, pla
   audio.playRecoveryBoost();
   screenShake = Math.max(screenShake, 0.4);
 
-  let count = 0;
-  ['A','B','C'].forEach(sub => {
-    if (localStorage.getItem(`glider_xmas_present_${sub}`) === 'true') count++;
-  });
-  showAchievementNotifications([{ name: `Present Found! (${count}/3)` }]);
-}
+
     }
+  }
   }
 
   checkGateProgress();

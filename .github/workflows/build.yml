@@ -37,9 +37,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v4.2.6
-          releaseName: "Glider Patch 4.2.6"
-          releaseBody: "MUST DOWNLOAD FIX! so if you didnt install the last one this is pretty important too!"
+          tagName: v4.2.7
+          releaseName: "Glider Patch 4.2.7"
+          releaseBody: "This update has some helpful stuff like hints and better controls if you would like go ahead!"
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

@@ -79,7 +79,7 @@ button,
     position: fixed;
     left: 50%;
     transform: translateX(-50%);
-    font-family: 'Comic Sans MS', cursive, sans-serif;
+    font-family: 'Creepster', 'Comic Sans MS', cursive, sans-serif;
     color: #ff8c00;
     font-size: 2.8rem;
     font-weight: bold;
@@ -87,7 +87,7 @@ button,
     font-style: italic;
     white-space: nowrap;
     pointer-events: none;
-    z-index: 45; 
+    z-index: 46; 
     opacity: 0;
     transition: opacity 1.2s ease, transform 1.2s ease, bottom 0.25s ease;
     padding: 0 20px;
@@ -107,27 +107,7 @@ button,
 
   #happy-halloween-banner::before,
   #happy-halloween-banner::after {
-    content: '';
-    position: absolute;
-    width: 4px;
-    bottom: 100%;
-    height: 100vh;
-    background: repeating-linear-gradient(
-      to bottom,
-      #6d4c33 0px,
-      #6d4c33 4px,
-      #3f2918 4px,
-      #3f2918 8px
-    );
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.9);
-    pointer-events: none;
-    z-index: -1;
-  }
-  #happy-halloween-banner::before {
-    left: 4px;
-  }
-  #happy-halloween-banner::after {
-    right: 4px;
+    display: none;
   }
 
   .hud-stats.halloween-theme {
@@ -2535,3 +2515,233 @@ body.dpad-mode #mobile-btn-brake.active img {
       display: none !important;
     }
   }
+#happy-halloween-banner.visible,
+#merry-christmas-banner.visible {
+  pointer-events: auto;
+  cursor: url('glidercurser_select.png'), pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.banner-bubble {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 14px);
+  right: auto;
+  margin: 0;
+  width: max-content;
+  max-width: min(86vw, 360px);
+  padding: 6px 14px;
+  border-radius: 14px;
+  background: #fff6e0;
+  color: #2a1400;
+  font: italic 700 0.95rem/1.3 'Creepster', 'Comic Sans MS', cursive, sans-serif;
+  letter-spacing: 0;
+  text-align: center;
+  text-shadow: none;
+  white-space: normal;
+  pointer-events: auto;
+  box-shadow: 0 0 8px rgba(255, 140, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+.banner-bubble::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  bottom: auto;
+  left: -8px;
+  margin-left: 0;
+  margin-top: -8px;
+  border: 8px solid transparent;
+  border-right-color: #fff6e0;
+  border-left-width: 0;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+}
+.banner-bubble.hint {
+  animation: bannerBubblePop 0.35s ease-out, bannerBubbleBob 2.4s ease-in-out 0.35s infinite;
+}
+.banner-bubble.xmas {
+  background: #f2fff2;
+  color: #0b3d1a;
+  box-shadow: 0 0 12px rgba(60, 220, 110, 0.65), 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+.banner-bubble.xmas::before { border-right-color: #f2fff2; }
+
+@keyframes bannerBubbleBob {
+  0%, 100% { transform: translateY(-50%) scale(1); }
+}
+@keyframes bannerBubblePop {
+  0%   { transform: translateY(-50%) scale(0.6); opacity: 0; }
+  70%  { transform: translateY(-50%) scale(1.12); opacity: 1; }
+  100% { transform: translateY(-50%) scale(1); }
+}
+
+#merry-christmas-banner {
+  display: none;
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Creepster', 'Comic Sans MS', cursive, sans-serif;
+  color: #ff5a5a;
+  font-size: 2.8rem;
+  font-weight: bold;
+  letter-spacing: 0.1rem;
+  font-style: italic;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 46;
+  opacity: 0;
+  transition: opacity 1.2s ease, transform 1.2s ease;
+  padding: 0 20px;
+  text-shadow: 0 0 16px rgba(0, 0, 0, 0.95), 0 0 10px rgba(70, 255, 130, 0.75), 0 2px 4px rgba(0, 0, 0, 0.9);
+}
+#merry-christmas-banner.visible {
+  display: block;
+  opacity: 1;
+  transform: translateX(-50%) scale(1.05);
+}
+#merry-christmas-banner::before,
+#merry-christmas-banner::after {
+  display: none;
+}
+
+body.in-flight #merry-christmas-banner,
+body.in-flight #merry-christmas-decor-wrap {
+  display: none !important;
+}
+
+.xmas-lights {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 22px;
+  background:
+    radial-gradient(circle at 10px 12px, #ff3b3b 0 4px, transparent 5px) 0 0 / 60px 22px repeat-x,
+    radial-gradient(circle at 30px 12px, #ffd23b 0 4px, transparent 5px) 0 0 / 60px 22px repeat-x,
+    radial-gradient(circle at 50px 12px, #3bff7a 0 4px, transparent 5px) 0 0 / 60px 22px repeat-x;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6));
+  animation: xmasLightsTwinkle 1.4s steps(2) infinite;
+}
+@keyframes xmasLightsTwinkle {
+  0%   { opacity: 1; }
+  100% { opacity: 0.65; }
+}
+.xmas-decor {
+  position: absolute;
+  bottom: 6px;
+  font-size: 64px;
+  line-height: 1;
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.85));
+  animation: bannerBubbleBob 2.4s ease-in-out infinite;
+}
+.xmas-decor-left  { left: 14px; }
+.xmas-decor-right { right: 14px; }
+
+#present-counter {
+  display: none;
+  position: absolute;
+  top: 66px;
+  left: 25px;
+  padding: 5px 12px;
+  background: var(--mono-bg);
+  border: 1px solid var(--mono-20);
+  border-radius: 2px;
+  color: var(--mono-90);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  pointer-events: none;
+}
+#present-counter.complete {
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: 0 0 10px rgba(255, 200, 0, 0.45);
+}
+@media (max-width: 950px), (pointer: coarse) {
+  #present-counter { top: 52px; left: 14px; font-size: 11px; padding: 4px 9px; }
+}
+
+#shop-cellar-door-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border-radius: 14px;
+  background: radial-gradient(circle, rgba(255, 150, 40, 0.55) 0%, rgba(255, 110, 0, 0) 70%);
+  animation: cellarGlowPulse 1.6s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+@keyframes cellarGlowPulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.95); }
+  50%      { opacity: 1;    transform: scale(1.08); }
+}
+.cellar-hint-mark {
+  position: absolute;
+  top: -32px;
+  left: 50%;
+  margin-left: -14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(20, 8, 0, 0.85);
+  border: 2px solid #ffb347;
+  color: #ffd27a;
+  font: 900 18px/24px 'Comic Sans MS', cursive, sans-serif;
+  text-align: center;
+  box-shadow: 0 0 12px rgba(255, 140, 0, 0.9);
+  animation: cellarMarkFloat 1.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+@keyframes cellarMarkFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-7px); }
+}
+
+.course-grid-card,
+.track-opt[data-course] {
+  position: relative;
+}
+.ace-star {
+  position: absolute;
+  top: 5px;
+  right: 7px;
+  color: var(--gold);
+  font-size: 16px;
+  line-height: 1;
+  text-shadow: 0 0 6px rgba(255, 200, 0, 0.8);
+  pointer-events: none;
+}
+
+@media (max-width: 950px), (pointer: coarse) {
+  #happy-halloween-banner,
+  #merry-christmas-banner {
+    font-size: 1.6rem; 
+    top: 15px !important;
+  }
+  
+  .banner-bubble {
+    top: calc(100% + 6px);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    font-size: 0.8rem;
+    padding: 4px 10px;
+    animation: none; 
+  }
+  
+  .banner-bubble::before {
+    top: auto;
+    bottom: 100%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: 0;
+    border-right-color: transparent;
+    border-bottom-color: #fff6e0;
+  }
+  .banner-bubble.xmas::before {
+    border-bottom-color: #f2fff2;
+  }
+}

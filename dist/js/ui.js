@@ -1531,6 +1531,7 @@ function finishRace() {
 if (isKrampusBossDuel) {
   const wonDuel = (player.rank === 1);
   isKrampusBossDuel = false;
+  krampusRetryPending = !wonDuel; 
   if (wonDuel) {
     localStorage.setItem('glider_unlocked_santa', 'true');
     localStorage.setItem('glider_unlocked_krampus_ghost', 'true');
@@ -1666,6 +1667,7 @@ function endRace(reason) {
 
   if (isKrampusBossDuel) {
     isKrampusBossDuel = false;
+    krampusRetryPending = true; 
   }
 
   if (grandPrixState.active) {
@@ -1707,7 +1709,7 @@ flappyAssets.brick.src = 'brickwallforflappyglider.png';
 flappyAssets.chimneyTop.src = 'chimneytop.png';
 flappyAssets.present.src = 'present.png';
 
-function startKrampusBossRace() {
+function startKrampusBossRace(skipCinematic = false) {
   audio.init();
   isKrampusBossDuel = true;
   grandPrixState.active = false;
@@ -1717,6 +1719,25 @@ function startKrampusBossRace() {
   gameMode = 'race';
   showScreen(null);
   stopMenuTheme(true);
+
+  if (skipCinematic) {
+    startCountdown();
+  } else {
+    buildCourse(selectedCourseId);
+    startKrampusCinematic();
+  }
+}
+
+function handleRetryClick() {
+  if (krampusRetryPending) {
+    krampusRetryPending = false;
+    startKrampusBossRace(true);
+    return;
+  }
+  if (grandPrixState.active) {
+    startGrandPrixCup(); 
+    return;
+  }
   startCountdown();
 }
 
@@ -2089,6 +2110,7 @@ function setupUI() {
     updatePBTags();
     updateMedalDisplay();
     audio.playCrash();
+    refreshCourseCards();
     showAchievementNotifications([{ name: 'Saved Times Reset' }]);
   }
   const btnResetMobile = document.getElementById('btn-reset-scores');
@@ -2424,6 +2446,27 @@ function setupUI() {
     });
   });
 
+  refreshHalloweenBubble = setupBannerBubble(
+  'happy-halloween-banner',
+  'hw-banner-bubble',
+  (clicks) => {
+    if (halloween_door_unlocked) return 'what? you did your job! go to shop to collect it.';
+    if (clicks === 1) return "2 pumpkins. one secret. Tap tap";
+    return 'STILL cant find it? fine change your controls.';
+  },
+  () => halloween_door_unlocked
+);
+
+refreshChristmasBubble = setupBannerBubble(
+  'merry-christmas-banner',
+  'xmas-banner-bubble',
+  (clicks) => {
+    if (hasAllChristmasPresents()) return 'Nice job collecting the chirstmas pressents! check shop for your rewards!';
+    return 'Oh no! Santa dropped 3 presents in the North Pole! Will you help him find them?';
+  },
+  () => hasAllChristmasPresents()
+);
+
   if (HALLOWEEN_EVENT_ACTIVE) {
     updateHalloweenThemeVisibility();
     updateCellarDoorVisibility();
@@ -2651,13 +2694,16 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
   document.getElementById('btn-settings-toggle').addEventListener('click', () => {
     audio.init();
     document.getElementById('settings-overlay').style.display = 'flex';
+    updateHalloweenThemeVisibility();
   });
   document.getElementById('btn-settings-close').addEventListener('click', () => {
     audio.init();
     document.getElementById('settings-overlay').style.display = 'none';
+    updateHalloweenThemeVisibility();
   });
-  document.getElementById('btn-resume').addEventListener('click', togglePauseMenu);  document.querySelectorAll('.btn-retry').forEach(btn => btn.addEventListener('click', startCountdown));
+  document.getElementById('btn-resume').addEventListener('click', togglePauseMenu);  document.querySelectorAll('.btn-retry').forEach(btn => btn.addEventListener('click', handleRetryClick));
   document.querySelectorAll('.btn-menu').forEach(btn => btn.addEventListener('click', () => {
+    krampusRetryPending = false;
     document.getElementById('countdown-box').style.display = 'none';
     gameState = 'START';
     audio.stopAllAudio();
@@ -2924,6 +2970,39 @@ function showScreen(screenId) {
   } catch (e) {
     console.warn('[showScreen] theme update failed (non-fatal):', e);
   }
+
+  try {
+    refreshCourseCards();
+  } catch (e) {}
+}
+
+function courseHasAce(courseId) {
+  const course = COURSES[courseId];
+  if (!course) return false;
+  return ['A', 'B', 'C', 'D'].some(sub => {
+    const st = course.subtracks[sub];
+    const pb = parseFloat(localStorage.getItem(`pb_${courseId}_${sub}`));
+    return !!st && !isNaN(pb) && pb <= st.medals.ace;
+  });
+}
+
+function refreshCourseCards() {
+  document.querySelectorAll('#single-track-list .track-opt[data-course], #single-track-list-dt .track-opt[data-course]').forEach(card => {
+    const id = card.getAttribute('data-course');
+    card.classList.toggle('active', id === selectedCourseId);
+
+    const hasAce = courseHasAce(id);
+    let star = card.querySelector('.ace-star');
+    if (hasAce && !star) {
+      star = document.createElement('span');
+      star.className = 'ace-star';
+      star.textContent = '★';
+      star.title = 'Ace medal earned';
+      card.appendChild(star);
+    } else if (!hasAce && star) {
+      star.remove();
+    }
+  });
 }
 
 function updateHUD() {
@@ -2956,7 +3035,7 @@ function updateHUD() {
 
 if (gameMode === 'race') {
     posLabel.innerText = 'POS';
-    posVal.innerText = `${player.rank}/5`;
+    posVal.innerText = `${player.rank}/${(isKrampusBossDuel || isHalloweenBossDuel) ? 2 : 5}`;
 
     const liveBoard = document.getElementById('live-race-leaderboard');
     if (liveBoard) liveBoard.style.display = 'none';
@@ -3430,16 +3509,19 @@ function exitCreditsToMenu() {
 let lastTime = performance.now();
 
 function updateRestartHold(dt) {
+  if (!keys['KeyR']) restartNeedsRelease = false;
+
   if ((gameState === 'RACING' || gameState === 'RUNUP') && !devFreeCam) {
-    if (keys['KeyR']) {
+    if (keys['KeyR'] && !restartNeedsRelease) {
       restartHoldTimer += dt;
       restartPromptOpacity = Math.min(1.0, restartPromptOpacity + dt * 6.0);
       if (restartHoldTimer >= 2.0) {
         restartHoldTimer = 0;
         restartPromptOpacity = 0;
-        keys['KeyR'] = false;
+        restartNeedsRelease = true; 
         audio.playBeep(880, 'sine', 0.2);
-        startCountdown();
+        if (grandPrixState.active) startGrandPrixCup(); 
+        else startCountdown();
         return;
       }
     } else {
@@ -3458,7 +3540,7 @@ function animate() {
   document.body.classList.toggle('in-flight',
     gameState === 'RUNUP' || gameState === 'RACING' ||
     gameState === 'FINISHING' || gameState === 'CREDITS' ||
-    gameState === 'GHOST_FLEET_CINEMATIC');
+    gameState === 'GHOST_FLEET_CINEMATIC' || gameState === 'KRAMPUS_CINEMATIC');
 
   const now = performance.now();
   const dt = Math.min((now - lastTime) / 1000, 0.1);
@@ -3487,6 +3569,8 @@ function animate() {
 
   if (gameState === 'GHOST_FLEET_CINEMATIC') {
     updateGhostFleetCinematic(dt);
+  } else if (gameState === 'KRAMPUS_CINEMATIC') {
+    updateKrampusCinematic(dt);
   } else if (gameState === 'CREDITS') {
     updateCredits(dt);
   } else if (gameState === 'RUNUP') {

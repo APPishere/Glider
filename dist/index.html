@@ -224,12 +224,20 @@
 
 <div id="flappy-minigame-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 580; display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(5px);">
   <div id="flappy-modal-card" style="position: relative; width: 480px; max-width: 95vw; height: 720px; max-height: 90vh; background: #000; border: 2px solid var(--mono-20); box-shadow: 0 0 24px rgba(0, 0, 0, 0.9); overflow: hidden; display: flex; flex-direction: column;">
-    <button id="btn-flappy-close" style="position: absolute; top: 12px; right: 12px; z-index: 30; width: 34px; height: 34px; background: #cc1122; border: 2px solid #ffffff; color: #ffffff; font-weight: 900; font-size: 18px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(255, 0, 0, 0.6); outline: none;">&#10005;</button>
+    <button id="btn-flappy-close" aria-label="Close" title="Close (Esc)" style="position: absolute; top: 10px; right: 10px; z-index: 30; width: 44px; height: 44px; padding: 0; background: rgba(0, 0, 0, 0.75); border: 2px solid #ffffff; border-radius: 50%; color: #ffffff; font-weight: 700; font-size: 28px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(0, 0, 0, 0.8); outline: none;">&times;</button>
     <canvas id="flappy-canvas" width="480" height="720" style="width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; display: block;"></canvas>
   </div>
 </div>
 
-<div id="happy-halloween-banner">Happy Halloween</div>
+<div id="happy-halloween-banner">Happy Halloween<div id="hw-banner-bubble" class="banner-bubble">tap me</div></div>
+
+<div id="merry-christmas-banner">Merry Christmas<div id="xmas-banner-bubble" class="banner-bubble xmas">tap me</div></div>
+
+<div id="merry-christmas-decor-wrap" style="position: fixed; inset: 0; pointer-events: none; z-index: 45; display: none;">
+  <div class="xmas-lights"></div>
+  <div class="xmas-decor xmas-decor-left">🎄</div>
+  <div class="xmas-decor xmas-decor-right">⛄</div>
+</div>
 
 <div id="halloween-decor-wrap" style="position: fixed; inset: 0; pointer-events: none; z-index: 45; display: none;">
   <img src="cornercobweb.png" alt="Cobweb" class="hw-decor hw-corner-web left" style="position: absolute; top: 0; left: 0; width: 180px; height: auto; image-rendering: pixelated; opacity: 0.82; filter: drop-shadow(0 0 8px rgba(0,0,0,0.9));">
@@ -434,6 +442,7 @@
   <div id="shop-tv-container" class="shop-tv-corner"></div>
 
   <div id="shop-cellar-door-wrap" title="Enter The Storm..." style="position: absolute; bottom: 14px; right: 20px; width: 84px; height: 130px; perspective: 450px; display: none; z-index: 85;">
+    <div class="cellar-hint-mark" aria-hidden="true">?</div>
     <div id="shop-cellar-opening" style="position: absolute; inset: 0; background: radial-gradient(circle at 60% 80%, rgba(255, 120, 0, 0.95) 0%, rgba(180, 50, 0, 0.75) 45%, #080302 85%); border: 3px solid #3d2314; border-radius: 4px; overflow: hidden; animation: cellarFogFlicker 2.4s ease-in-out infinite alternate;">
       <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 50%; background: linear-gradient(0deg, rgba(255,160,0,0.65), transparent);"></div>
     </div>

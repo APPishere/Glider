@@ -1,3 +1,4 @@
+// Hey! whats this with you and snooping at my code? trust me you wont find what u want here its very secret
 const HALLOWEEN_EVENT_ACTIVE = (() => {
   const now = new Date();
   const md = (now.getMonth() + 1) * 100 + now.getDate();
@@ -17,6 +18,9 @@ const CHRISTMAS_EVENT_ACTIVE = (() => {
   return (md >= 1220 && md <= 1231) || (md === 101);
 })();
 let isKrampusBossDuel = false;
+let krampusRetryPending = false;
+let refreshHalloweenBubble = null;
+let refreshChristmasBubble = null;
 let activePresents3D = [];
 function hasAllChristmasPresents() {
   return localStorage.getItem('glider_xmas_present_A') === 'true' &&
@@ -27,6 +31,7 @@ function hasAllChristmasPresents() {
 function isMobileDevice() {
   return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.matchMedia('(pointer: coarse)').matches;
 }
+
 
 let savedMusicVol = parseFloat(localStorage.getItem('glider_music_volume'));
 let musicVolume = (!isNaN(savedMusicVol) && isFinite(savedMusicVol)) ? savedMusicVol : 0.8;
@@ -937,6 +942,94 @@ function updateCellarDoorVisibility() {
   }
 }
 
+function isFlightState() {
+  return gameState === 'RACING' || gameState === 'RUNUP' || gameState === 'FINISHING' ||
+    gameState === 'CREDITS' || gameState === 'GHOST_FLEET_CINEMATIC' || gameState === 'KRAMPUS_CINEMATIC';
+}
+
+function setupBannerBubble(bannerId, bubbleId, getHintText, isRetired) {
+  const banner = document.getElementById(bannerId);
+  const bubble = document.getElementById(bubbleId);
+  if (!banner || !bubble) return null;
+
+  let clicks = 0;
+  let hintText = '';
+  let lastClickTime = 0;
+  const cooldownMs = 120000; // 12012y84qjiwhgdh81y4204710924809 seconds real no clickbait
+  let lastScreenId = null;
+
+  function refresh() {
+    const now = Date.now();
+    const inCooldown = (now - lastClickTime < cooldownMs);
+    const isEquipped = (bannerId === 'happy-halloween-banner' && typeof isHalloweenGliderEquipped === 'function' && isHalloweenGliderEquipped());
+    
+    const isFlight = (gameState === 'RACING' || gameState === 'RUNUP' || gameState === 'FINISHING' || gameState === 'CREDITS' || gameState === 'GHOST_FLEET_CINEMATIC');
+    const activeScreen = document.querySelector('.menu-screen[id]:not(.hidden)');
+    const currentScreenId = isFlight ? 'in-flight' : (activeScreen ? activeScreen.id : 'none');
+    
+    if (lastScreenId !== null && lastScreenId !== currentScreenId) {
+      hintText = ''; 
+    }
+    lastScreenId = currentScreenId;
+
+    if (isRetired() || isEquipped) {
+      bubble.style.display = 'none';
+      hintText = '';
+      return;
+    }
+
+    if (hintText) {
+      bubble.style.display = 'block';
+      bubble.textContent = hintText;
+      bubble.classList.add('hint');
+    } else if (!inCooldown) {
+      bubble.style.display = 'block';
+      bubble.textContent = 'tap me';
+      bubble.classList.remove('hint');
+    } else {
+      bubble.style.display = 'none'; 
+    }
+  }
+
+  banner.addEventListener('click', () => {
+    audio.init();
+    audio.playBeep(520, 'triangle', 0.08, 0.15);
+    clicks++;
+    hintText = getHintText(clicks);
+    lastClickTime = Date.now();
+    
+    bubble.classList.remove('hint');
+    void bubble.offsetWidth; 
+    refresh();
+    
+    setTimeout(() => { refresh(); }, cooldownMs + 100);
+  });
+
+  refresh();
+  return refresh;
+}
+
+function updateChristmasThemeVisibility() {
+  const xmasDecor = document.getElementById('merry-christmas-decor-wrap');
+  const xmasBanner = document.getElementById('merry-christmas-banner');
+
+  const activeScreen = document.querySelector('.menu-screen[id]:not(.hidden)');
+  const settingsOverlay = document.getElementById('settings-overlay');
+  const settingsOpen = settingsOverlay && window.getComputedStyle(settingsOverlay).display !== 'none';
+  const hudOverlay = document.getElementById('hud-overlay');
+  const hudActive = hudOverlay && window.getComputedStyle(hudOverlay).display !== 'none';
+
+  const isMenuScreen = !isFlightState() && !hudActive && !!activeScreen;
+  const showXmasMenu = CHRISTMAS_EVENT_ACTIVE && isMenuScreen && !settingsOpen;
+
+  if (xmasDecor) xmasDecor.style.display = showXmasMenu ? 'block' : 'none';
+  if (xmasBanner) {
+    xmasBanner.style.display = showXmasMenu ? 'block' : 'none';
+    xmasBanner.classList.toggle('visible', showXmasMenu);
+  }
+  if (showXmasMenu && refreshChristmasBubble) refreshChristmasBubble();
+}
+
 function updateHalloweenThemeVisibility() {
   const isHwEquipped = isHalloweenGliderEquipped();
   const hwDecor = document.getElementById('halloween-decor-wrap');
@@ -944,7 +1037,7 @@ function updateHalloweenThemeVisibility() {
   const mmContainer = document.getElementById('minimap-container');
   const banner = document.getElementById('happy-halloween-banner');
 
-  const isFlight = (gameState === 'RACING' || gameState === 'RUNUP' || gameState === 'FINISHING' || gameState === 'CREDITS' || gameState === 'GHOST_FLEET_CINEMATIC');
+  const isFlight = isFlightState();
   const activeScreen = document.querySelector('.menu-screen[id]:not(.hidden)');
   const settingsOverlay = document.getElementById('settings-overlay');
   const settingsOpen = settingsOverlay && window.getComputedStyle(settingsOverlay).display !== 'none';
@@ -976,6 +1069,9 @@ function updateHalloweenThemeVisibility() {
       banner.classList.remove('visible');
     }
   }
+
+  if (refreshHalloweenBubble && banner && banner.style.display === 'block') refreshHalloweenBubble();
+  updateChristmasThemeVisibility();
 }
 
 let ghostFleetCinematicActive = false;
@@ -1041,6 +1137,107 @@ function updateGhostFleetCinematic(dt) {
 function finishGhostFleetCinematic() {
   if (!ghostFleetCinematicActive) return;
   ghostFleetCinematicActive = false;
+  if (paragliderWingGroup) paragliderWingGroup.visible = true;
+  if (gateMeshes) gateMeshes.forEach(g => { g.group.visible = true; });
+  startCountdown();
+}
+
+let krampusCinematicActive = false;
+let krampusCinematicTimer = 0;
+const krampusCinematicDuration = 5.0;
+let krampusCineDrone = null;
+const krampusCine = {
+  wideA: new THREE.Vector3(), wideB: new THREE.Vector3(),
+  close: new THREE.Vector3(), chase: new THREE.Vector3(),
+  mid: new THREE.Vector3(), spawn: new THREE.Vector3(), ahead: new THREE.Vector3()
+};
+const _krampusLook = new THREE.Vector3();
+
+function startKrampusCinematic() {
+  const course = COURSES[selectedCourseId];
+  const sub = course.subtracks[selectedSubtrack];
+  const cp = sub.cliffPos || course.cliffPos;
+  const cf = sub.cliffForward || course.cliffForward;
+
+  const cfRaw = new THREE.Vector3(cf.x, cf.y, cf.z);
+  const fwd = new THREE.Vector3(cf.x, 0, cf.z).normalize();
+  const right = new THREE.Vector3(-fwd.z, 0, fwd.x).normalize();
+  const runway = new THREE.Vector3(cp.x, cp.y, cp.z).addScaledVector(cfRaw, -220);
+  const k = krampusCine;
+
+  k.spawn.copy(runway).addScaledVector(right, 24).addScaledVector(cfRaw, 25);
+  k.mid.copy(runway).lerp(k.spawn, 0.5);
+  k.ahead.copy(runway).addScaledVector(cfRaw, 150);
+
+  k.wideA.copy(runway).addScaledVector(fwd, -650).addScaledVector(right, 420);
+  k.wideA.y += 520;
+  k.wideB.copy(runway).addScaledVector(fwd, -380).addScaledVector(right, 260);
+  k.wideB.y += 360;
+  k.close.copy(k.spawn).addScaledVector(fwd, -70).addScaledVector(right, 55);
+  k.close.y += 22;
+  k.chase.copy(runway); 
+
+  if (krampusCineDrone) environmentGroup.remove(krampusCineDrone);
+  krampusCineDrone = new THREE.Group();
+  buildKrampusDrone(krampusCineDrone);
+  krampusCineDrone.position.copy(k.spawn);
+  krampusCineDrone.rotation.y = Math.atan2(-cfRaw.x, -cfRaw.z);
+  environmentGroup.add(krampusCineDrone);
+
+  krampusCinematicActive = true;
+  krampusCinematicTimer = 0;
+  gameState = 'KRAMPUS_CINEMATIC';
+
+  updateHalloweenThemeVisibility();
+
+  if (paragliderWingGroup) paragliderWingGroup.visible = false;
+  if (gateMeshes) gateMeshes.forEach(g => { g.group.visible = false; });
+  document.getElementById('hud-overlay').style.display = 'none';
+  document.getElementById('countdown-box').style.display = 'none';
+
+  audio.playBeep(90, 'sawtooth', 1.4, 0.3);
+  setTimeout(() => audio.playBeep(60, 'square', 1.6, 0.25), 500);
+}
+
+function updateKrampusCinematic(dt) {
+  krampusCinematicTimer += dt;
+  const progress = Math.min(1.0, krampusCinematicTimer / krampusCinematicDuration);
+  const k = krampusCine;
+  const ease = t => t * t * (3 - 2 * t);
+
+  if (krampusCineDrone) {
+    krampusCineDrone.position.y = k.spawn.y + Math.sin(krampusCinematicTimer * 3.0) * 1.2;
+  }
+
+  if (progress < 0.35) {
+    const t = ease(progress / 0.35);
+    camera.position.lerpVectors(k.wideA, k.wideB, t);
+    _krampusLook.copy(k.mid);
+  } else if (progress < 0.70) {
+    const t = ease((progress - 0.35) / 0.35);
+    camera.position.lerpVectors(k.wideB, k.close, t);
+    _krampusLook.lerpVectors(k.mid, k.spawn, t);
+  } else {
+    const t = ease((progress - 0.70) / 0.30);
+    camera.position.lerpVectors(k.close, k.chase, t);
+    _krampusLook.lerpVectors(k.spawn, k.ahead, t);
+  }
+
+  camera.lookAt(_krampusLook);
+
+  if (progress >= 1.0) {
+    finishKrampusCinematic();
+  }
+}
+
+function finishKrampusCinematic() {
+  if (!krampusCinematicActive) return;
+  krampusCinematicActive = false;
+  if (krampusCineDrone) {
+    environmentGroup.remove(krampusCineDrone);
+    krampusCineDrone.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+    krampusCineDrone = null;
+  }
   if (paragliderWingGroup) paragliderWingGroup.visible = true;
   if (gateMeshes) gateMeshes.forEach(g => { g.group.visible = true; });
   startCountdown();
@@ -2305,7 +2502,9 @@ let hemiLight = null, sunLight = null;
 let minimapCanvas, minimapCtx;
 let gameState = 'START';
 
-let selectedCourseId = localStorage.getItem('glider_last_course') || 'canyon';
+let selectedCourseId = CHRISTMAS_EVENT_ACTIVE 
+  ? 'glacial' 
+  : (localStorage.getItem('glider_last_course') || 'canyon');
 if (selectedCourseId === 'caves') selectedCourseId = 'glacial';
 if (!['canyon', 'islands', 'coastal', 'volcano', 'glacial', 'moon'].includes(selectedCourseId)) {
   selectedCourseId = 'canyon';
@@ -2315,7 +2514,7 @@ let selectedSubtrack = 'A';
 let gameMode = localStorage.getItem('glider_game_mode') || 'race';
 let selectedDifficulty = localStorage.getItem('glider_difficulty') || 'medium';
 let controlScheme = localStorage.getItem('glider_control_scheme') || 'wasd';
-let invertControls = localStorage.getItem('glider_invert_controls') === 'true';
+let invertControls = localStorage.getItem('glider_invert_controls') !== 'false';
 let raceStartTime = 0;
 let raceElapsedTime = 0;
 
@@ -3751,6 +3950,7 @@ let inspectedGhostId = 'ghost_default';
 
 const _tempVec1 = new THREE.Vector3();
 const _tempVec2 = new THREE.Vector3();
+const _draftAiForward = new THREE.Vector3();
 const _trackDirVec = new THREE.Vector3();
 const _targetWp = new THREE.Vector3();
 const _toTarget = new THREE.Vector3();
@@ -3820,6 +4020,7 @@ const keys = {};
 let mouseX = 0, mouseY = 0;
 let mouseLeftPressed = false, mouseRightPressed = false;
 let restartHoldTimer = 0, restartPromptOpacity = 0;
+let restartNeedsRelease = false;
 
 const COURSES = {
   canyon: {
