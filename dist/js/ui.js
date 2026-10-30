@@ -2999,11 +2999,31 @@ function showScreen(screenId) {
 
 function refreshCourseCards() {
   document.querySelectorAll('#single-track-list .track-opt[data-course], #single-track-list-dt .track-opt[data-course]').forEach(card => {
-    const id = card.getAttribute('data-course');
-    card.classList.toggle('active', id === selectedCourseId);
+    const courseId = card.getAttribute('data-course');
+    card.classList.toggle('active', courseId === selectedCourseId);
+
+    const course = COURSES[courseId];
+    if (!course) return;
+
+    const subtrackKeys = Object.keys(course.subtracks);
+    const hasAllAces = subtrackKeys.every(sub => {
+      const pb = parseFloat(localStorage.getItem(`pb_${courseId}_${sub}`));
+      const st = course.subtracks[sub];
+      return st && !isNaN(pb) && pb <= st.medals.ace;
+    });
+
+    let star = card.querySelector('.ace-star');
     
-    const oldStar = card.querySelector('.ace-star');
-    if (oldStar) oldStar.remove();
+    if (hasAllAces && !star) {
+      star = document.createElement('span');
+      star.className = 'ace-star';
+      star.textContent = '★';
+      star.title = 'All Aces Earned!';
+      card.appendChild(star);
+    } 
+    else if (!hasAllAces && star) {
+      star.remove();
+    }
   });
 }
 
