@@ -1224,8 +1224,8 @@ function openGrandPrixPreview() {
     item.style.cursor = 'default';
     item.innerHTML = `
       <div>
-        <div class="track-name" style="color: var(--white);">RACE ${idx + 1}: ${r.courseId.toUpperCase()} ${r.subtrack}</div>
-        <div class="track-desc">${r.name}</div>
+        <div class="track-name" style="color: var(--white);">RACE ${idx + 1}: ${r.name.toUpperCase()}</div>
+        <div class="track-desc">${r.courseId.toUpperCase()} ${r.subtrack}</div>
       </div>
     `;
     previewList.appendChild(item);
@@ -2820,6 +2820,27 @@ function updatePBTags() {
     const pb = localStorage.getItem(`pb_${selectedCourseId}_${sub}`);
     const el = document.getElementById(`pb-${sub}`);
     if (el) el.innerText = pb ? `BEST: ${formatTime(parseFloat(pb))}` : 'BEST: --:--.-';
+
+    const subtrackEl = document.querySelector(`#subtrack-list .subtrack-opt[data-sub="${sub}"]`);
+    if (subtrackEl) {
+      const course = COURSES[selectedCourseId];
+      const st = course?.subtracks?.[sub];
+      const pbNum = parseFloat(pb);
+      const hasAce = st && !isNaN(pbNum) && pbNum <= st.medals.ace;
+
+      let star = subtrackEl.querySelector('.ace-star');
+      
+      if (hasAce && !star) {
+        star = document.createElement('span');
+        star.className = 'ace-star';
+        star.textContent = '★';
+        star.title = 'Ace medal earned';
+        subtrackEl.style.position = 'relative'; 
+        subtrackEl.appendChild(star);
+      } else if (!hasAce && star) {
+        star.remove();
+      }
+    }
   });
 }
 
@@ -2976,32 +2997,13 @@ function showScreen(screenId) {
   } catch (e) {}
 }
 
-function courseHasAce(courseId) {
-  const course = COURSES[courseId];
-  if (!course) return false;
-  return ['A', 'B', 'C', 'D'].some(sub => {
-    const st = course.subtracks[sub];
-    const pb = parseFloat(localStorage.getItem(`pb_${courseId}_${sub}`));
-    return !!st && !isNaN(pb) && pb <= st.medals.ace;
-  });
-}
-
 function refreshCourseCards() {
   document.querySelectorAll('#single-track-list .track-opt[data-course], #single-track-list-dt .track-opt[data-course]').forEach(card => {
     const id = card.getAttribute('data-course');
     card.classList.toggle('active', id === selectedCourseId);
-
-    const hasAce = courseHasAce(id);
-    let star = card.querySelector('.ace-star');
-    if (hasAce && !star) {
-      star = document.createElement('span');
-      star.className = 'ace-star';
-      star.textContent = '★';
-      star.title = 'Ace medal earned';
-      card.appendChild(star);
-    } else if (!hasAce && star) {
-      star.remove();
-    }
+    
+    const oldStar = card.querySelector('.ace-star');
+    if (oldStar) oldStar.remove();
   });
 }
 

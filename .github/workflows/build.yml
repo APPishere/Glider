@@ -39,7 +39,7 @@ jobs:
         with:
           tagName: v4.2.7
           releaseName: "Glider Patch 4.2.7"
-          releaseBody: "This update has some helpful stuff like hints and better controls if you would like go ahead!"
+          releaseBody: "Okay final patch before i go silent on this i would suggest downloading but again not needed."
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

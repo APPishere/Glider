@@ -2445,7 +2445,9 @@ function updateWeather(dt) {
   } else {
     condEl.style.color = '';
   }
-  document.getElementById('wb-track').innerText = `${selectedCourseId.toUpperCase()} - ${selectedSubtrack}`;
+  const courseData = COURSES[selectedCourseId];
+  const trackName = courseData?.subtracks?.[selectedSubtrack]?.name || `${selectedCourseId.toUpperCase()} - ${selectedSubtrack}`;
+  document.getElementById('wb-track').innerText = trackName.toUpperCase();
 }
 
 function buildCargoShip(x, z, rotY) {

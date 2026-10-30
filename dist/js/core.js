@@ -3794,7 +3794,7 @@ const GLIDER_SKINS = [
   },
   {
     id: 'all_bronze',
-    name: 'First Time!',
+    name: 'Getting the hang of it!',
     colorName: 'Copper / Bronze',
     color: 0xc87533,
     previewColor: '#c87533',
@@ -3873,7 +3873,7 @@ const GHOST_SKINS = [
   {
     id: 'ghost_krampus',
     name: 'Krampus Drone',
-    colorName: 'Shadow Black & Horns',
+    colorName: 'Shadow Black',
     color: 0x0a0a0a,
     previewColor: '#0a0a0a',
     emissive: 0x000000,
@@ -4377,7 +4377,8 @@ B: {
   ],
   thermals: [
     { pos: new THREE.Vector3(-1800, 300, -1400), radius: 420, boost: 44 }, 
-    { pos: new THREE.Vector3(-2000, 300, -6500), radius: 420, boost: 48 },   
+    { pos: new THREE.Vector3(-2000, 200, -6500), radius: 420, boost: 44 }, 
+    { pos: new THREE.Vector3(0, 500, -6800), radius: 420, boost: 48 },   
     { pos: new THREE.Vector3(3800, 320, -5200), radius: 420, boost: 44 }     
   ],
   sinks: [
