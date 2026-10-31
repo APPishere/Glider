@@ -45,7 +45,7 @@ function drawHudCanvas() {
       const angle = (i / 14) * Math.PI * 2 + Math.sin(t + i) * 0.2;
       const progress = ((t * 4.0 + i / 14) % 1.0);
       const r1 = Math.min(w, h) * (0.45 - progress * 0.25);
-      const r2 = r1 + (15 + intensity * 45);
+      const r2 = r1 + (60 + intensity * 120);
       const cx = w / 2;
       const cy = h / 2;
       hudCtx.beginPath();
@@ -572,6 +572,7 @@ const isPointToPoint = (selectedSubtrack === 'C' && (selectedCourseId === 'volca
 }
 
 function startCountdown() {
+  if (typeof checkTutorialTrigger === 'function' && checkTutorialTrigger()) return;
   audio.init();
   if (screen.orientation && screen.orientation.lock) {
     screen.orientation.lock('landscape').catch(() => {});
@@ -620,6 +621,10 @@ currentGhostRun = [];
 ghostFrameIdx = 0;
 playerDraftTimer = 0;
 screenShake = 0;
+player._usedRudderBoostThisRun = false;
+player._hit165Clean = false;
+player.runDistance = 0;
+player.runTopSpeed = 0;
 devFreeCam = false;
 devTimeFrozen = false;
 devWarpTimer = 0;
@@ -1172,6 +1177,8 @@ function renderGrandPrixCupList() {
         document.querySelectorAll('.cup-opt').forEach(c => {
           c.classList.toggle('active', c.getAttribute('data-cup') === cup.id);
         });
+        refreshDashboardGp();
+        openDashboardRight('gp');
       });
       listElDt.appendChild(cardDt);
     }
@@ -1359,6 +1366,7 @@ function showGrandPrixInterstitial(playerResult) {
     const nextRace = grandPrixState.races[grandPrixState.currentRaceIndex];
     selectedCourseId = nextRace.courseId;
     selectedSubtrack = nextRace.subtrack;
+    selectedDifficulty = grandPrixState.difficulty;
     startCountdown();
   };
 
@@ -1510,6 +1518,12 @@ function finishRace() {
   gameState = 'FINISHED';
   audio.stopAllAudio();
 
+  const gId = getEquippedSkinId();
+  const currentDist = parseFloat(localStorage.getItem(`glider_dist_${gId}`) || 0);
+  const currentSpd = parseFloat(localStorage.getItem(`glider_speed_${gId}`) || 0);
+  localStorage.setItem(`glider_dist_${gId}`, (currentDist + player.runDistance).toFixed(0));
+  localStorage.setItem(`glider_speed_${gId}`, Math.max(currentSpd, player.runTopSpeed).toFixed(0));
+
   const warnEl = document.getElementById('volcano-event-warning');
   if (warnEl) warnEl.style.display = 'none';
 
@@ -1582,8 +1596,23 @@ if (isKrampusBossDuel) {
         try {
           localStorage.setItem(ghostKey, JSON.stringify(currentGhostRun));
         } catch (e) {}
-        ghostCache[ghostKey] = currentGhostRun.slice();
-        savedGhostData = ghostCache[ghostKey];
+      ghostCache[ghostKey] = currentGhostRun.slice();
+      savedGhostData = ghostCache[ghostKey];
+    }
+
+    const ghId = getEquippedGhostSkinId();
+    const ghRuns = parseInt(localStorage.getItem(`ghost_runs_${ghId}`) || 0, 10);
+    localStorage.setItem(`ghost_runs_${ghId}`, ghRuns + 1);
+    
+    const ghDist = parseFloat(localStorage.getItem(`ghost_dist_${ghId}`) || 0);
+    localStorage.setItem(`ghost_dist_${ghId}`, (ghDist + player.runDistance).toFixed(0));
+  }
+
+    if (gameMode === 'timetrial' && player._hit165Clean) {
+      const hadIt = localStorage.getItem('glider_unlock_speedofsound_drone') === 'true';
+      localStorage.setItem('glider_unlock_speedofsound_drone', 'true');
+      if (!hadIt) {
+        showAchievementNotifications([{ name: 'Speed of Sound Drone Unlocked!' }]);
       }
     }
 
@@ -1652,6 +1681,15 @@ if (isKrampusBossDuel) {
 function endRace(reason) {
   gameState = 'FINISHED';
   audio.stopAllAudio();
+  const gId = getEquippedSkinId();
+  const currentDist = parseFloat(localStorage.getItem(`glider_dist_${gId}`) || 0);
+  const currentSpd = parseFloat(localStorage.getItem(`glider_speed_${gId}`) || 0);
+  localStorage.setItem(`glider_dist_${gId}`, (currentDist + player.runDistance).toFixed(0));
+  localStorage.setItem(`glider_speed_${gId}`, Math.max(currentSpd, player.runTopSpeed).toFixed(0));
+
+  const ghId = getEquippedGhostSkinId(); 
+  const ghDist = parseFloat(localStorage.getItem(`ghost_dist_${ghId}`) || 0);
+  localStorage.setItem(`ghost_dist_${ghId}`, (ghDist + player.runDistance).toFixed(0));
 
   const warnEl = document.getElementById('volcano-event-warning');
   if (warnEl) warnEl.style.display = 'none';
@@ -1729,6 +1767,12 @@ function startKrampusBossRace(skipCinematic = false) {
 }
 
 function handleRetryClick() {
+  if (tutorialActive) {
+    if (typeof restartTutorialFromSpotlight === 'function') {
+      restartTutorialFromSpotlight();
+      return;
+    }
+  }
   if (krampusRetryPending) {
     krampusRetryPending = false;
     startKrampusBossRace(true);
@@ -2082,6 +2126,24 @@ function drawFlappyGame() {
 }
 
 function setupUI() {
+  const btnSettingsTut = document.getElementById('btn-settings-tutorial');
+  if (btnSettingsTut) {
+    btnSettingsTut.addEventListener('click', () => {
+      audio.init();
+      const sOverlay = document.getElementById('settings-overlay');
+      if (sOverlay) sOverlay.style.display = 'none';
+      if (typeof startTutorial === 'function') startTutorial(true);
+    });
+  }
+
+  const btnDashTut = document.getElementById('btn-dash-tutorial');
+  if (btnDashTut) {
+    btnDashTut.addEventListener('click', () => {
+      audio.init();
+      if (typeof startTutorial === 'function') startTutorial(true);
+    });
+  }
+
   const btnCredits = document.getElementById('btn-settings-credits');
   if (btnCredits) {
     btnCredits.addEventListener('click', () => {
@@ -2092,13 +2154,21 @@ function setupUI() {
     });
   }
 
+  const btnDashCredits = document.getElementById('btn-dash-credits');
+  if (btnDashCredits) {
+    btnDashCredits.addEventListener('click', () => {
+      audio.init();
+      startCredits();
+    });
+  }
+
   function handleResetSavedScores() {
     audio.init();
     if (!confirm('Are you sure you want to reset all saved course times and ghost records?')) return;
     const keysToRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k && (k.startsWith('pb_') || k.startsWith('ghost_'))) {
+      if (k && (k.startsWith('pb_') || (k.startsWith('ghost_') && !k.startsWith('ghost_runs_') && !k.startsWith('ghost_dist_')))) {
         keysToRemove.push(k);
       }
     }
@@ -2138,7 +2208,7 @@ function setupUI() {
         const k = localStorage.key(i);
         if (k && k.startsWith('pb_')) {
           pbs[k.substring(3)] = parseFloat(localStorage.getItem(k));
-        } else if (k && k.startsWith('ghost_')) {
+        } else if (k && k.startsWith('ghost_') && !k.startsWith('ghost_runs_') && !k.startsWith('ghost_dist_')) {
           try {
             ghosts[k.substring(6)] = JSON.parse(localStorage.getItem(k));
           } catch (e) {}
@@ -2153,8 +2223,13 @@ function setupUI() {
       const sn = !!localStorage.getItem('glider_unlocked_santa');
       const kr = !!localStorage.getItem('glider_unlocked_krampus_ghost');
       const xm = hasAllChristmasPresents() ? 1 : 0;
+      const stats = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && STAT_KEY_PREFIXES.some(p => k.startsWith(p))) stats[k] = localStorage.getItem(k);
+      }
       try {
-        const code = AphelionEncoder.encode({ pbs, ghosts, halloweenUnlocked: hw, santaUnlocked: sn, krampusUnlocked: kr, xm });
+        const code = AphelionEncoder.encode({ pbs, ghosts, halloweenUnlocked: hw, santaUnlocked: sn, krampusUnlocked: kr, xm, stats });
         textarea.value = code;
         status.innerText = 'SAVE CODE GENERATED';
         status.style.color = 'var(--cyan)';
@@ -2223,6 +2298,13 @@ function setupUI() {
           if (data.xm) {
             ['A', 'B', 'C'].forEach(s => localStorage.setItem(`glider_xmas_present_${s}`, 'true'));
           }
+          if (data.stats) {
+            for (const k in data.stats) {
+              if (STAT_KEY_PREFIXES.some(p => k.startsWith(p))) {
+                localStorage.setItem(k, String(data.stats[k]));
+              }
+            }
+          }
           updatePBTags();
           updateMedalDisplay();
           status.innerText = 'SAVE RESTORED SUCCESSFULLY!';
@@ -2253,30 +2335,7 @@ function setupUI() {
     });
   }
 
-  document.getElementById('btn-to-select').addEventListener('click', () => {
-    audio.init();
-    if (mobileJoystickMode === 'gyro') {
-      requestGyroPermission();
-    }
-    showScreen('screen-select');
-  });
-
-  document.getElementById('btn-open-shop-dt').addEventListener('click', () => {
-    audio.init();
-    openShopMenu();
-    updateCellarDoorVisibility();
-  });
-
-  document.getElementById('btn-start-race-dt').addEventListener('click', () => {
-    audio.init();
-    if (btnTabGpDt && btnTabGpDt.classList.contains('active')) {
-      openGrandPrixPreview();
-      return;
-    }
-    grandPrixState.active = false;
-    refreshDispatchModal();
-    showScreen('screen-dispatch');
-  });
+  setupDashboard();
 
   document.querySelectorAll('#screen-select .track-opt').forEach(opt => {
     opt.addEventListener('click', () => {
@@ -2623,10 +2682,25 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
 
   document.querySelectorAll('.invert-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      invertControls = (btn.getAttribute('data-invert') === 'on');
-      try {
-        localStorage.setItem('glider_invert_controls', invertControls ? 'true' : 'false');
-      } catch (e) {}
+      audio.init();
+      const axis = btn.getAttribute('data-axis');
+      const val = (btn.getAttribute('data-invert') === 'inverse');
+      if (axis === 'pitch') {
+        invertPitch = val;
+        try {
+          localStorage.setItem('glider_invert_pitch', invertPitch ? 'true' : 'false');
+        } catch (e) {}
+      } else if (axis === 'roll') {
+        invertRoll = val;
+        try {
+          localStorage.setItem('glider_invert_roll', invertRoll ? 'true' : 'false');
+        } catch (e) {}
+      } else if (axis === 'rudder') {
+        invertRudder = val;
+        try {
+          localStorage.setItem('glider_invert_rudder', invertRudder ? 'true' : 'false');
+        } catch (e) {}
+      }
       updateInvertButtons();
     });
   });
@@ -2703,6 +2777,11 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
   });
   document.getElementById('btn-resume').addEventListener('click', togglePauseMenu);  document.querySelectorAll('.btn-retry').forEach(btn => btn.addEventListener('click', handleRetryClick));
   document.querySelectorAll('.btn-menu').forEach(btn => btn.addEventListener('click', () => {
+    if (tutorialActive && typeof skipTutorial === 'function') {
+      const fromLose = document.getElementById('screen-lose') && !document.getElementById('screen-lose').classList.contains('hidden');
+      skipTutorial(fromLose);
+      return;
+    }
     krampusRetryPending = false;
     document.getElementById('countdown-box').style.display = 'none';
     gameState = 'START';
@@ -2852,6 +2931,329 @@ function updateMedalDisplay() {
   document.getElementById('m-ace').innerText = formatTime(m.ace);
 }
 
+let currentDashboardCat = null;
+
+function openDashboardRight(panelId) {
+  const colRight = document.getElementById('dash-col-right');
+  if (!colRight) return;
+
+  const categories = ['single', 'gp', 'shop', 'settings'];
+  categories.forEach(c => {
+    const rightP = document.getElementById(`dash-right-${c}`);
+    if (rightP) rightP.classList.toggle('hidden', c !== panelId);
+  });
+
+  colRight.style.display = 'block';
+  colRight.classList.remove('hidden');
+  colRight.classList.remove('dash-sliding');
+  void colRight.offsetWidth;
+  colRight.classList.add('dash-sliding');
+}
+
+function closeDashboardRight() {
+  const colRight = document.getElementById('dash-col-right');
+  if (!colRight) return;
+  colRight.style.display = 'none';
+  colRight.classList.add('hidden');
+  const categories = ['single', 'gp', 'shop', 'settings'];
+  categories.forEach(c => {
+    const rightP = document.getElementById(`dash-right-${c}`);
+    if (rightP) rightP.classList.add('hidden');
+  });
+}
+
+function setDashboardCategory(cat) {
+  currentDashboardCat = cat;
+
+  document.querySelectorAll('.dash-nav-btn').forEach(btn => {
+    btn.classList.toggle('active', !!cat && btn.getAttribute('data-cat') === cat);
+  });
+
+  const colMid = document.getElementById('dash-col-middle');
+  closeDashboardRight();
+
+  if (!cat) {
+    if (colMid) {
+      colMid.style.display = 'none';
+      colMid.classList.add('hidden');
+    }
+    const categories = ['single', 'gp', 'shop', 'settings'];
+    categories.forEach(c => {
+      const midP = document.getElementById(`dash-mid-${c}`);
+      if (midP) midP.classList.add('hidden');
+    });
+    return;
+  }
+
+  if (colMid) {
+    colMid.style.display = 'block';
+    colMid.classList.remove('hidden');
+    colMid.classList.remove('dash-sliding');
+    void colMid.offsetWidth;
+    colMid.classList.add('dash-sliding');
+  }
+
+  const categories = ['single', 'gp', 'shop', 'settings'];
+  categories.forEach(c => {
+    const midP = document.getElementById(`dash-mid-${c}`);
+    if (midP) midP.classList.toggle('hidden', c !== cat);
+  });
+
+  if (!cat) return;
+
+  if (cat === 'single') {
+    refreshDashboardSingle();
+    playMenuTheme('menu');
+  } else if (cat === 'gp') {
+    renderGrandPrixCupList();
+    refreshDashboardGp();
+    playMenuTheme('menu');
+  } else if (cat === 'shop') {
+    renderShop();
+    updateCellarDoorVisibility();
+    playMenuTheme('shop');
+  } else if (cat === 'settings') {
+    renderKeybindList();
+    playMenuTheme('menu');
+  }
+}
+
+function refreshDashboardSingle() {
+  const course = COURSES[selectedCourseId];
+  if (!course) return;
+
+  const titleEl = document.getElementById('dash-course-title');
+  if (titleEl) titleEl.innerText = course.name.toUpperCase();
+
+  const titleModal = document.getElementById('dash-dispatch-title');
+  if (titleModal) titleModal.innerText = course.name.toUpperCase();
+
+  ['A', 'B', 'C', 'D'].forEach(sub => {
+    const st = course.subtracks[sub];
+    if (st) {
+      const nameEl = document.getElementById(`dash-st-name-${sub}`);
+      const descEl = document.getElementById(`dash-st-desc-${sub}`);
+      if (nameEl) nameEl.innerText = st.name;
+      if (descEl) descEl.innerText = st.desc;
+    }
+  });
+
+  const optD = document.getElementById('dash-subtrack-opt-D');
+  if (optD) {
+    if (selectedCourseId === 'canyon' || selectedCourseId === 'moon') {
+      optD.classList.remove('hidden');
+    } else {
+      optD.classList.add('hidden');
+      if (selectedSubtrack === 'D') {
+        selectedSubtrack = 'A';
+      }
+    }
+  }
+
+  document.querySelectorAll('#dash-subtrack-list .subtrack-opt').forEach(opt => {
+    opt.classList.toggle('active', opt.getAttribute('data-sub') === selectedSubtrack);
+  });
+
+  const impDiffBtn = document.getElementById('btn-dash-diff-impossible');
+  if (impDiffBtn) {
+    impDiffBtn.classList.toggle('hidden', !impossibleDifficultyUnlocked);
+  }
+
+  document.querySelectorAll('#dash-col-right .mode-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-gmode') === gameMode);
+  });
+
+  const diffBox = document.getElementById('dash-ai-diff-box');
+  if (diffBox) {
+    diffBox.style.display = (gameMode === 'timetrial') ? 'none' : 'flex';
+  }
+
+  document.querySelectorAll('#dash-ai-diff-box .diff-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-diff') === selectedDifficulty);
+  });
+
+  document.querySelectorAll('#single-track-list-dt .track-opt').forEach(opt => {
+    opt.classList.toggle('active', opt.getAttribute('data-course') === selectedCourseId);
+  });
+
+  const m = course.subtracks[selectedSubtrack].medals;
+  const mBronze = document.getElementById('dash-m-bronze');
+  const mSilver = document.getElementById('dash-m-silver');
+  const mGold = document.getElementById('dash-m-gold');
+  const mAce = document.getElementById('dash-m-ace');
+  if (mBronze) mBronze.innerText = formatTime(m.bronze);
+  if (mSilver) mSilver.innerText = formatTime(m.silver);
+  if (mGold) mGold.innerText = formatTime(m.gold);
+  if (mAce) mAce.innerText = formatTime(m.ace);
+
+  ['A', 'B', 'C', 'D'].forEach(sub => {
+    const pb = localStorage.getItem(`pb_${selectedCourseId}_${sub}`);
+    const el = document.getElementById(`dash-pb-${sub}`);
+    if (el) el.innerText = pb ? `BEST: ${formatTime(parseFloat(pb))}` : 'BEST: --:--.-';
+
+    const subtrackEl = document.querySelector(`#dash-subtrack-list .subtrack-opt[data-sub="${sub}"]`);
+    if (subtrackEl) {
+      const st = course?.subtracks?.[sub];
+      const pbNum = parseFloat(pb);
+      const hasAce = st && !isNaN(pbNum) && pbNum <= st.medals.ace;
+      let star = subtrackEl.querySelector('.ace-star');
+      if (hasAce && !star) {
+        star = document.createElement('span');
+        star.className = 'ace-star';
+        star.textContent = '★';
+        star.title = 'Ace medal earned';
+        subtrackEl.style.position = 'relative';
+        subtrackEl.appendChild(star);
+      } else if (!hasAce && star) {
+        star.remove();
+      }
+    }
+  });
+}
+
+function refreshDashboardGp() {
+  let cupData, races;
+  if (selectedGpCupId === 'shuffle') {
+    if (!shuffleTracksCache) shuffleTracksCache = generateRandomShuffleTracks();
+    cupData = { id: 'shuffle', name: 'Random Shuffle', tier: 'ARCADE / 4 RANDOM TRACKS' };
+    races = shuffleTracksCache;
+  } else {
+    cupData = GRAND_PRIX_CUPS.find(c => c.id === selectedGpCupId) || GRAND_PRIX_CUPS[0];
+    races = cupData.races;
+  }
+  grandPrixState.cupId = selectedGpCupId;
+  grandPrixState.cupData = cupData;
+  grandPrixState.races = races;
+  grandPrixState.difficulty = selectedGpDifficulty;
+
+  const titleEl = document.getElementById('dash-gp-title');
+  const subEl = document.getElementById('dash-gp-subtitle');
+  const diffLabel = document.getElementById('dash-gp-diff-label');
+  const tracksEl = document.getElementById('dash-gp-tracks');
+
+  if (titleEl) titleEl.innerText = cupData.name.toUpperCase();
+  if (subEl) subEl.innerText = cupData.tier;
+
+  const diffNameMap = { easy: 'EASY', medium: 'MEDIUM', hard: 'INSANE', impossible: 'IMPOSSIBLE' };
+  if (diffLabel) diffLabel.innerText = diffNameMap[selectedGpDifficulty] || 'MEDIUM';
+
+  if (tracksEl) {
+    tracksEl.innerHTML = '';
+    races.forEach((r, idx) => {
+      const item = document.createElement('div');
+      item.className = 'track-opt';
+      item.style.pointerEvents = 'none';
+      item.innerHTML = `
+        <div>
+          <div class="track-name" style="color: var(--white);">RACE ${idx + 1}: ${r.name.toUpperCase()}</div>
+          <div class="track-desc">${r.courseId.toUpperCase()} ${r.subtrack}</div>
+        </div>
+      `;
+      tracksEl.appendChild(item);
+    });
+  }
+}
+
+function setupDashboard() {
+document.querySelectorAll('.dash-nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    audio.init();
+    const cat = btn.getAttribute('data-cat');
+    setDashboardCategory(currentDashboardCat === cat ? null : cat);
+  });
+});
+  document.querySelectorAll('#single-track-list-dt .track-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      audio.init();
+      selectedCourseId = opt.getAttribute('data-course');
+      try { localStorage.setItem('glider_last_course', selectedCourseId); } catch (e) {}
+      buildCourse(selectedCourseId);
+      refreshDashboardSingle();
+      openDashboardRight('single');
+    });
+  });
+
+  document.querySelectorAll('#dash-subtrack-list .subtrack-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      audio.init();
+      selectedSubtrack = opt.getAttribute('data-sub');
+      refreshDashboardSingle();
+      updateMedalDisplay();
+    });
+  });
+
+  document.querySelectorAll('#dash-col-right .mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      audio.init();
+      gameMode = btn.getAttribute('data-gmode');
+      try { localStorage.setItem('glider_game_mode', gameMode); } catch (e) {}
+      refreshDashboardSingle();
+    });
+  });
+
+  document.querySelectorAll('#dash-ai-diff-box .diff-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      audio.init();
+      selectedDifficulty = btn.getAttribute('data-diff');
+      try { localStorage.setItem('glider_difficulty', selectedDifficulty); } catch (e) {}
+      refreshDashboardSingle();
+    });
+  });
+
+  const btnDashLaunch = document.getElementById('btn-dash-launch');
+  if (btnDashLaunch) {
+    btnDashLaunch.addEventListener('click', () => {
+      audio.init();
+      startCountdown();
+    });
+  }
+
+  const btnDashGpStart = document.getElementById('btn-dash-gp-start');
+  if (btnDashGpStart) {
+    btnDashGpStart.addEventListener('click', () => {
+      audio.init();
+      startGrandPrixCup();
+    });
+  }
+
+  const btnGpShuffleDt = document.getElementById('btn-gp-shuffle-dt');
+  if (btnGpShuffleDt) {
+    btnGpShuffleDt.addEventListener('click', () => {
+      audio.init();
+      selectedGpCupId = 'shuffle';
+      refreshDashboardGp();
+      openDashboardRight('gp');
+    });
+  }
+
+  const btnDashControls = document.getElementById('btn-dash-controls');
+  if (btnDashControls) {
+    btnDashControls.addEventListener('click', () => {
+      audio.init();
+      const colRight = document.getElementById('dash-col-right');
+      const rightSettings = document.getElementById('dash-right-settings');
+      const isAlreadyOpen = colRight && colRight.style.display !== 'none' && rightSettings && !rightSettings.classList.contains('hidden');
+      if (isAlreadyOpen) {
+        closeDashboardRight();
+      } else {
+        renderKeybindList();
+        openDashboardRight('settings');
+      }
+    });
+  }
+
+  const btnDashKeybindReset = document.getElementById('btn-dash-keybind-reset');
+  if (btnDashKeybindReset) {
+    btnDashKeybindReset.addEventListener('click', () => {
+      audio.init();
+      keybinds = JSON.parse(JSON.stringify(defaultKeybinds));
+      try { localStorage.setItem('glider_keybinds', JSON.stringify(keybinds)); } catch (err) {}
+      audio.playRecoveryBoost();
+      renderKeybindList();
+    });
+  }
+}
+
 function showScreen(screenId) {
   const isMobile = isMobileDevice() || window.innerWidth <= 950 || window.innerHeight <= 600;
   if (screenId === 'screen-start' || screenId === 'screen-start-mobile') {
@@ -2873,6 +3275,39 @@ function showScreen(screenId) {
     }
   });
 
+  const dashEl = document.getElementById('desktop-dashboard');
+  if (dashEl) {
+    if (splashDismissed && !isMobile && screenId && ['screen-start', 'screen-select', 'screen-dispatch', 'screen-shop', 'screen-gp-preview'].includes(screenId)) {
+      dashEl.style.display = 'flex';
+      if (screenId === 'screen-shop') {
+        if (currentDashboardCat !== 'shop') setDashboardCategory('shop');
+        openDashboardRight('shop');
+      } else if (screenId === 'screen-gp-preview') {
+        if (currentDashboardCat !== 'gp') setDashboardCategory('gp');
+        openDashboardRight('gp');
+      } else if (screenId === 'screen-start') {
+        setDashboardCategory(null);
+      } else if (currentDashboardCat !== null) {
+        setDashboardCategory(currentDashboardCat);
+      } else {
+        setDashboardCategory(null);
+      }
+    } else {
+      dashEl.style.display = 'none';
+    }
+  }
+
+  if (!splashDismissed) {
+    if (isMobile && (screenId === 'screen-start' || screenId === 'screen-start-mobile')) {
+      const mobileStartEl = document.getElementById('screen-start-mobile');
+      if (mobileStartEl) {
+        mobileStartEl.classList.remove('hidden');
+        mobileStartEl.style.display = 'flex';
+      }
+    }
+    return;
+  }
+
   lastActiveScreenId = null;
   document.querySelectorAll('.mono-btn, .track-opt, .subtrack-opt, .shop-item-card, .ctrl-btn, .mode-btn, .diff-btn, .invert-btn').forEach(el => {
     el.style.borderColor = '';
@@ -2883,6 +3318,19 @@ function showScreen(screenId) {
   const jbWidget = document.getElementById('jukebox-widget');
   if (settingsBtn) {
     settingsBtn.style.display = screenId ? 'flex' : 'none';
+    if (!isMobile) {
+      const hasBigSettingsBtn = dashEl && dashEl.style.display === 'flex';
+      if (!hasBigSettingsBtn) {
+        settingsBtn.style.top = '18px';
+        settingsBtn.style.right = '18px';
+        settingsBtn.style.bottom = 'auto';
+      } else {
+        settingsBtn.style.display = 'none';
+        settingsBtn.style.top = 'auto';
+        settingsBtn.style.bottom = '18px';
+        settingsBtn.style.right = '18px';
+      }
+    }
   }
   if (jbWidget) {
     jbWidget.style.display = screenId ? 'flex' : 'none';
@@ -2938,7 +3386,7 @@ function showScreen(screenId) {
         "Super Funny joke: I told my glider to ride the volcano's thermals <br> Now it's a 'lava' glider… and not in the cool way.",
         'Dont go pressing random keybinds like: <br> cmd/ctrl + W or cmd/ctrl + T or alt + shift+ D especially not that one',
         'i rate those 2 funny jokes a solid 6.25/10!',
-        'Did you know: this game alone is just about 17k lines <br> as of making this message, but it will hit 20k soon stay tuned!',
+        'Did you know: this game alone is just about 19k lines <br> as of making this message, but it will hit 20k soon stay tuned!',
         'Hey you better NOT get that greatest glider to ever live! <br> it costs TREE(3) EACH to make and that can get expensive yk',
         'Our state of the art anti theft and anti robbery Aphelion Encoder™ <br> will not allow cheators from editing their save files!',
         'Watch out! playing this game might cause you to get <br> BUTTERFINGERS',
@@ -2959,9 +3407,11 @@ function showScreen(screenId) {
       const randomIndex = Math.floor(Math.random() * startMessages.length);
       const instrEl = document.querySelector('#screen-start .instructions');
       const instrElMobile = document.querySelector('#screen-start-mobile .instructions');
+      const instrElDash = document.querySelector('.dash-instructions');
 
       if (instrEl) instrEl.innerHTML = startMessages[randomIndex];
       if (instrElMobile) instrElMobile.innerHTML = startMessages[randomIndex];
+      if (instrElDash) instrElDash.innerHTML = startMessages[randomIndex];
     }
 } else {
     document.getElementById('hud-overlay').style.display = 'block';
@@ -3542,6 +3992,10 @@ function updateRestartHold(dt) {
         restartPromptOpacity = 0;
         restartNeedsRelease = true; 
         audio.playBeep(880, 'sine', 0.2);
+        if (tutorialActive && typeof graduateTutorial === 'function') {
+          graduateTutorial();
+          return;
+        }
         if (grandPrixState.active) startGrandPrixCup(); 
         else startCountdown();
         return;
@@ -3565,8 +4019,12 @@ function animate() {
     gameState === 'GHOST_FLEET_CINEMATIC' || gameState === 'KRAMPUS_CINEMATIC');
 
   const now = performance.now();
-  const dt = Math.min((now - lastTime) / 1000, 0.1);
+  let dt = Math.min((now - lastTime) / 1000, 0.1);
   lastTime = now;
+
+  if (devBulletTime && !devTimeFrozen && gameState === 'RACING') {
+    dt *= 0.15;
+  }
 
   if (gameState !== lastMobileCtrlGameState) {
     lastMobileCtrlGameState = gameState;
@@ -3637,7 +4095,8 @@ function animate() {
   }
 
   const shopScreen = document.getElementById('screen-shop');
-  if (shopScreen && !shopScreen.classList.contains('hidden')) {
+  const isDashShop = (!isMobileDevice() && currentDashboardCat === 'shop' && (document.getElementById('desktop-dashboard')?.style.display !== 'none'));
+  if ((shopScreen && !shopScreen.classList.contains('hidden')) || isDashShop) {
     if (shopGliderGroup && shopGliderGroup.visible) {
       shopGliderGroup.rotation.y += 0.016;
       if (shopGliderGroup.is2DGlider) {
@@ -3683,11 +4142,64 @@ renderer.render(scene, camera);
     window.lastHudDrawTime = now;
   }
 }
+let splashGhostGroup = null;
+
+function buildSplashGhostMesh() {
+  if (splashGhostGroup && camera) {
+    camera.remove(splashGhostGroup);
+    splashGhostGroup = null;
+  }
+  if (!camera || isMobileDevice() || window.innerWidth <= 950) return;
+
+  splashGhostGroup = new THREE.Group();
+  const ghostSkinId = getEquippedGhostSkinId();
+
+  if (ghostSkinId === 'ghost_16bit') {
+    const quadGeom = new THREE.PlaneGeometry(38, 20.27);
+    const quadMat = new THREE.MeshBasicMaterial({
+      map: spriteTextures.back,
+      transparent: true,
+      alphaTest: 0.1,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+    const quadMesh = new THREE.Mesh(quadGeom, quadMat);
+    quadMesh.name = 'spriteDroneQuad';
+    splashGhostGroup.add(quadMesh);
+  } else if (ghostSkinId === 'ghost_gold') {
+    const mat = createGhostSkinMaterial(ghostSkinId);
+    buildGoldDrone(splashGhostGroup, mat);
+  } else if (ghostSkinId === 'ghost_krampus') {
+    const mat = createGhostSkinMaterial(ghostSkinId);
+    buildKrampusDrone(splashGhostGroup, mat);
+  } else {
+    const mat = createGhostSkinMaterial(ghostSkinId);
+    const bodyGeom = new THREE.ConeGeometry(5, 24, 4);
+    bodyGeom.rotateX(-Math.PI / 2);
+    const body = new THREE.Mesh(bodyGeom, mat);
+    splashGhostGroup.add(body);
+
+    const wingGeom = new THREE.BoxGeometry(42, 0.4, 6);
+    const wing = new THREE.Mesh(wingGeom, mat);
+    wing.position.set(0, 0, 3);
+    splashGhostGroup.add(wing);
+  }
+
+splashGhostGroup.position.set(-6.2, 0.45, -10.5);
+splashGhostGroup.rotation.set(-1.08, Math.PI + 0.35, -0.25);
+splashGhostGroup.scale.set(0.45, 0.45, 0.45);
+
+  camera.add(splashGhostGroup);
+}
+
 function initSplashIntro() {
   const splash = document.getElementById('splash-intro');
   const logo = document.getElementById('splash-logo');
+  const titleLogo = document.getElementById('splash-main-title');
   const prompt = document.getElementById('splash-prompt');
   if (!splash || !logo) return;
+
+  buildSplashGhostMesh();
 
   const savedDisc = localStorage.getItem('glider_soundtrack_disc') || 'default';
   if (savedDisc === 'g64') {
@@ -3725,18 +4237,47 @@ const randomSound = INTERACT_SFX[Math.floor(Math.random() * INTERACT_SFX.length)
 
     prompt.style.opacity = '0';
     logo.classList.add('fly-out');
+    if (titleLogo) titleLogo.classList.add('fly-out');
     splash.style.pointerEvents = 'none';
+
+    if (splashGhostGroup) {
+      let exitT = 0;
+      const glideOut = () => {
+        exitT += 0.06;
+        if (splashGhostGroup) {
+          splashGhostGroup.position.x -= exitT * 12.0;
+          splashGhostGroup.position.y += exitT * 4.0;
+        }
+        if (exitT < 1.0) {
+          requestAnimationFrame(glideOut);
+        } else if (splashGhostGroup) {
+          camera.remove(splashGhostGroup);
+          splashGhostGroup = null;
+        }
+      };
+      glideOut();
+    }
 
     setTimeout(() => {
       splash.style.opacity = '0';
     }, 280);
 
-    setTimeout(() => {
-      splash.style.display = 'none';
-      splashDismissed = true;
-      playMenuTheme();
-      //change delay
-    }, 600);
+setTimeout(() => {
+  splash.style.display = 'none';
+  splashDismissed = true;
+
+  if (typeof setupDashboard === 'function') setupDashboard();
+
+  const jbWidget = document.getElementById('jukebox-widget');
+
+  if (typeof checkTutorialTrigger === 'function' && checkTutorialTrigger()) {
+    if (jbWidget) jbWidget.style.display = 'none';
+  } else {
+    if (jbWidget) jbWidget.style.display = 'flex';
+    playMenuTheme();
+    showScreen('screen-start');
+  }
+}, 600);
 
     window.removeEventListener('keydown', dismissSplash);
     splash.removeEventListener('click', dismissSplash);

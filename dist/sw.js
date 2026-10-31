@@ -1,4 +1,4 @@
-const CACHE_NAME = 'glider-cache-v14';
+const CACHE_NAME = 'glider-cache-v16';
 
 function isHalloweenSeason() {
   const md = (new Date().getMonth() + 1) * 100 + new Date().getDate();
@@ -20,6 +20,7 @@ const ASSETS = [
   './js/core.js',
   './js/game.js',
   './js/ui.js',
+  './js/tutorial.js',
   'https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js',
 
   // Audio Files
