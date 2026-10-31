@@ -122,10 +122,10 @@ Open the app as normal!
 
 
 ## Known Issues
-- **Mobile UI is still WIP.** Controls work but some UI elements arent finished
+- **Mobile UI is still WIP.** Controls work but some UI elements arent finished - 85-90% done
 - **Heavy Front Loading On Mobile Devices / All devices really but specifically on slower internet for service workers causes the devices to be locked at the logo screen for quite a while**
-- **PC UI is still WIP** Controls work but again UI elements are not decided.
-- **Multiplayer** WIP...
+- **PC UI is still WIP** Controls work but again UI elements are not decided. - 90-95% done
+- **Multiplayer** WIP... 
 
 
 
