@@ -65,6 +65,7 @@ Dont worry! You can use D-Pad, Analog, Touch anywhere on the screen OR Gyro!
 - → [Play On Itch!](https://app-here.itch.io/glider)  
 - → [Play On Cloudflare!](https://glider.pages.dev/)  - supports Sw.js 
 - → [Play On Gamejolt!](https://gamejolt.com/games/Glider/1097745)
+- → [Play On Netlify!](https://glidergame.netlify.app/) - not recommended, very limited tokens since im on free but serves as a back up. (i also might forget to upd this) 
 
 
 ## Installation Troubleshooting:
