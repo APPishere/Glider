@@ -21,13 +21,13 @@ Keyboard (WASD Mode + Mouse):
 
 > Esc – Pause / Resume Halt the action and tweak your settings and here you can change between inverse and inverse inverse.
 
-> Move Mouse – Pitch / Roll  left/right and up /down of screen
-
-> Q / E – Rudder Yaw (optional).
+> Move Mouse – Pitch / Roll  left/right and up /down of screen + also left click for Q, right click for E
 
 > Spacebar – Airbrake (if wanted)
 
 > Esc – Pause / Resume
+
+>Hold R (restarts)  
 
 
 Controller:
@@ -123,8 +123,9 @@ Open the app as normal!
 
 ## Known Issues
 - **Mobile UI is still WIP.** Controls work but some UI elements arent finished
-- **Mouse-only mode** doesn't have rudder boost (no keyboard = no Q/E) Use WASD mode if you want rudder boost
 - **Heavy Front Loading On Mobile Devices / All devices really but specifically on slower internet for service workers causes the devices to be locked at the logo screen for quite a while**
+- **PC UI is still WIP** Controls work but again UI elements are not decided.
+- **Multiplayer** WIP...
 
 
 
