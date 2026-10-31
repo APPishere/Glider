@@ -147,9 +147,13 @@ buildParagliderMesh();
         }
         audio.playBeep(devTimeFrozen ? 380 : 760, 'square', 0.12);
       }
+      if (e.code === 'KeyB') {
+        devBulletTime = !devBulletTime;
+        audio.playBeep(devBulletTime ? 400 : 800, 'square', 0.12);
+      }
       if (e.code === 'KeyF') {
         if (!devTimeFrozen) {
-          audio.playBeep(220, 'sawtooth', 0.08); // Can't freecam unless time is frozen
+          audio.playBeep(220, 'sawtooth', 0.08); 
           return;
         }
         devFreeCam = !devFreeCam;
@@ -173,13 +177,13 @@ buildParagliderMesh();
     if (greatestGliderSplashActive || aphelionApexCinematicActive) {
       return;
     }
-    if (e.code === 'Space') player.airbrake = true;
+    if (isActionPressed('airbrake')) player.airbrake = true;
     if (e.code === 'Escape') togglePauseMenu();
   });
 
   window.addEventListener('keyup', (e) => {
     keys[e.code] = false;
-    if (e.code === 'Space') player.airbrake = false;
+    if (!isActionPressed('airbrake') && !mobileAirbrake && !gpAirbrake) player.airbrake = false;
   });
 
   window.addEventListener('pointerdown', () => {
@@ -246,6 +250,9 @@ if (activeGamepadIndex === e.gamepad?.index) {
   setupMobileControls();
   showScreen('screen-start');
   updatePBTags();
+  if (typeof setupDashboard === 'function') {
+    setupDashboard();
+  }
   animate();
 }
 
@@ -257,7 +264,6 @@ function getEquippedGhostSkinId() {
   return localStorage.getItem('glider_equipped_ghost_skin') || 'ghost_default';
 }
 
-// Procedural CRT TV Static & Scanline Texture
 const tvNoiseCanvas = document.createElement('canvas');
 tvNoiseCanvas.width = 128;
 tvNoiseCanvas.height = 64;
@@ -983,8 +989,24 @@ function openShopMenu() {
 
 function renderShop() {
   const listEl = document.getElementById('shop-glider-list');
-  if (!listEl) return;
-  listEl.innerHTML = '';
+  const dashListEl = document.getElementById('dash-shop-items-list');
+  if (!listEl && !dashListEl) return;
+  if (listEl) listEl.innerHTML = '';
+  if (dashListEl) dashListEl.innerHTML = '';
+
+  const targetCanvasWrap = !isMobileDevice()
+    ? document.getElementById('dash-shop-canvas-wrap')
+    : document.getElementById('shop-canvas-wrap-mobile');
+  const shopCanvas = document.getElementById('shop-canvas');
+  if (shopCanvas && targetCanvasWrap && shopCanvas.parentElement !== targetCanvasWrap) {
+    targetCanvasWrap.appendChild(shopCanvas);
+  }
+
+  const shopTv = document.getElementById('shop-tv-container');
+  const dashTvSlot = document.getElementById('dash-shop-tv-slot');
+  if (shopTv && dashTvSlot && !isMobileDevice() && shopTv.parentElement !== dashTvSlot) {
+    dashTvSlot.appendChild(shopTv);
+  }
 
   const stats = getTrackStats();
   const equippedGliderId = getEquippedSkinId();
@@ -1022,13 +1044,15 @@ function renderShop() {
       renderShop();
     });
 
-    listEl.appendChild(item);
+    if (listEl) listEl.appendChild(item);
+    if (dashListEl) dashListEl.appendChild(item.cloneNode(true));
   });
 
   const ghostHeading = document.createElement('div');
   ghostHeading.style.cssText = 'font-size: 10px; letter-spacing: 2px; color: var(--cyan); margin: 14px 0 2px 2px; text-transform: uppercase; font-weight: 700;';
   ghostHeading.innerText = 'TIME TRIAL GHOST DRONES';
-  listEl.appendChild(ghostHeading);
+  if (listEl) listEl.appendChild(ghostHeading);
+  if (dashListEl) dashListEl.appendChild(ghostHeading.cloneNode(true));
 
   GHOST_SKINS.forEach(skin => {
     const isUnlocked = skin.checkUnlocked(stats);
@@ -1058,8 +1082,28 @@ function renderShop() {
       renderShop();
     });
 
-    listEl.appendChild(item);
+    if (listEl) listEl.appendChild(item);
+    if (dashListEl) dashListEl.appendChild(item.cloneNode(true));
   });
+
+  if (dashListEl) {
+    dashListEl.querySelectorAll('.shop-item-card').forEach((card, idx) => {
+      card.addEventListener('click', () => {
+        const isGhost = idx >= GLIDER_SKINS.length;
+        if (!isGhost) {
+          inspectedType = 'glider';
+          inspectedGliderId = GLIDER_SKINS[idx].id;
+        } else {
+          inspectedType = 'ghost';
+          inspectedGhostId = GHOST_SKINS[idx - GLIDER_SKINS.length].id;
+        }
+        renderShop();
+        if (typeof openDashboardRight === 'function') {
+          openDashboardRight('shop');
+        }
+      });
+    });
+  }
 
   const inspectedSkin = inspectedType === 'glider'
     ? (GLIDER_SKINS.find(s => s.id === inspectedGliderId) || GLIDER_SKINS[0])
@@ -1070,9 +1114,18 @@ function renderShop() {
     ? (inspectedSkin.id === equippedGliderId)
     : (inspectedSkin.id === equippedGhostId);
 
-  document.getElementById('shop-inspect-name').innerText = inspectedSkin.name;
-  document.getElementById('shop-inspect-color').innerText = `COLOR: ${inspectedSkin.colorName}`;
-  document.getElementById('shop-inspect-req').innerText = `REQUIREMENT: ${inspectedSkin.reqText}`;
+  ['shop-inspect-name', 'dash-shop-name'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerText = inspectedSkin.name;
+  });
+  ['shop-inspect-color', 'dash-shop-color'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerText = `COLOR: ${inspectedSkin.colorName}`;
+  });
+  ['shop-inspect-req', 'dash-shop-req'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerText = `REQUIREMENT: ${inspectedSkin.reqText}`;
+  });
 
   if (inspectedType === 'glider') {
     if (shopGliderGroup) shopGliderGroup.visible = true;
@@ -1147,45 +1200,87 @@ function renderShop() {
     }
   }
 
-  const actionBox = document.getElementById('shop-action-box');
-  actionBox.innerHTML = '';
+  ['shop-action-box', 'dash-shop-action-box'].forEach(id => {
+    const box = document.getElementById(id);
+    if (!box) return;
 
-  if (isEquipped) {
-    const btn = document.createElement('button');
-    btn.className = 'mono-btn';
-    btn.style.borderColor = 'var(--cyan)';
-    btn.style.color = 'var(--cyan)';
-    btn.style.opacity = '0.85';
-    btn.innerText = 'EQUIPPED';
-    actionBox.appendChild(btn);
-  } else if (isUnlocked) {
-    const btn = document.createElement('button');
-    btn.className = 'mono-btn';
-    btn.style.borderColor = 'var(--cyan)';
-    btn.style.color = 'var(--cyan)';
-    btn.innerText = inspectedType === 'glider' ? 'EQUIP GLIDER' : 'EQUIP DRONE';
-    btn.addEventListener('click', () => {
-      if (inspectedType === 'glider') {
-        localStorage.setItem('glider_equipped_skin', inspectedSkin.id);
-        buildParagliderMesh();
-        buildCourse(selectedCourseId);
-      } else {
-        localStorage.setItem('glider_equipped_ghost_skin', inspectedSkin.id);
-        if (ghostDroneGroup) createGhostDroneMesh();
-      }
-      audio.playRecoveryBoost();
-      renderShop();
-    });
-    actionBox.appendChild(btn);
-  } else {
-    const btn = document.createElement('div');
-    btn.style.fontSize = '10px';
-    btn.style.letterSpacing = '1px';
-    btn.style.color = '#ff6666';
-    btn.style.textTransform = 'uppercase';
-    btn.innerText = 'LOCKED! COMPLETE REQUIREMENT TO UNLOCK';
-    actionBox.appendChild(btn);
-  }
+    const oldStats = box.parentElement.querySelector('.pilot-log-stats');
+    if (oldStats) oldStats.remove();
+
+    const statsDiv = document.createElement('div');
+    statsDiv.className = 'pilot-log-stats';
+    
+    statsDiv.style.cssText = 'width: 100%; margin-top: 24px; padding-top: 16px; border-top: 1px dashed rgba(255,255,255,0.15); font-family: monospace; font-size: 11px; color: var(--mono-60); text-align: left; display: flex; flex-direction: column; gap: 8px; letter-spacing: 1px;';
+
+    if (inspectedType === 'glider') {
+      const dist = parseFloat(localStorage.getItem(`glider_dist_${inspectedSkin.id}`) || 0);
+      const spd = parseFloat(localStorage.getItem(`glider_speed_${inspectedSkin.id}`) || 0);
+      
+      const distKm = (dist / 1000).toFixed(1); 
+      
+      statsDiv.innerHTML = `
+        <div style="color: var(--cyan); font-weight: 700; margin-bottom: 4px; border-bottom: 1px solid var(--mono-20); padding-bottom: 4px;">LOGS</div>
+        <div style="display: flex; justify-content: space-between;"><span>TOTAL DISTANCE</span> <span style="color: var(--white);">${distKm} KM</span></div>
+        <div style="display: flex; justify-content: space-between;"><span>TOP SPEED</span> <span style="color: var(--white);">${spd} KTS</span></div>
+        <div style="display: flex; justify-content: space-between;"><span>FLIGHT STATUS</span> <span style="color: ${isEquipped ? 'var(--gold)' : 'var(--mono-40)'};">${isEquipped ? 'ACTIVE' : 'STANDBY'}</span></div>
+      `;
+    } else {
+      const runs = parseInt(localStorage.getItem(`ghost_runs_${inspectedSkin.id}`) || 0, 10);
+      
+      const gDist = parseFloat(localStorage.getItem(`ghost_dist_${inspectedSkin.id}`) || 0);
+      const ghostDistKm = (gDist / 1000).toFixed(1);
+
+      statsDiv.innerHTML = `
+        <div style="color: var(--cyan); font-weight: 700; margin-bottom: 4px; border-bottom: 1px solid var(--mono-20); padding-bottom: 4px;">DATA</div>
+        <div style="display: flex; justify-content: space-between;"><span>GHOST RUNS SAVED</span> <span style="color: var(--white);">${runs}</span></div>
+        <div style="display: flex; justify-content: space-between;"><span>GHOST DISTANCE</span> <span style="color: var(--white);">${ghostDistKm} KM</span></div>
+        <div style="display: flex; justify-content: space-between;"><span>LINK STATUS</span> <span style="color: ${isEquipped ? 'var(--gold)' : 'var(--mono-40)'};">${isEquipped ? 'CONNECTED' : 'DISCONNECTED'}</span></div>
+      `;
+    }
+
+    box.parentElement.insertBefore(statsDiv, box.nextSibling);
+  });
+
+  const actionBoxes = [document.getElementById('shop-action-box'), document.getElementById('dash-shop-action-box')].filter(Boolean);
+  actionBoxes.forEach(box => {
+    box.innerHTML = '';
+    if (isEquipped) {
+      const btn = document.createElement('button');
+      btn.className = 'mono-btn';
+      btn.style.borderColor = 'var(--cyan)';
+      btn.style.color = 'var(--cyan)';
+      btn.style.opacity = '0.85';
+      btn.innerText = 'EQUIPPED';
+      box.appendChild(btn);
+    } else if (isUnlocked) {
+      const btn = document.createElement('button');
+      btn.className = 'mono-btn';
+      btn.style.borderColor = 'var(--cyan)';
+      btn.style.color = 'var(--cyan)';
+      btn.innerText = inspectedType === 'glider' ? 'EQUIP GLIDER' : 'EQUIP DRONE';
+      btn.addEventListener('click', () => {
+        if (inspectedType === 'glider') {
+          localStorage.setItem('glider_equipped_skin', inspectedSkin.id);
+          buildParagliderMesh();
+          buildCourse(selectedCourseId);
+        } else {
+          localStorage.setItem('glider_equipped_ghost_skin', inspectedSkin.id);
+          if (ghostDroneGroup) createGhostDroneMesh();
+        }
+        audio.playRecoveryBoost();
+        renderShop();
+      });
+      box.appendChild(btn);
+    } else {
+      const btn = document.createElement('div');
+      btn.style.fontSize = '10px';
+      btn.style.letterSpacing = '1px';
+      btn.style.color = '#ff6666';
+      btn.style.textTransform = 'uppercase';
+      btn.innerText = 'LOCKED! COMPLETE REQUIREMENT TO UNLOCK';
+      box.appendChild(btn);
+    }
+  });
 }
 
 let finishSavedTime = 0;
@@ -1482,12 +1577,15 @@ function resizeHudCanvas() {
 
 function updateInvertButtons() {
   document.querySelectorAll('.invert-btn').forEach(btn => {
-    const mode = btn.getAttribute('data-invert');
-    if ((mode === 'on' && invertControls) || (mode === 'off' && !invertControls)) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
+    const axis = btn.getAttribute('data-axis');
+    const val = btn.getAttribute('data-invert');
+    let isInverted = false;
+    if (axis === 'pitch') isInverted = invertPitch;
+    else if (axis === 'roll') isInverted = invertRoll;
+    else if (axis === 'rudder') isInverted = invertRudder;
+
+    const shouldBeActive = (val === 'inverse' && isInverted) || (val === 'normal' && !isInverted);
+    btn.classList.toggle('active', shouldBeActive);
   });
   updateRudderVisuals();
 }
@@ -4319,11 +4417,12 @@ function spawnAI(course, activeSubtrack) {
       personality: {
         type: assignedPersonality,
         wobbleFreq: 1.0 + Math.random() * 1.2,
-        cornerAggression: (isImpossibleBot || assignedPersonality === 'speedy') ? 0.98 : (0.75 + Math.random() * 0.20),
+        cornerAggression: (isImpossibleBot || assignedPersonality === 'speedy')
+          ? 0.98
+          : (selectedDifficulty === 'hard' ? 0.92 + Math.random() * 0.06 : 0.76 + Math.random() * 0.08),
         apexOffset: (isImpossibleBot || assignedPersonality === 'speedy')
           ? new THREE.Vector3(0, 0, 0)
           : new THREE.Vector3((Math.random() - 0.5) * 40, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 40),
-        // Most bots on Hard/Insane should hunt thermals when low
         thermalHunter: isImpossibleBot ? false : (selectedDifficulty === 'hard' ? Math.random() > 0.25 : Math.random() > 0.5)
       }
     });
@@ -4359,8 +4458,8 @@ function updateAI(dt) {
 
   const diveCapByDifficulty = {
     easy: 130,
-    medium: 155,
-    hard: 185,
+    medium: 135,
+    hard: 165,
     impossible: 185
   };
   const currentDiveCap = diveCapByDifficulty[selectedDifficulty] || 155;
@@ -4403,60 +4502,62 @@ function updateAI(dt) {
     const distToPlayer = ai.pos.distanceTo(player.pos);
 
     if (ai.personality.type === 'bully') {
-      const toAi = _tempVec1.subVectors(ai.pos, player.pos);
-      const aiLead = toAi.dot(_playerForward); 
+        const toAi = _tempVec1.subVectors(ai.pos, player.pos);
+        const aiLead = toAi.dot(_playerForward); 
 
-      if (ai.bullyState === 'cooldown') {
-        ai.bullyTimer += dt;
+        const maxBullySpeed = Math.min(ai.baseSpeed * 1.15, currentDiveCap);
 
-        if (ai.progress < playerProgress) {
-          const stalkSpeed = Math.min(Math.max(player.speed + 7.0, ai.baseSpeed + 12.0), currentDiveCap);
-          ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, stalkSpeed, 2.5 * dt);
-        } else {
-          const isDiving = _toTarget.y < -0.04;
-          if (isDiving) {
-            const diveSteepness = Math.min(1.0, (-_toTarget.y - 0.04) / 0.35);
-            const targetDiveSpeed = THREE.MathUtils.lerp(ai.baseSpeed, currentDiveCap, diveSteepness);
-            ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, targetDiveSpeed, 3.0 * dt);
+        if (ai.bullyState === 'cooldown') {
+          ai.bullyTimer += dt;
+
+          if (ai.progress < playerProgress) {
+            const stalkSpeed = Math.min(ai.baseSpeed + 8.0, maxBullySpeed);
+            ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, stalkSpeed, 2.5 * dt);
           } else {
-            ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, ai.baseSpeed, 0.75 * dt);
+            const isDiving = _toTarget.y < -0.04;
+            if (isDiving) {
+              const diveSteepness = Math.min(1.0, (-_toTarget.y - 0.04) / 0.35);
+              const targetDiveSpeed = THREE.MathUtils.lerp(ai.baseSpeed, currentDiveCap, diveSteepness);
+              ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, targetDiveSpeed, 3.0 * dt);
+            } else {
+              ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, ai.baseSpeed, 1.8 * dt);
+            }
+          }
+
+          if (ai.bullyTimer >= 3.5 && distToPlayer < 480) {
+            ai.bullyState = 'in_face';
+            ai.bullyPhaseTimer = 0;
+          }
+        } else if (ai.bullyState === 'in_face') {
+          ai.bullyPhaseTimer += dt;
+
+          if (aiLead < -25) {
+            _targetWp.lerp(player.pos, 0.35);
+            const closeSpeed = Math.min(ai.baseSpeed + 10.0, maxBullySpeed);
+            ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, closeSpeed, 3.0 * dt);
+          } else {
+            const crowdTarget = _tempVec2.copy(player.pos).addScaledVector(_playerForward, 40);
+            _targetWp.lerp(crowdTarget, 0.40);
+
+            const harassSpeed = Math.min(Math.max(player.speed * 0.98, ai.baseSpeed), maxBullySpeed);
+            ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, harassSpeed, 2.5 * dt);
+          }
+
+          if (ai.bullyPhaseTimer >= 2.8) {
+            ai.bullyState = 'backing_off';
+            ai.bullyPhaseTimer = 0;
+          }
+        } else if (ai.bullyState === 'backing_off') {
+          ai.bullyPhaseTimer += dt;
+          const relaxSpeed = Math.max(ai.baseSpeed - 4.0, 40);
+          ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, relaxSpeed, 2.0 * dt);
+
+          if (ai.bullyPhaseTimer >= 2.2) {
+            ai.bullyState = 'cooldown';
+            ai.bullyTimer = 0;
           }
         }
-
-        if (ai.bullyTimer >= 3.5 && distToPlayer < 480) {
-          ai.bullyState = 'in_face';
-          ai.bullyPhaseTimer = 0;
-        }
-      } else if (ai.bullyState === 'in_face') {
-        ai.bullyPhaseTimer += dt;
-
-        if (aiLead < -25) {
-          _targetWp.lerp(player.pos, 0.35);
-          const closeSpeed = Math.min(player.speed + 6.0, currentDiveCap);
-          ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, closeSpeed, 3.0 * dt);
-        } else {
-          const crowdTarget = _tempVec2.copy(player.pos).addScaledVector(_playerForward, 40);
-          _targetWp.lerp(crowdTarget, 0.40);
-
-          const harassSpeed = Math.max(player.speed + 1.2, ai.baseSpeed);
-          ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, harassSpeed, 3.5 * dt);
-        }
-
-        if (ai.bullyPhaseTimer >= 2.8) {
-          ai.bullyState = 'backing_off';
-          ai.bullyPhaseTimer = 0;
-        }
-      } else if (ai.bullyState === 'backing_off') {
-        ai.bullyPhaseTimer += dt;
-        const relaxSpeed = Math.max(player.speed - 3.5, ai.baseSpeed);
-        ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, relaxSpeed, 2.0 * dt);
-
-        if (ai.bullyPhaseTimer >= 2.2) {
-          ai.bullyState = 'cooldown';
-          ai.bullyTimer = 0;
-        }
       }
-    }
 
     let draftTarget = null;
     let closestAheadDist = 450;
@@ -4613,7 +4714,8 @@ function updateAI(dt) {
       if (inSlipstream) {
         ai.aiDraftTimer += dt;
         if (ai.aiDraftTimer >= 1.8) {
-          const targetDraftSpeed = Math.min(draftTarget.speed + 12, currentDiveCap);
+          const maxDraftSpeed = Math.min(ai.baseSpeed + 10.0, currentDiveCap);
+          const targetDraftSpeed = Math.min(draftTarget.speed + 4.0, maxDraftSpeed);
           ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, targetDraftSpeed, 2.5 * dt);
         }
       } else {
@@ -4632,10 +4734,10 @@ function updateAI(dt) {
         if (ai.currentSpeed > currentDiveCap) ai.currentSpeed = currentDiveCap;
       } else {
         if (ai.currentSpeed > ai.baseSpeed) {
-          ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, ai.baseSpeed, 0.75 * dt);
+          ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, ai.baseSpeed, 2.0 * dt);
         }
         if (_toTarget.y > 0.10) {
-          ai.currentSpeed -= _toTarget.y * 12.0 * dt;
+          ai.currentSpeed -= _toTarget.y * 16.0 * dt;
           ai.currentSpeed = Math.max(ai.currentSpeed, ai.baseSpeed * 0.75);
         }
       }
@@ -4903,7 +5005,7 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
       yawInput += gpYaw * 0.6;
     }
     if (gpAirbrake) player.airbrake = true;
-    else if (!gpAirbrake && !keys['Space']) player.airbrake = false;
+    else if (!gpAirbrake && !isActionPressed('airbrake') && !mobileAirbrake) player.airbrake = false;
   }
 
   if (controlScheme === 'wasd') {
@@ -4913,6 +5015,7 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
     if (isActionPressed('rollLeft')) rollInput += 1.0;
     if (isActionPressed('yawLeft')) yawInput -= 1.0;
     if (isActionPressed('yawRight')) yawInput += 1.0;
+    if (isActionPressed('airbrake')) player.airbrake = true;
   } else if (controlScheme === 'mouse') {
     if (Math.abs(mouseY) > 0.03 && (!gamepadConnected || Math.abs(gpPitch) <= 0.05)) {
       pitchInput = THREE.MathUtils.clamp(mouseY * 0.9, -0.9, 0.9);
@@ -4924,6 +5027,7 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
     }
     if (mouseLeftPressed || isActionPressed('yawLeft')) yawInput -= 1.0;
     if (mouseRightPressed || isActionPressed('yawRight')) yawInput += 1.0;
+    if (isActionPressed('airbrake')) player.airbrake = true;
   }
 
   if (mobilePitchInput !== 0) {
@@ -4941,9 +5045,13 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
   if (Math.abs(pitchInput) > 0.001) hasPitchInput = true;
   if (Math.abs(rollInput) > 0.001) hasRollInput = true;
 
-  if (invertControls) {
+  if (!invertPitch) {
     pitchInput = -pitchInput;
+  }
+  if (!invertRoll) {
     rollInput = -rollInput;
+  }
+  if (!invertRudder) {
     yawInput = -yawInput;
   }
 
@@ -4970,6 +5078,7 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
         const effectiveCharge = Math.min(rudderBoost.chargeTimer, 1.2);
         const boost = 18 + ((effectiveCharge - 0.4) / 0.8) * 10;
         player.speed = Math.min(player.speed + boost, 185);
+        player._usedRudderBoostThisRun = true;
         audio.playRecoveryBoost();
         screenShake = Math.max(screenShake, 0.4);
         rudderBoost.cooldownTimer = 2.5;
@@ -4988,6 +5097,7 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
         const effectiveCharge = Math.min(rudderBoost.chargeTimer, 1.2);
         const boost = 18 + ((effectiveCharge - 0.4) / 0.8) * 10;
         player.speed = Math.min(player.speed + boost, 185);
+        player._usedRudderBoostThisRun = true;
         audio.playRecoveryBoost();
         screenShake = Math.max(screenShake, 0.4);
         rudderBoost.cooldownTimer = 2.5;
@@ -5127,6 +5237,10 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
   }
   player.speed = Math.max(0, player.speed);
 
+  if (player.speed >= 165 && !player._usedRudderBoostThisRun) {
+    player._hit165Clean = true;
+  }
+
   const isStalling = player.speed < 24 || (alphaDeg > 16 && player.speed < 36);
   const stallEl = document.getElementById('stall-warning');
 
@@ -5185,22 +5299,42 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
         const pushX = bumpX / hDist;
         const pushZ = bumpZ / hDist;
 
-        player.pos.x += pushX * 22.0 * dt;
-        player.pos.z += pushZ * 22.0 * dt;
-        ai.pos.x -= pushX * 22.0 * dt;
-        ai.pos.z -= pushZ * 22.0 * dt;
+        const pFwdX = -Math.sin(player.yaw);
+        const pFwdZ = -Math.cos(player.yaw);
 
-        player.speed = Math.max(36, player.speed - 12.0 * dt);
-        ai.currentSpeed = Math.max(36, ai.currentSpeed - 12.0 * dt);
+        const dotFwd = pFwdX * pushX + pFwdZ * pushZ;
+        const isFrontalHit = dotFwd < -0.35;
 
-        player.targetRoll += pushX * 0.15;
-        ai.roll -= pushX * 0.20;
+        player.pos.x += pushX * 26.0 * dt;
+        player.pos.z += pushZ * 26.0 * dt;
+        ai.pos.x -= pushX * 32.0 * dt;
+        ai.pos.z -= pushZ * 32.0 * dt;
+
+        player.speed = Math.max(32, player.speed - 18.0 * dt);
+        ai.currentSpeed = Math.max(28, ai.currentSpeed - 20.0 * dt);
+
+        ai.vel.x -= pushX * 22.0;
+        ai.vel.z -= pushZ * 22.0;
+        ai.roll += pushX * 0.45;
+        ai.yaw -= pushX * 0.12;
 
         const nowSec = performance.now() * 0.001;
-        if (nowSec - lastGliderBumpTime > 0.4) {
+        if (nowSec - lastGliderBumpTime > 0.35) {
           lastGliderBumpTime = nowSec;
           audio.playScrape();
-          screenShake = Math.max(screenShake, 0.32);
+
+          if (isFrontalHit) {
+            player.speed = Math.max(32, player.speed - 10.0);
+            player.targetPitch += 0.22;
+            screenShake = Math.max(screenShake, 0.60);
+
+            ai.currentSpeed = Math.min(140, ai.currentSpeed + 8.0);
+            ai.pitch -= 0.12;
+          } else {
+            player.speed = Math.max(32, player.speed - 4.5);
+            player.targetRoll += (pushX >= 0 ? 0.32 : -0.32);
+            screenShake = Math.max(screenShake, 0.40);
+          }
         }
       }
 
@@ -5370,6 +5504,9 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
   player.pos.x += flightDirX * player.speed * dt * 2.2;
   player.pos.z += flightDirZ * player.speed * dt * 2.2;
   player.pos.y += player.verticalVelocity * dt * 2.2;
+
+  player.runDistance += player.speed * dt * 2.2; 
+  player.runTopSpeed = Math.max(player.runTopSpeed, player.speed);
 
   player.pos.x += weather.windVector.x * dt * 0.95;
   player.pos.z += weather.windVector.z * dt * 0.95;

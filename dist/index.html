@@ -101,6 +101,7 @@
 </div>
 
 <div id="splash-intro">
+  <img id="splash-main-title" src="gliderfontthing.png" alt="GLIDER">
   <img id="splash-logo" src="aphelionlogo.png" alt="Aphelion Logo">
   <div id="splash-prompt">PRESS ANY KEY OR CLICK TO START</div>
 </div>
@@ -167,11 +168,28 @@
       </div>
     </div>
 
-    <div class="control-toggle-box">
+    <div class="control-toggle-box" style="flex-direction: column; align-items: stretch; gap: 8px;">
       <div class="control-toggle-label">INVERSE CONTROLS</div>
-      <div class="row-group" style="width: auto; margin-bottom: 0;">
-        <button class="mono-btn invert-btn" data-invert="on">ON</button>
-        <button class="mono-btn invert-btn active" data-invert="off">OFF</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <span class="control-toggle-label" style="font-size: 10px;">Pitch:</span>
+        <div class="row-group" style="width: auto !important; margin-bottom: 0;">
+          <button class="mono-btn invert-btn active" data-axis="pitch" data-invert="normal">normal</button>
+          <button class="mono-btn invert-btn" data-axis="pitch" data-invert="inverse">inverse</button>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <span class="control-toggle-label" style="font-size: 10px;">Roll:</span>
+        <div class="row-group" style="width: auto !important; margin-bottom: 0;">
+          <button class="mono-btn invert-btn active" data-axis="roll" data-invert="normal">normal</button>
+          <button class="mono-btn invert-btn" data-axis="roll" data-invert="inverse">inverse</button>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <span class="control-toggle-label" style="font-size: 10px;">rudder:</span>
+        <div class="row-group" style="width: auto !important; margin-bottom: 0;">
+          <button class="mono-btn invert-btn active" data-axis="rudder" data-invert="normal">normal</button>
+          <button class="mono-btn invert-btn" data-axis="rudder" data-invert="inverse">inverse</button>
+        </div>
       </div>
     </div>
 
@@ -193,6 +211,10 @@
 
     <div class="row-group" style="margin-bottom: 8px; margin-top: 6px;">
       <button class="mono-btn" id="btn-open-keybinds" style="width: 100%; border-color: var(--cyan); color: var(--cyan);">CUSTOMIZE CONTROLS</button>
+    </div>
+
+    <div class="row-group" style="margin-bottom: 8px; margin-top: 4px;">
+      <button class="mono-btn" id="btn-settings-tutorial" style="width: 100%; border-color: var(--cyan); color: var(--cyan);">TUTORIAL</button>
     </div>
 
     <div class="row-group" style="margin-bottom: 10px; margin-top: 4px;">
@@ -300,12 +322,12 @@
 </div>
 
 <div id="screen-start-mobile" class="menu-screen ss-main-menu hidden">
-  <div class="ss-top-left">
-    <img src="gliderfontthing.png" alt="Glider Logo" class="ss-main-logo">
-  </div>
+<div class="ss-top-left">
+  <img src="gliderfontthing.png" alt="Glider Logo" class="ss-main-logo">
+  <div class="ss-tip-box instructions" style="margin-left: 0;"></div>
+</div>
 
-  <div style="display: flex; flex-direction: column; align-items: flex-start; width: 100%; gap: 8px; pointer-events: none;">
-    <div class="ss-tip-box instructions" style="margin-left: 16px;"></div>
+<div style="display: flex; flex-direction: column; align-items: flex-start; width: 100%; gap: 8px; pointer-events: none;">
     <div class="ss-bottom-dock">
       <div class="ss-dock-left">
         <button class="mono-btn ss-btn-primary" id="btn-start-play">PLAY</button>
@@ -324,53 +346,266 @@
 </div>
 </div>
   
-<div id="screen-start" class="menu-screen desktop-layout">
-  <img src="gliderfontthing.png" alt="Glider Logo" class="start-logo">
-  <button class="mono-btn" id="btn-to-select" style="padding: 12px 32px;">INITIALIZE FLIGHT</button>
-  <div class="instructions"></div>
-  <button class="mono-btn" id="btn-reset-scores-dt" style="margin-top: 14px; padding: 7px 18px; font-size: 9px; color: #ff6666; border-color: rgba(255, 100, 100, 0.35);">RESET SAVED TIMES</button>
-  <div style="position: absolute; bottom: 14px; right: 18px; display: flex; gap: 8px;">
-    <button class="mono-btn" id="btn-save-export-dt" style="padding: 6px 14px; font-size: 9px; border-color: var(--cyan); color: var(--cyan);">SAVE</button>
-    <button class="mono-btn" id="btn-save-import-dt" style="padding: 6px 14px; font-size: 9px;">IMPORT</button>
-  </div>
+<div id="desktop-dashboard" class="desktop-layout" style="display: none;">
+  <aside id="dash-col-nav">
+    <div class="dash-nav-header">
+  <img src="gliderfontthing.png" alt="Glider Logo" class="dash-logo">
+  <div class="instructions dash-instructions"></div>
 </div>
 
-<div id="screen-select" class="menu-screen hidden desktop-layout">
-  <div class="menu-title">SELECT COURSE</div>
-  <div class="menu-subtitle">CHOOSE FLIGHT MAP</div>
+    <nav class="dash-nav-menu">
+      <button class="dash-nav-btn" id="dash-nav-single" data-cat="single">
+        <span class="dash-nav-bullet"></span>
+        <span class="dash-nav-label">SINGLE TRACK</span>
+      </button>
+      <button class="dash-nav-btn" id="dash-nav-gp" data-cat="gp">
+        <span class="dash-nav-bullet"></span>
+        <span class="dash-nav-label">GRAND PRIX</span>
+      </button>
+      <button class="dash-nav-btn" id="dash-nav-shop" data-cat="shop">
+        <span class="dash-nav-bullet"></span>
+        <span class="dash-nav-label">SHOP</span>
+      </button>
+      <button class="dash-nav-btn" id="dash-nav-settings" data-cat="settings">
+        <span class="dash-nav-bullet"></span>
+        <span class="dash-nav-label">SETTINGS</span>
+      </button>
+    </nav>
 
-  <div class="row-group" id="select-mode-toggle" style="margin-bottom: 14px;">
-    <button class="mono-btn select-tab-btn active" id="btn-tab-single-dt">
-      <img src="singletrack.png" alt="SINGLE TRACK" style="max-height: 48px; width: auto; object-fit: contain; display: block; margin: 0 auto; pointer-events: none;">
-    </button>
-    <button class="mono-btn select-tab-btn" id="btn-tab-gp-dt">
-      <img src="grandprix.png" alt="GRAND PRIX" style="max-height: 48px; width: auto; object-fit: contain; display: block; margin: 0 auto; pointer-events: none;">
-    </button>
-  </div>
-
-  <div class="track-list" id="single-track-list-dt">
-    <div class="track-opt active" data-course="canyon"><div><img src="canyon.png" class="track-name"><div class="track-desc">Expansive gorge cliffs.</div></div></div>
-    <div class="track-opt" data-course="islands"><div><img src="islands.png" class="track-name"><div class="track-desc">Floating stone ruins.</div></div></div>
-    <div class="track-opt" data-course="coastal"><div><img src="cliffs.png" class="track-name"><div class="track-desc">Oceanic mountain fjords.</div></div></div>
-    <div class="track-opt" data-course="volcano"><div><img src="volcanomap.png" class="track-name"><div class="track-desc">Volcanic storm archipelago.</div></div></div>
-    <div class="track-opt" data-course="glacial"><div><img src="glacial.png" class="track-name"><div class="track-desc">Frozen alpine tundra.</div></div></div>
-    <div class="track-opt" data-course="moon"><div><img src="moon.png" class="track-name"><div class="track-desc">Vacuum, Space, Apollo 11.</div></div></div>
-  </div>
-
-  <div id="gp-select-container-dt" style="display: none; width: 100%; flex-direction: column;">
-    <div class="track-list" id="gp-cup-list-dt" style="max-height: 275px; margin-bottom: 12px;"></div>
-    <div class="control-toggle-box" id="gp-diff-box-dt" style="margin-bottom: 14px;">
-      <div class="control-toggle-label">AI DIFFICULTY</div>
-      <div class="row-group" style="width: auto; margin-bottom: 0;">
-        <button class="mono-btn diff-btn gp-diff-btn-dt" data-diff="easy">Easy</button>
-        <button class="mono-btn diff-btn gp-diff-btn-dt active" data-diff="medium">Medium</button>
-        <button class="mono-btn diff-btn gp-diff-btn-dt" data-diff="hard">Insane</button>
+    <div class="dash-nav-footer">
+      <div class="dash-nav-actions">
+        <button class="mono-btn dash-action-btn" id="btn-reset-scores-dt" style="color: #ff6666; border-color: rgba(255, 100, 100, 0.35);">RESET TIMES</button>
+        <div style="display: flex; gap: 8px; width: 100%;">
+          <button class="mono-btn dash-action-btn" id="btn-save-export-dt" style="flex: 1; border-color: var(--cyan); color: var(--cyan);">SAVE</button>
+          <button class="mono-btn dash-action-btn" id="btn-save-import-dt" style="flex: 1;">IMPORT</button>
+        </div>
       </div>
     </div>
-  </div>
+  </aside>
 
-  <button class="mono-btn" id="btn-start-race-dt" style="padding: 12px 36px; border-color: var(--cyan); color: var(--cyan);">BEGIN FLIGHT</button>
-  <button class="mono-btn" id="btn-open-shop-dt" style="margin-top: 10px; padding: 10px 32px;">OPEN SHOP</button>
+  <section id="dash-col-middle" class="hidden" style="display: none;">
+    <div class="dash-mid-panel hidden" id="dash-mid-single">
+      <div class="dash-panel-header">
+        <div class="menu-title">SELECT COURSE</div>
+        <div class="menu-subtitle">CHOOSE FLIGHT MAP</div>
+      </div>
+      <div class="track-list" id="single-track-list-dt" style="max-height: 72vh;">
+        <div class="track-opt active" data-course="canyon"><div><img src="canyon.png" class="track-name"><div class="track-desc">Expansive gorge cliffs.</div></div></div>
+        <div class="track-opt" data-course="islands"><div><img src="islands.png" class="track-name"><div class="track-desc">Floating stone ruins.</div></div></div>
+        <div class="track-opt" data-course="coastal"><div><img src="cliffs.png" class="track-name"><div class="track-desc">Oceanic mountain fjords.</div></div></div>
+        <div class="track-opt" data-course="volcano"><div><img src="volcanomap.png" class="track-name"><div class="track-desc">Volcanic storm archipelago.</div></div></div>
+        <div class="track-opt" data-course="glacial"><div><img src="glacial.png" class="track-name"><div class="track-desc">Frozen alpine tundra.</div></div></div>
+        <div class="track-opt" data-course="moon"><div><img src="moon.png" class="track-name"><div class="track-desc">Vacuum, Space, Apollo 11.</div></div></div>
+      </div>
+    </div>
+
+    <div class="dash-mid-panel hidden" id="dash-mid-gp">
+      <div class="dash-panel-header">
+        <div class="menu-title">GRAND PRIX</div>
+        <div class="menu-subtitle">CHOOSE CHAMPIONSHIP</div>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; width: 100%;">
+        <button class="mono-btn" id="btn-gp-shuffle-dt" style="padding: 6px 14px; border-color: var(--gold); color: var(--gold); display: flex; align-items: center; justify-content: center;">
+          <img src="randomshuffle.png" alt="RANDOM SHUFFLE" style="max-height: 20px; width: auto; pointer-events: none;">
+        </button>
+        <div class="control-toggle-box" style="margin-bottom: 0; padding: 4px 10px; width: auto;">
+          <div class="control-toggle-label" style="font-size: 9px; margin-right: 6px;">AI DIFFICULTY</div>
+          <div class="row-group" style="width: auto; margin-bottom: 0;">
+            <button class="mono-btn diff-btn gp-diff-btn-dt" data-diff="easy" style="padding: 4px 8px; font-size: 9px;">Easy</button>
+            <button class="mono-btn diff-btn gp-diff-btn-dt active" data-diff="medium" style="padding: 4px 8px; font-size: 9px;">Medium</button>
+            <button class="mono-btn diff-btn gp-diff-btn-dt" data-diff="hard" style="padding: 4px 8px; font-size: 9px;">Insane</button>
+            <button class="mono-btn diff-btn gp-diff-btn-dt hidden" id="btn-gp-diff-impossible-dt" data-diff="impossible" style="padding: 4px 8px; font-size: 9px; color: #ca8aff; border-color: #ca8aff;">Impossible</button>
+          </div>
+        </div>
+      </div>
+      <div class="track-list" id="gp-cup-list-dt" style="max-height: 60vh;"></div>
+    </div>
+
+    <div class="dash-mid-panel hidden" id="dash-mid-shop">
+      <div class="dash-panel-header">
+        <div class="menu-title">SHOP</div>
+        <div class="menu-subtitle">ALL PRODUCTS ARE ACHIEVED BY TIME TRIALS</div>
+      </div>
+      <div id="dash-shop-tv-slot" style="margin-bottom: 12px; display: flex; justify-content: center;"></div>
+      <div id="dash-shop-items-list" style="width: 100%; max-height: 62vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
+    </div>
+
+    <div class="dash-mid-panel hidden" id="dash-mid-settings">
+      <div class="dash-panel-header">
+        <div class="menu-title">SETTINGS</div>
+        <div class="menu-subtitle">AUDIO & CONTROLS</div>
+      </div>
+      <div class="control-toggle-box">
+        <div class="control-toggle-label">GAME AUDIO <span class="sfx-vol-label" style="color: var(--cyan); margin-left: 6px;">80%</span></div>
+        <div class="row-group" style="width: auto; margin-bottom: 0; align-items: center;">
+          <input type="range" class="volume-slider sfx-volume-slider" min="0" max="100" value="80">
+        </div>
+      </div>
+      <div class="control-toggle-box">
+        <div class="control-toggle-label">MUSIC VOLUME <span class="music-vol-label" style="color: var(--cyan); margin-left: 6px;">80%</span></div>
+        <div class="row-group" style="width: auto; margin-bottom: 0; align-items: center;">
+          <input type="range" class="volume-slider music-volume-slider" min="0" max="100" value="80">
+        </div>
+      </div>
+      <div class="control-toggle-box">
+        <div class="control-toggle-label">STEERING MODE</div>
+        <div class="row-group" style="width: auto; margin-bottom: 0;">
+          <button class="mono-btn ctrl-btn active" data-mode="wasd">WASD ONLY</button>
+          <button class="mono-btn ctrl-btn" data-mode="mouse">MOUSE ONLY</button>
+        </div>
+      </div>
+      <div class="control-toggle-box" style="flex-direction: column; align-items: stretch; gap: 8px;">
+        <div class="control-toggle-label">INVERSE CONTROLS</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <span class="control-toggle-label" style="font-size: 10px;">Pitch:</span>
+          <div class="row-group" style="width: auto !important; margin-bottom: 0;">
+            <button class="mono-btn invert-btn active" data-axis="pitch" data-invert="normal">normal</button>
+            <button class="mono-btn invert-btn" data-axis="pitch" data-invert="inverse">inverse</button>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <span class="control-toggle-label" style="font-size: 10px;">Roll:</span>
+          <div class="row-group" style="width: auto !important; margin-bottom: 0;">
+            <button class="mono-btn invert-btn active" data-axis="roll" data-invert="normal">normal</button>
+            <button class="mono-btn invert-btn" data-axis="roll" data-invert="inverse">inverse</button>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <span class="control-toggle-label" style="font-size: 10px;">rudder:</span>
+          <div class="row-group" style="width: auto !important; margin-bottom: 0;">
+            <button class="mono-btn invert-btn active" data-axis="rudder" data-invert="normal">normal</button>
+            <button class="mono-btn invert-btn" data-axis="rudder" data-invert="inverse">inverse</button>
+          </div>
+        </div>
+      </div>
+      <div class="control-toggle-box" id="dash-pointer-box" style="display: none;">
+        <div class="control-toggle-label">SPEEDOMETER NEEDLE</div>
+        <div class="row-group" style="width: auto; margin-bottom: 0;">
+          <button class="mono-btn pointer-btn active" data-pointer="default">PURPLE</button>
+          <button class="mono-btn pointer-btn" data-pointer="pointer2">POINTER 2</button>
+        </div>
+      </div>
+      <div class="control-toggle-box">
+        <div class="control-toggle-label">GRAPHICS QUALITY</div>
+        <div class="row-group" style="width: auto; margin-bottom: 0;">
+          <button class="mono-btn gfx-btn active" data-gfx="low">LOW</button>
+          <button class="mono-btn gfx-btn" data-gfx="high">HIGH</button>
+        </div>
+      </div>
+      <div class="row-group" style="margin-top: 10px; margin-bottom: 6px;">
+        <button class="mono-btn" id="btn-dash-controls" style="width: 100%; border-color: var(--cyan); color: var(--cyan);">CONFIGURE CONTROLS</button>
+      </div>
+      <div class="row-group" style="margin-top: 6px; margin-bottom: 4px;">
+        <button class="mono-btn" id="btn-dash-tutorial" style="width: 100%; border-color: var(--cyan); color: var(--cyan);">TUTORIAL</button>
+      </div>
+      <div class="row-group" style="margin-top: 6px; margin-bottom: 0;">
+        <button class="mono-btn" id="btn-dash-credits" style="width: 100%; border-color: var(--gold); color: var(--gold);">VIEW CREDITS</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="dash-col-right" class="hidden" style="display: none;">
+    <div class="dash-right-panel hidden" id="dash-right-single">
+      <div class="dash-panel-header">
+        <div class="menu-title" id="dash-dispatch-title">MOUNTAIN CANYONS</div>
+        <div class="menu-subtitle">TRACK SPECIFICS</div>
+      </div>
+
+      <div class="control-toggle-box" style="margin-bottom: 10px;">
+        <div class="control-toggle-label">FLIGHT MODE</div>
+        <div class="row-group" style="width: auto; margin-bottom: 0;">
+          <button class="mono-btn mode-btn active" data-gmode="race">RACE AI</button>
+          <button class="mono-btn mode-btn" data-gmode="timetrial">TIME TRIAL</button>
+        </div>
+      </div>
+
+      <div class="control-toggle-box" id="dash-ai-diff-box" style="margin-bottom: 12px;">
+        <div class="control-toggle-label">AI DIFFICULTY</div>
+        <div class="row-group" style="width: auto; margin-bottom: 0;">
+          <button class="mono-btn diff-btn" data-diff="easy">Easy</button>
+          <button class="mono-btn diff-btn active" data-diff="medium">Medium</button>
+          <button class="mono-btn diff-btn" data-diff="hard">Insane</button>
+          <button class="mono-btn diff-btn hidden" id="btn-dash-diff-impossible" data-diff="impossible" style="color: #ca8aff; border-color: #ca8aff;">Impossible</button>
+        </div>
+      </div>
+
+      <div class="track-list" id="dash-subtrack-list" style="margin-bottom: 14px; max-height: 48vh; width: 100%;">
+        <div class="track-opt subtrack-opt active" data-sub="A">
+          <div>
+            <div class="track-name" id="dash-st-name-A">Red Rock Slalom</div>
+            <div class="track-desc" id="dash-st-desc-A">Low altitude canyon carving along river thermals.</div>
+            <div class="pb-tag" id="dash-pb-A">BEST: --:--.-</div>
+          </div>
+        </div>
+        <div class="track-opt subtrack-opt" data-sub="B">
+          <div>
+            <div class="track-name" id="dash-st-name-B">Needle Peak Ascent</div>
+            <div class="track-desc" id="dash-st-desc-B">Climb through north snow peaks and needle spires</div>
+            <div class="pb-tag" id="dash-pb-B">BEST: --:--.-</div>
+          </div>
+        </div>
+        <div class="track-opt subtrack-opt" data-sub="C">
+          <div>
+            <div class="track-name" id="dash-st-name-C">Grand Divide</div>
+            <div class="track-desc" id="dash-st-desc-C">East gorge slalom navigating colossal sandstone pillars.</div>
+            <div class="pb-tag" id="dash-pb-C">BEST: --:--.-</div>
+          </div>
+        </div>
+        <div class="track-opt subtrack-opt hidden" id="dash-subtrack-opt-D" data-sub="D">
+          <div>
+            <div class="track-name" id="dash-st-name-D">Aphelion Horizon</div>
+            <div class="track-desc" id="dash-st-desc-D">Reach the bounds where no glider dares too!</div>
+            <div class="pb-tag" id="dash-pb-D">BEST: --:--.-</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="medals-grid" id="dash-medals-grid" style="margin: 0 0 16px 0; width: 100%; justify-content: center; gap: 8px;">
+        <div class="medal-item">🥉 BRONZE: <span id="dash-m-bronze">--</span></div>
+        <div class="medal-item">🥈 SILVER: <span id="dash-m-silver">--</span></div>
+        <div class="medal-item">🥇 GOLD: <span id="dash-m-gold">--</span></div>
+        <div class="medal-item">🏆 ACE: <span id="dash-m-ace">--</span></div>
+      </div>
+
+      <button class="mono-btn dash-launch-btn" id="btn-dash-launch" style="width: 100%; padding: 14px 28px;">LAUNCH FLIGHT</button>
+    </div>
+
+    <div class="dash-right-panel hidden" id="dash-right-gp">
+      <div class="dash-panel-header">
+        <div class="menu-title" id="dash-gp-title">SUNRISE CUP</div>
+        <div class="menu-subtitle" id="dash-gp-subtitle">Select Start Championship to begin!</div>
+      </div>
+      <div class="control-toggle-box" style="margin-bottom: 12px;">
+        <div class="control-toggle-label">AI DIFFICULTY</div>
+        <div id="dash-gp-diff-label" style="font-size: 11px; font-weight: 700; color: var(--white); text-transform: uppercase;">MEDIUM</div>
+      </div>
+      <div class="track-list" id="dash-gp-tracks" style="max-height: 250px; margin-bottom: 16px;"></div>
+      <button class="mono-btn dash-launch-btn" id="btn-dash-gp-start" style="width: 100%; padding: 14px 28px;">START CHAMPIONSHIP</button>
+    </div>
+
+    <div class="dash-right-panel hidden" id="dash-right-shop">
+      <div class="dash-panel-header">
+        <div class="menu-title">Preview</div>
+        <div class="menu-subtitle">Preview for shop and requirepments if you need it</div>
+      </div>
+      <div id="dash-shop-canvas-wrap" style="width: 100%; display: flex; justify-content: center; margin-bottom: 12px;"></div>
+      <div style="width: 100%; text-align: center; margin: 10px 0;">
+        <div id="dash-shop-name" style="font-size: 15px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--mono);">GLIDER NAME</div>
+        <div id="dash-shop-color" style="font-size: 11px; letter-spacing: 1px; color: var(--gold); margin-top: 4px; text-transform: uppercase;">COLOR: RED</div>
+        <div id="dash-shop-req" style="font-size: 10px; letter-spacing: 1px; color: var(--mono-60); margin-top: 8px; line-height: 1.5; text-transform: uppercase; border-top: 1px solid var(--mono-20); padding-top: 8px;">REQUIREMENTS</div>
+      </div>
+      <div id="dash-shop-action-box" style="width: 100%; display: flex; justify-content: center; margin-top: 10px;"></div>
+    </div>
+
+    <div class="dash-right-panel hidden" id="dash-right-settings">
+      <div class="dash-panel-header">
+        <div class="menu-title">CONTROLS STUFF</div>
+        <div class="menu-subtitle">CLICK TO REBIND KEY</div>
+      </div>
+      <div id="dash-keybind-list" style="width: 100%; display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; max-height: 60vh; overflow-y: auto;"></div>
+      <button class="mono-btn" id="btn-dash-keybind-reset" style="width: 100%; color: #ff6666; border-color: rgba(255,100,100,0.4); padding: 8px 16px;">RESET TO DEFAULTS</button>
+    </div>
+  </section>
 </div>
 
 <div id="screen-select-mobile" class="menu-screen grid-select-screen hidden">
@@ -462,7 +697,9 @@
     </div>
 
     <div style="flex: 1.2; min-width: 260px; border: 1px solid var(--mono-20); background: rgba(255,255,255,0.02); padding: 16px; display: flex; flex-direction: column; align-items: center; justify-content: space-between;">
-      <canvas id="shop-canvas" width="280" height="150" style="width: 280px; height: 150px; border: 1px solid var(--mono-20); background: #0a0a0a;"></canvas>
+      <div id="shop-canvas-wrap-mobile" style="display: flex; justify-content: center; width: 100%;">
+        <canvas id="shop-canvas" width="280" height="150" style="width: 280px; height: 150px; border: 1px solid var(--mono-20); background: #0a0a0a;"></canvas>
+      </div>
       <div style="width: 100%; text-align: center; margin: 10px 0;">
         <div id="shop-inspect-name" style="font-size: 15px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--mono);">GLIDER NAME</div>
         <div id="shop-inspect-color" style="font-size: 11px; letter-spacing: 1px; color: var(--gold); margin-top: 4px; text-transform: uppercase;">COLOR: RED</div>
@@ -664,11 +901,28 @@
     </div>
   </div>
 
-  <div class="control-toggle-box">
+  <div class="control-toggle-box" style="flex-direction: column; align-items: stretch; gap: 8px;">
     <div class="control-toggle-label">INVERSE CONTROLS</div>
-    <div class="row-group" style="width: auto; margin-bottom: 0;">
-      <button class="mono-btn invert-btn" data-invert="on">ON</button>
-      <button class="mono-btn invert-btn active" data-invert="off">OFF</button>
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+      <span class="control-toggle-label" style="font-size: 10px;">Pitch:</span>
+      <div class="row-group" style="width: auto !important; margin-bottom: 0;">
+        <button class="mono-btn invert-btn active" data-axis="pitch" data-invert="normal">normal</button>
+        <button class="mono-btn invert-btn" data-axis="pitch" data-invert="inverse">inverse</button>
+      </div>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+      <span class="control-toggle-label" style="font-size: 10px;">Roll:</span>
+      <div class="row-group" style="width: auto !important; margin-bottom: 0;">
+        <button class="mono-btn invert-btn active" data-axis="roll" data-invert="normal">normal</button>
+        <button class="mono-btn invert-btn" data-axis="roll" data-invert="inverse">inverse</button>
+      </div>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+      <span class="control-toggle-label" style="font-size: 10px;">rudder:</span>
+      <div class="row-group" style="width: auto !important; margin-bottom: 0;">
+        <button class="mono-btn invert-btn active" data-axis="rudder" data-invert="normal">normal</button>
+        <button class="mono-btn invert-btn" data-axis="rudder" data-invert="inverse">inverse</button>
+      </div>
     </div>
   </div>
 
@@ -823,5 +1077,6 @@
 <script src="js/core.js"></script>
 <script src="js/game.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/tutorial.js"></script>
 </body>
 </html>

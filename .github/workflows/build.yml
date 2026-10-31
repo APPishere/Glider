@@ -37,9 +37,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v4.2.8.1
-          releaseName: "Glider Patch 4.2.8.1"
-          releaseBody: "Okay final patch before i go silent on this i would suggest downloading but again not needed."
+          tagName: v4.3.0
+          releaseName: "Glider Patch 4.3.0"
+          releaseBody: "MASSIVE PC UPDATE! i would suggest downloading this!"
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

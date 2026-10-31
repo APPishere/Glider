@@ -1,5 +1,6 @@
 // Hey! whats this with you and snooping at my code? trust me you wont find what u want here its very secret
-const HALLOWEEN_EVENT_ACTIVE = (() => {
+const HALLOWEEN_EVENT_ACTIVE =
+ (() => {
   const now = new Date();
   const md = (now.getMonth() + 1) * 100 + now.getDate();
  return md >= 1027 && md <= 1102; 
@@ -10,6 +11,7 @@ try {
 } catch (e) {}
 let isHalloweenBossDuel = false;
 let halloweenPreviousSkin = null;
+let tutorialActive = false;
 
 
 const CHRISTMAS_EVENT_ACTIVE = (() => {
@@ -116,7 +118,7 @@ function updateRudderVisuals() {
   const imgL = document.getElementById('mobile-img-yaw-l');
   const imgR = document.getElementById('mobile-img-yaw-r');
   if (!imgL || !imgR) return;
-  if (!invertControls) {
+  if (!invertRudder) {
     imgL.src = mobileYawLeft ? 'rudderleftclick.png' : 'rudderleft.png';
     imgR.src = mobileYawRight ? 'rudderrightclick.png' : 'rudderRight.png';
   } else {
@@ -697,7 +699,7 @@ function setupMobileControls() {
 
   attachAction(yawL, () => { mobileYawLeft = true; updateRudderVisuals(); }, () => { mobileYawLeft = false; updateRudderVisuals(); });
   attachAction(yawR, () => { mobileYawRight = true; updateRudderVisuals(); }, () => { mobileYawRight = false; updateRudderVisuals(); });
-  attachAction(brake, () => { mobileAirbrake = true; player.airbrake = true; }, () => { mobileAirbrake = false; if (!keys['Space'] && !gpAirbrake) player.airbrake = false; });
+  attachAction(brake, () => { mobileAirbrake = true; player.airbrake = true; }, () => { mobileAirbrake = false; if (!isActionPressed('airbrake') && !gpAirbrake) player.airbrake = false; });
 
   if (pause) {
     pause.addEventListener('pointerdown', (e) => {
@@ -834,9 +836,9 @@ const defaultKeybinds = {
   pitchUp: ['KeyS', 'ArrowDown'],
   rollLeft: ['KeyA', 'ArrowLeft'],
   rollRight: ['KeyD', 'ArrowRight'],
-  yawLeft: ['KeyQ'],
-  yawRight: ['KeyE'],
-  airbrake: ['Space']
+  yawLeft: ['KeyQ', 'Period'],
+  yawRight: ['KeyE', 'Slash'],
+  airbrake: ['Space', 'KeyL']
 };
 let keybinds = null;
 try {
@@ -844,6 +846,16 @@ try {
 } catch (e) {}
 if (!keybinds || typeof keybinds !== 'object') {
   keybinds = JSON.parse(JSON.stringify(defaultKeybinds));
+} else {
+  for (const action in defaultKeybinds) {
+    if (!Array.isArray(keybinds[action])) {
+      keybinds[action] = [...defaultKeybinds[action]];
+    } else {
+      while (keybinds[action].length < defaultKeybinds[action].length) {
+        keybinds[action].push(defaultKeybinds[action][keybinds[action].length]);
+      }
+    }
+  }
 }
 
 function isActionPressed(action) {
@@ -853,7 +865,8 @@ function isActionPressed(action) {
 
 const KEY_NAME_MAP = {
   KeyW: 'W', KeyS: 'S', KeyA: 'A', KeyD: 'D',
-  KeyQ: 'Q', KeyE: 'E', KeyR: 'R', KeyF: 'F',
+  KeyQ: 'Q', KeyE: 'E', KeyR: 'R', KeyF: 'F', KeyL: 'L',
+  Period: '.', Slash: '/',
   ArrowUp: '↑ UP', ArrowDown: '↓ DOWN', ArrowLeft: '← LEFT', ArrowRight: '→ RIGHT',
   Space: 'SPACE', ShiftLeft: 'L-SHIFT', ShiftRight: 'R-SHIFT',
   ControlLeft: 'L-CTRL', ControlRight: 'R-CTRL', AltLeft: 'L-ALT', AltRight: 'R-ALT'
@@ -880,11 +893,17 @@ let activeRebindAction = null;
 let activeRebindIndex = -1;
 
 function renderKeybindList() {
-  const container = document.getElementById('keybind-list');
-  if (!container) return;
-  container.innerHTML = '';
+  const containers = [
+    document.getElementById('keybind-list'),
+    document.getElementById('dash-keybind-list')
+  ].filter(Boolean);
 
-  for (const action in defaultKeybinds) {
+  if (containers.length === 0) return;
+
+  containers.forEach(container => {
+    container.innerHTML = '';
+
+    for (const action in defaultKeybinds) {
     const row = document.createElement('div');
     row.className = 'control-toggle-box';
     row.style.marginBottom = '0';
@@ -929,8 +948,9 @@ function renderKeybindList() {
     });
 
     row.appendChild(btnGroup);
-    container.appendChild(row);
-  }
+      container.appendChild(row);
+    }
+  });
 }
 
 function updateCellarDoorVisibility() {
@@ -1681,6 +1701,8 @@ function createGlacialIceArch(x, y, z, span = 260, height = 180, rotY = 0) {
   return archGroup;
 }
 
+const STAT_KEY_PREFIXES = ['glider_dist_', 'glider_speed_', 'ghost_runs_', 'ghost_dist_', 'glider_unlock_speedofsound_drone'];
+
 const AphelionEncoder = (() => {
   const SECRET_KEY = [65, 112, 104, 101, 108, 105, 111, 110, 83, 101, 99, 114, 101, 116]; 
 
@@ -1708,6 +1730,7 @@ const AphelionEncoder = (() => {
     const sn = saveObj.santaUnlocked ? 1 : 0;
     const kr = saveObj.krampusUnlocked ? 1 : 0;
     const xm = saveObj.xm || 0;
+    const stats = saveObj.stats || {};
     const packedGhosts = {};
     for (const track in ghosts) {
       if (Array.isArray(ghosts[track])) {
@@ -1722,7 +1745,7 @@ const AphelionEncoder = (() => {
         ]);
       }
     }
-    const jsonStr = JSON.stringify({ p: pbs, g: packedGhosts, hw, xm, sn, kr });
+    const jsonStr = JSON.stringify({ p: pbs, g: packedGhosts, hw, xm, sn, kr, s: stats });
     if (typeof TextEncoder !== 'undefined') {
       return new TextEncoder().encode(jsonStr);
     }
@@ -1745,6 +1768,7 @@ const AphelionEncoder = (() => {
     const santaUnlocked = (parsed.sn === 1);
     const krampusUnlocked = (parsed.kr === 1);
     const xm = parsed.xm || 0;
+    const stats = parsed.s || {};
     if (parsed.g) {
       for (const track in parsed.g) {
         ghosts[track] = parsed.g[track].map(f => ({
@@ -1753,7 +1777,7 @@ const AphelionEncoder = (() => {
         }));
       }
     }
-    return { pbs, ghosts, halloweenUnlocked, santaUnlocked, krampusUnlocked, xm };
+    return { pbs, ghosts, halloweenUnlocked, santaUnlocked, krampusUnlocked, xm, stats };
   }
 
   function lzwCompress(bytes) {
@@ -2514,7 +2538,9 @@ let selectedSubtrack = 'A';
 let gameMode = localStorage.getItem('glider_game_mode') || 'race';
 let selectedDifficulty = localStorage.getItem('glider_difficulty') || 'medium';
 let controlScheme = localStorage.getItem('glider_control_scheme') || 'wasd';
-let invertControls = localStorage.getItem('glider_invert_controls') !== 'false';
+let invertPitch = localStorage.getItem('glider_invert_pitch') === 'true';
+let invertRoll = localStorage.getItem('glider_invert_roll') === 'true';
+let invertRudder = localStorage.getItem('glider_invert_rudder') === 'true';
 let raceStartTime = 0;
 let raceElapsedTime = 0;
 
@@ -2827,6 +2853,7 @@ const ghostCache = {};
 let impossibleDifficultyUnlocked = false;
 let devFreeCam = false;
 let devTimeFrozen = false;
+let devBulletTime = false;
 let devFreeCamPos = new THREE.Vector3();
 let devFreeCamYaw = 0;
 let devFreeCamPitch = 0;
@@ -3921,6 +3948,20 @@ const GHOST_SKINS = [
     checkUnlocked: (stats) => stats.hasGold
   },
   {
+    id: 'ghost_speedofsound',
+    name: 'J.E.T.',
+    colorName: 'GREEN',
+    color: 0x39ff14,
+    previewColor: '#39ff14',
+    emissive: 0x1a7f0a,
+    emissiveIntensity: 0.60,
+    roughness: 0.20,
+    metalness: 0.75,
+    isGlowing: true,
+    reqText: 'Reach 165 kts in a Time Trial WITHOUT rudder boost the entire race. (Can boost after hitting 165!)',
+    checkUnlocked: () => localStorage.getItem('glider_unlock_speedofsound_drone') === 'true'
+  },
+  {
     id: 'ghost_gold',
     name: '24k Golden Drone',
     colorName: 'Pure Gold Interceptor',
@@ -4002,7 +4043,11 @@ const player = {
   rank: 1,
   airbrake: false,
   inThermal: false,
-  verticalVelocity: 0
+  verticalVelocity: 0,
+  _usedRudderBoostThisRun: false,
+  _hit165Clean: false,
+  runDistance: 0,
+  runTopSpeed: 0
 };
 
 const isMobileDeviceCheck = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.matchMedia('(pointer: coarse)').matches;
