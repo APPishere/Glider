@@ -868,28 +868,26 @@ if (typeof updateFlight === 'function') {
 if (typeof showScreen === 'function') {
   const _origShowScreen = showScreen;
   showScreen = function(screenId) {
-    _origShowScreen(screenId);
-    if (tutorialActive) {
-      if (screenId === 'screen-pause') {
-        const pBtn = document.querySelector('#screen-pause .btn-menu');
-        if (pBtn) pBtn.innerText = 'SKIP TUTORIAL';
-        if (tutorialBeat === 5 && typeof isMobileDevice === 'function' && isMobileDevice()) {
-          tutorialMobileStep = 2;
-          hideElementSpotlight();
-          const restartBtn = document.getElementById('btn-pause-restart');
-          if (restartBtn) restartBtn.scrollIntoView({ block: 'nearest' });
-          setTimeout(() => {
-            showElementSpotlight(restartBtn, 'HERE');
-          }, 50);
-        }
-      } else if (screenId === 'screen-lose') {
-        const rBtn = document.querySelector('#screen-lose .btn-retry');
-        if (rBtn) rBtn.innerText = 'RESTART TUTORIAL';
-        const mBtn = document.querySelector('#screen-lose .btn-menu');
-        if (mBtn) mBtn.innerText = 'COURSE SELECT';
-      }
+  _origShowScreen(screenId);
+
+  if (screenId === 'screen-pause') {
+    const pBtn = document.querySelector('#screen-pause .btn-menu');
+    if (pBtn) pBtn.innerText = tutorialActive ? 'SKIP TUTORIAL' : 'QUIT TO MENU';
+
+    if (tutorialActive && tutorialBeat === 5 && isMobileDevice()) {
+      tutorialMobileStep = 2;
+      hideElementSpotlight();
+      const restartBtn = document.getElementById('btn-pause-restart');
+      if (restartBtn) restartBtn.scrollIntoView({ block: 'nearest' });
+      setTimeout(() => { showElementSpotlight(restartBtn, 'HERE'); }, 50);
     }
-  };
+  } else if (screenId === 'screen-lose') {
+    const rBtn = document.querySelector('#screen-lose .btn-retry');
+    if (rBtn) rBtn.innerText = tutorialActive ? 'RESTART TUTORIAL' : 'TRY AGAIN';
+    const mBtn = document.querySelector('#screen-lose .btn-menu');
+    if (mBtn) mBtn.innerText = 'COURSE SELECT';
+  }
+};
 }
 
 window.addEventListener('resize', () => {

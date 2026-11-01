@@ -4403,7 +4403,7 @@ function showGhostDeltaCheckpoint(diff) {
   }
   const sign = diff < 0 ? '-' : '+';
   el.innerText = `${sign} ${formatted}`;
-    el.style.color = (diff <= 0) ? '#000000' : '#ffffff';
+    el.style.color = (diff <= 0) ? 'var(--red)' : 'var(--cyan)';
   el.style.display = 'block';
 
   ghostDeltaTimeout = setTimeout(() => {
