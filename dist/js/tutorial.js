@@ -6,6 +6,59 @@ let tutorialForced = false;
 let tutorialMobileStep = 0;
 let activeSpotlightEl = null;
 let activeSpotlightLabel = '';
+let sinkTrapTimer = 0;
+let stallReactionTimer = 0;
+let stallCheckpoint = null;
+
+function showMapSwitchBanner() {
+  let el = document.getElementById('tutorial-map-switch-banner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'tutorial-map-switch-banner';
+    document.body.appendChild(el);
+  }
+  el.style.cssText = 'position:fixed;top:20%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.88);border:2px solid var(--gold);color:var(--gold);font-family:var(--font-stack);font-size:26px;font-weight:900;letter-spacing:4px;text-transform:uppercase;padding:12px 28px;border-radius:4px;box-shadow:0 0 24px rgba(241,196,15,0.7);z-index:585;pointer-events:none;text-align:center;display:block;animation:promptPulse 1s ease-in-out infinite alternate;';
+  el.innerText = 'Now, Lets Practice on another map';
+}
+
+function hideMapSwitchBanner() {
+  const el = document.getElementById('tutorial-map-switch-banner');
+  if (el) el.style.display = 'none';
+}
+
+function showCompassPointer() {
+  let el = document.getElementById('tutorial-compass-pointer');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'tutorial-compass-pointer';
+    document.body.appendChild(el);
+  }
+  el.style.cssText = 'position:fixed;top:168px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;z-index:585;pointer-events:none;';
+  el.innerHTML = '<div style="font-size:26px;line-height:1;color:var(--cyan);animation:tutPulse 0.6s ease-in-out infinite alternate;">▲</div><div style="font-size:12px;font-weight:900;letter-spacing:2px;color:#ffffff;background:rgba(0,0,0,0.88);border:2px solid var(--cyan);box-shadow:0 0 16px var(--cyan);padding:6px 16px;border-radius:4px;text-transform:uppercase;margin-top:2px;white-space:nowrap;">FOLLOW THIS IF LOST</div>';
+  el.style.display = 'flex';
+}
+
+function hideCompassPointer() {
+  const el = document.getElementById('tutorial-compass-pointer');
+  if (el) el.style.display = 'none';
+}
+
+function triggerTutorialFlash(color, duration = 300) {
+  let flash = document.getElementById('tutorial-flash-overlay');
+  if (!flash) {
+    flash = document.createElement('div');
+    flash.id = 'tutorial-flash-overlay';
+    document.body.appendChild(flash);
+  }
+  flash.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:650;transition:opacity ' + (duration / 1000) + 's ease-out;';
+  flash.style.background = color;
+  flash.style.opacity = '1';
+  flash.style.display = 'block';
+  setTimeout(() => {
+    flash.style.opacity = '0';
+    setTimeout(() => { flash.style.display = 'none'; }, duration);
+  }, 40);
+}
 
 function hasExistingPB() {
   for (let i = 0; i < localStorage.length; i++) {
@@ -105,6 +158,8 @@ function cleanupTutorialUI() {
   tutorialBulletTime = false;
   hideTutorialBanner();
   hideElementSpotlight();
+  hideMapSwitchBanner();
+  hideCompassPointer();
   const card = document.getElementById('tutorial-controls-card');
   if (card) card.style.display = 'none';
   document.querySelectorAll('.tutorial-pulse').forEach(el => el.classList.remove('tutorial-pulse'));
@@ -118,6 +173,14 @@ function cleanupTutorialUI() {
     yr.style.opacity = '';
     yr.style.pointerEvents = '';
   }
+  const banner = document.getElementById('tutorial-prompt-banner');
+  if (banner) {
+    banner.style.color = '';
+    banner.style.borderColor = '';
+    banner.style.boxShadow = '';
+  }
+  const stallEl = document.getElementById('stall-warning');
+  if (stallEl) stallEl.style.display = 'none';
 }
 
 function startTutorial(force = false) {
@@ -372,27 +435,252 @@ function tickTutorial(dt) {
   } else if (tutorialBeat === 5) {
     tutorialBulletTime = true;
     if (player.nextGateIdx > 3) player.nextGateIdx = 3;
+  } else if (tutorialBeat === 10) {
+    if (gameState === 'RACING') {
+      hideMapSwitchBanner();
+      showCompassPointer();
+      hideTutorialBanner();
+      tutorialBeat = 11;
+    }
+  } else if (tutorialBeat === 11) {
+    if (player.nextGateIdx >= 2) {
+      tutorialBeat = 12;
+
+      showTutorialBanner('BLUE THERMAL: RIDE UPDRAFTS FOR SPEED / alt!!');
+    }
+  } else if (tutorialBeat === 12) {
+    const dTh = Math.hypot(player.pos.x - (-3600), player.pos.z - (-4200));
+    if (player.inThermal || dTh < 380) {
+      hideCompassPointer();
+      showTutorialBanner('RIDING THERMAL! NOTICE HOW IT PUSHES YOU UPWARD');
+    }
+    if (player.nextGateIdx >= 3) {
+      tutorialBeat = 13;
+      tutorialDelayTimer = 2.0;
+      showTutorialBanner('GREAT! NOW FOLLOW THE ARROW TO GATE 3');
+    }
+  } else if (tutorialBeat === 13) {
+    if (tutorialDelayTimer > 0) {
+      tutorialDelayTimer -= dt;
+      if (tutorialDelayTimer <= 0) hideTutorialBanner();
+    }
+    if (player.nextGateIdx >= 4) {
+      tutorialBeat = 14;
+      showTutorialBanner('FOLLOW THE ARROW TO GATE 4');
+    }
+  } else if (tutorialBeat === 14) {
+    const dxSink = -3200 - player.pos.x;
+    const dzSink = -8400 - player.pos.z;
+    const distSink = Math.hypot(dxSink, dzSink);
+    if (distSink > 260) {
+      const toSinkYaw = Math.atan2(-dxSink, -dzSink);
+      let diffY = toSinkYaw - player.yaw;
+      while (diffY > Math.PI) diffY -= Math.PI * 2;
+      while (diffY < -Math.PI) diffY += Math.PI * 2;
+      if (Math.abs(diffY) > 0.12) {
+        player.yaw += diffY * 3.0 * dt;
+        player.targetRoll = THREE.MathUtils.clamp(-diffY * 2.0, -0.5, 0.5);
+      }
+    }
+    if (distSink < 320 && player.pos.y > 450 && player.pos.y < 950) {
+      tutorialBeat = 14.5;
+      sinkTrapTimer = 0;
+      const b = document.getElementById('tutorial-prompt-banner');
+      if (b) {
+        b.style.color = '#ff4444';
+        b.style.borderColor = '#ff4444';
+        b.style.boxShadow = '0 0 24px rgba(255, 68, 68, 0.8)';
+      }
+      showTutorialBanner('Sink drill: Avoid these!');
+    }
+  } else if (tutorialBeat === 14.5) {
+    screenShake = Math.max(screenShake, 1.5);
+    player.verticalVelocity = Math.min(player.verticalVelocity - 45 * dt, -55);
+    player.pos.y -= 80 * dt;
+    player.flightPathPitch = THREE.MathUtils.lerp(player.flightPathPitch, -0.35, 4.0 * dt);
+    const hG = getTerrainHeight(player.pos.x, player.pos.z, selectedCourseId);
+    if (player.pos.y < hG + 35) {
+      player.pos.y = hG + 35;
+      player.verticalVelocity = 0;
+    }
+    sinkTrapTimer += dt;
+    if (sinkTrapTimer >= 2.0) {
+      player.pos.y += 150;
+      const dx4 = -2200 - player.pos.x;
+      const dz4 = -9600 - player.pos.z;
+      const dist4 = Math.hypot(dx4, dz4) || 1;
+      player.pos.x += (dx4 / dist4) * 360;
+      player.pos.z += (dz4 / dist4) * 360;
+      player.yaw = Math.atan2(-dx4, -dz4);
+      player.pitch = 0;
+      player.flightPathPitch = 0;
+      player.roll = 0;
+      player.verticalVelocity = 35;
+      player.speed = Math.max(player.speed, 105);
+      const b = document.getElementById('tutorial-prompt-banner');
+      if (b) {
+        b.style.color = '';
+        b.style.borderColor = '';
+        b.style.boxShadow = '';
+      }
+      if (typeof audio !== 'undefined' && audio.playRecoveryBoost) audio.playRecoveryBoost();
+      screenShake = 0.4;
+      showTutorialBanner('[Tutorial] Auto Rescue! PROCEED TO GATE 4');
+      tutorialBeat = 15;
+    }
+  } else if (tutorialBeat === 15) {
+    if (player.nextGateIdx >= 5) {
+      stallCheckpoint = {
+        x: player.pos.x,
+        y: player.pos.y,
+        z: player.pos.z,
+        yaw: player.yaw,
+        speed: 85
+      };
+      tutorialBeat = 15.5; 
+      tutorialDelayTimer = 1.2; 
+    }
+  } else if (tutorialBeat === 15.5) {
+    tutorialDelayTimer -= dt;
+    if (tutorialDelayTimer <= 0) {
+      tutorialBeat = 16;
+    }
+  } else if (tutorialBeat === 16) {
+    showTutorialBanner('STALL DRILL: CLIMB STRAIGHT UP!');
+    mobilePitchInput = 0;
+    gpPitch = 0;
+    mouseY = 0;
+    player.targetPitch = 0.65;
+    player.pitch = THREE.MathUtils.lerp(player.pitch, 0.65, 4.0 * dt);
+    player.flightPathPitch = THREE.MathUtils.lerp(player.flightPathPitch, 0.65, 3.5 * dt);
+    player.roll = THREE.MathUtils.lerp(player.roll, 0, 5.0 * dt);
+    player.speed = Math.max(10, player.speed - 36.0 * dt);
+    const stallEl = document.getElementById('stall-warning');
+    if (stallEl) stallEl.style.display = 'block';
+    if (typeof audio !== 'undefined' && audio.playStallAlarm) audio.playStallAlarm();
+    screenShake = Math.max(screenShake, 0.85);
+    if (player.speed <= 24) {
+      tutorialBeat = 16.5;
+      tutorialBulletTime = true;
+      stallReactionTimer = 1.5;
+      showTutorialBanner(isMob ? 'STALL! PITCH DOWN TO DIVE! (DRAG JOYSTICK UP)' : 'STALL! PITCH DOWN TO DIVE! (PRESS W)');
+    }
+  } else if (tutorialBeat === 16.5) {
+    stallReactionTimer -= (dt / 0.10);
+    const pitchedDownDesktop = (typeof keys !== 'undefined' && (keys['KeyW'] || keys['ArrowUp'])) || (typeof isActionPressed === 'function' && isActionPressed('pitchDown'));
+    const pitchedDownMobile = (typeof mobilePitchInput !== 'undefined' && mobilePitchInput < -0.2);
+    const isDiving = pitchedDownDesktop || pitchedDownMobile || (typeof player !== 'undefined' && (player.targetPitch < -0.15 || player.pitch < 0.1));
+    if (isDiving) {
+      tutorialBulletTime = false;
+      triggerTutorialFlash('rgba(0, 240, 255, 0.7)', 450);
+      player.speed = 135;
+      player.pitch = -0.28;
+      player.flightPathPitch = -0.28;
+      player.verticalVelocity = -15;
+      screenShake = 0.5;
+      const stallEl = document.getElementById('stall-warning');
+      if (stallEl) stallEl.style.display = 'none';
+      if (typeof audio !== 'undefined' && audio.playRecoveryBoost) audio.playRecoveryBoost();
+      showTutorialBanner('PERFECT DIVE RECOVERY! SPEED BOOST!');
+      tutorialBeat = 17;
+      tutorialDelayTimer = 2.5;
+    } else if (stallReactionTimer <= 0) {
+      triggerTutorialFlash('#000000', 400);
+      player.pos.set(stallCheckpoint.x, stallCheckpoint.y, stallCheckpoint.z);
+      player.yaw = stallCheckpoint.yaw;
+      player.pitch = 0;
+      player.flightPathPitch = 0;
+      player.roll = 0;
+      player.verticalVelocity = 0;
+      player.speed = stallCheckpoint.speed;
+      player.nextGateIdx = 5;
+      tutorialBulletTime = false;
+      const stallEl = document.getElementById('stall-warning');
+      if (stallEl) stallEl.style.display = 'none';
+      if (typeof audio !== 'undefined' && audio.playBeep) audio.playBeep(260, 'sine', 0.15);
+      showTutorialBanner('STALL FAILED! RETRYING...');
+      tutorialBeat = 16;
+    }
+  } else if (tutorialBeat === 17) {
+    tutorialDelayTimer -= dt;
+    if (tutorialDelayTimer <= 0 && tutorialDelayTimer > -10) {
+      showTutorialBanner('FLY THROUGH THE REMAINING GATES TO FINISH!');
+    }
+    if (tutorialDelayTimer < -4.0) {
+      hideTutorialBanner();
+    }
   }
 }
 
-function graduateTutorial() {
+function startCanyonB() {
+  cleanupTutorialUI();
+  selectedCourseId = 'canyon';
+  selectedSubtrack = 'B';
+  gameMode = 'timetrial';
+  if (typeof buildCourse === 'function') buildCourse('canyon');
+  const course = COURSES['canyon'];
+  const activeSubtrack = course.subtracks['B'];
+  cliffLaunchPos.copy(activeSubtrack.cliffPos || course.cliffPos);
+  cliffForwardDir.copy(activeSubtrack.cliffForward || course.cliffForward);
+  const runwayBasePos = _tempVec1.copy(cliffLaunchPos).sub(_tempVec2.copy(cliffForwardDir).multiplyScalar(220));
+  player.pos.copy(runwayBasePos);
+  player.pitch = 0;
+  player.roll = 0;
+  player.flightPathPitch = 0;
+  player.targetPitch = 0;
+  player.targetRoll = 0;
+  player.rudderDeflection = 0;
+  player.speed = 0;
+  player.nextGateIdx = 1;
+  player.rank = 1;
+  player.airbrake = false;
+  player.verticalVelocity = 0;
+  player.yaw = Math.atan2(-cliffForwardDir.x, -cliffForwardDir.z);
+  mouseX = 0;
+  mouseY = 0;
+  if (typeof showScreen === 'function') showScreen(null);
+  const hudEl = document.getElementById('hud-overlay');
+  if (hudEl) hudEl.style.display = 'block';
+  if (paragliderWingGroup) paragliderWingGroup.visible = true;
+  if (typeof updateCameraView === 'function') updateCameraView(0, 0);
+  tutorialBeat = 10;
+  tutorialBulletTime = false;
+  sinkTrapTimer = 0;
+  stallReactionTimer = 0;
+  gameState = 'RUNUP';
+  runupProgress = 0;
+  countdownElapsed = 0;
+  countdownStage = 3;
+  const countBox = document.getElementById('countdown-box');
+  if (countBox) {
+    countBox.style.display = 'block';
+    countBox.innerText = '3';
+  }
+  if (typeof audio !== 'undefined' && audio.playBeep) audio.playBeep(440, 'sine', 0.15);
+  showMapSwitchBanner();
+  hideCompassPointer();
+}
+
+function startTransitionToCanyonB() {
+  startCanyonB();
+}
+
+function completeTutorial() {
   tutorialActive = false;
   try {
     localStorage.setItem('glider_tutorial_complete', 'true');
   } catch (e) {}
-  
   cleanupTutorialUI();
-  
   if (typeof gameState !== 'undefined') {
-    gameState = 'PAUSED'; 
+    gameState = 'PAUSED';
   }
   if (typeof audio !== 'undefined' && audio.stopAllAudio) audio.stopAllAudio();
-  
   const hudEl = document.getElementById('hud-overlay');
   if (hudEl) hudEl.style.display = 'none';
   const pauseScreen = document.getElementById('screen-pause');
   if (pauseScreen) pauseScreen.classList.add('hidden');
-
+  const winScreen = document.getElementById('screen-win');
+  if (winScreen) winScreen.classList.add('hidden');
   const isMob = typeof isMobileDevice === 'function' && isMobileDevice();
   let card = document.getElementById('tutorial-controls-card');
   if (!card) {
@@ -400,35 +688,49 @@ function graduateTutorial() {
     card.id = 'tutorial-controls-card';
     document.body.appendChild(card);
   }
-  
   card.innerHTML = `
     <div class="tutorial-card-title" style="font-size: 24px; color: var(--gold); text-shadow: 0 0 10px rgba(241, 196, 15, 0.5);">TUTORIAL COMPLETE!</div>
     <div style="font-size: 12px; letter-spacing: 1.5px; color: var(--mono-90); text-transform: uppercase; text-align: center; line-height: 1.6; margin-top: 10px;">
-      THAT'S IT FOR THE TUTORIAL!<br>HAVE FUN!
+      THATS IT FOR THE TUTORIAL!<br>HAVE FUN!
     </div>
-    <div class="tutorial-card-prompt" style="margin-top: 20px;">${isMob ? 'TAP TO CONTINUE' : 'PRESS ANY KEY TO CONTINUE'}</div>
+    <div class="tutorial-card-prompt" style="margin-top: 20px;">${isMob ? 'TAP TO RETURN TO MENU' : 'PRESS ANY KEY TO RETURN TO MENU'}</div>
   `;
   card.style.display = 'flex';
 
-  function onContinue(e) {
+  function onFinishTutorial(e) {
     if (e && e.code === 'KeyR') return;
-
-    window.removeEventListener('keydown', onContinue);
-    window.removeEventListener('pointerdown', onContinue);
+    window.removeEventListener('keydown', onFinishTutorial);
+    window.removeEventListener('pointerdown', onFinishTutorial);
     card.style.display = 'none';
-    
-    if (typeof startCountdown === 'function') {
-      startCountdown();
-    }
+    gameState = 'START';
+    if (typeof showScreen === 'function') showScreen('screen-start');
+    if (typeof playMenuTheme === 'function') playMenuTheme('menu');
   }
 
   setTimeout(() => {
-    window.addEventListener('keydown', onContinue);
-    window.addEventListener('pointerdown', onContinue);
-  }, 300);
+    window.addEventListener('keydown', onFinishTutorial);
+    window.addEventListener('pointerdown', onFinishTutorial);
+  }, 400);
+}
+
+function graduateTutorial() {
+  if (tutorialBeat === 5) {
+    startTransitionToCanyonB();
+    return;
+  }
+  completeTutorial();
 }
 
 function restartTutorialFromSpotlight() {
+  if (tutorialBeat === 5 || tutorialMobileStep >= 1) {
+    startTransitionToCanyonB();
+    return;
+  }
+  if (tutorialBeat >= 10) {
+    cleanupTutorialUI();
+    startCanyonB();
+    return;
+  }
   cleanupTutorialUI();
   startTutorial(true);
 }
@@ -486,6 +788,9 @@ if (typeof isActionPressed === 'function') {
         if (action === 'pitchDown' || action === 'pitchUp' || action === 'rollLeft' || action === 'rollRight' || action === 'airbrake') {
           return false;
         }
+      }
+      if (tutorialBeat === 16 && (action === 'pitchDown' || action === 'pitchUp')) {
+        return false;
       }
     }
     return _origIsAction(action);
@@ -572,7 +877,10 @@ if (typeof showScreen === 'function') {
           tutorialMobileStep = 2;
           hideElementSpotlight();
           const restartBtn = document.getElementById('btn-pause-restart');
-          showElementSpotlight(restartBtn, 'HERE');
+          if (restartBtn) restartBtn.scrollIntoView({ block: 'nearest' });
+          setTimeout(() => {
+            showElementSpotlight(restartBtn, 'HERE');
+          }, 50);
         }
       } else if (screenId === 'screen-lose') {
         const rBtn = document.querySelector('#screen-lose .btn-retry');
@@ -589,3 +897,14 @@ window.addEventListener('resize', () => {
     showElementSpotlight(activeSpotlightEl, activeSpotlightLabel);
   }
 });
+
+if (typeof finishRace === 'function') {
+  const _origFinishRace = finishRace;
+  finishRace = function() {
+    if (tutorialActive) {
+      completeTutorial();
+      return;
+    }
+    _origFinishRace();
+  };
+}

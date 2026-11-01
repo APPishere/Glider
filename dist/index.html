@@ -312,6 +312,7 @@
   <div id="thermal-hint">THERMAL UPDRAFT</div>
   <div id="stall-warning">WARNING: AIRSPEED CRITICAL PULL DOWN!!</div>
   <div id="stall-bonus">STALL DIVE RECOVERY: SPEED BOOST</div>
+  <div id="ghost-delta-flash"></div>
 
   <div class="hud-stats">
     <div class="stat-group"><span>ALT</span><b id="hud-alt">0</b> FT</div>
@@ -673,7 +674,8 @@
   </div>
 </div>
 
-<div id="screen-shop" class="menu-screen hidden" style="max-width: 780px; width: 92%;">
+<div id="screen-shop" class="menu-screen hidden" style="max-width: 860px; width: 94%;">
+  <button class="mono-btn" id="btn-shop-back">BACK</button>
   <div id="shop-tv-container" class="shop-tv-corner"></div>
 
   <div id="shop-cellar-door-wrap" title="Enter The Storm..." style="position: absolute; bottom: 14px; right: 20px; width: 84px; height: 130px; perspective: 450px; display: none; z-index: 85;">
@@ -689,30 +691,33 @@
     </div>
   </div>
 
-  <img src="shop.png" alt="shop" class="shop-screen" style="margin-bottom: 6px;">
-  <div class="menu-subtitle">All products are achieved by TIME TRIALS</div>
+  <img src="shop.png" alt="shop" class="shop-screen" style="margin-bottom: 4px;">
+  <div class="menu-subtitle" style="margin-bottom: 8px;">All products are achieved by TIME TRIALS</div>
 
-  <div style="display: flex; gap: 20px; width: 100%; margin-bottom: 18px; align-items: stretch; flex-wrap: wrap;">
-    <div id="shop-glider-list" style="flex: 1; min-width: 240px; max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
+  <div id="shop-split-tabs">
+    <div class="shop-split-col">
+      <div class="shop-split-heading">PARAGLIDER CANOPIES</div>
+      <div id="shop-glider-list" class="shop-items-scroll"></div>
     </div>
-
-    <div style="flex: 1.2; min-width: 260px; border: 1px solid var(--mono-20); background: rgba(255,255,255,0.02); padding: 16px; display: flex; flex-direction: column; align-items: center; justify-content: space-between;">
-      <div id="shop-canvas-wrap-mobile" style="display: flex; justify-content: center; width: 100%;">
-        <canvas id="shop-canvas" width="280" height="150" style="width: 280px; height: 150px; border: 1px solid var(--mono-20); background: #0a0a0a;"></canvas>
-      </div>
-      <div style="width: 100%; text-align: center; margin: 10px 0;">
-        <div id="shop-inspect-name" style="font-size: 15px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--mono);">GLIDER NAME</div>
-        <div id="shop-inspect-color" style="font-size: 11px; letter-spacing: 1px; color: var(--gold); margin-top: 4px; text-transform: uppercase;">COLOR: RED</div>
-        <div id="shop-inspect-req" style="font-size: 10px; letter-spacing: 1px; color: var(--mono-60); margin-top: 8px; line-height: 1.5; text-transform: uppercase; border-top: 1px solid var(--mono-20); padding-top: 8px;">REQUIREMENTS</div>
-      </div>
-      <div id="shop-action-box" style="width: 100%; display: flex; justify-content: center; margin-top: 6px;">
-        <button class="mono-btn" id="btn-equip-glider" style="border-color: var(--cyan); color: var(--cyan); padding: 9px 28px;">EQUIP</button>
-      </div>
+    <div class="shop-split-col">
+      <div class="shop-split-heading">TIME TRIAL GHOST DRONES</div>
+      <div id="shop-drone-list" class="shop-items-scroll"></div>
     </div>
   </div>
 
-  <div class="row-group" style="margin-bottom: 0;">
-    <button class="mono-btn" id="btn-shop-back">BACK</button>
+  <div id="shop-preview-modal">
+    <button id="btn-close-shop-preview" class="mono-btn">✕</button>
+    <div id="shop-canvas-wrap-mobile" style="display: flex; justify-content: center; width: 100%;">
+      <canvas id="shop-canvas" width="280" height="150" style="width: 280px; height: 150px; border: 1px solid var(--mono-20); background: #0a0a0a;"></canvas>
+    </div>
+    <div style="width: 100%; text-align: center; margin: 8px 0;">
+      <div id="shop-inspect-name" style="font-size: 15px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--mono);">GLIDER NAME</div>
+      <div id="shop-inspect-color" style="font-size: 11px; letter-spacing: 1px; color: var(--gold); margin-top: 4px; text-transform: uppercase;">COLOR: RED</div>
+      <div id="shop-inspect-req" style="font-size: 10px; letter-spacing: 1px; color: var(--mono-60); margin-top: 8px; line-height: 1.5; text-transform: uppercase; border-top: 1px solid var(--mono-20); padding-top: 8px;">REQUIREMENTS</div>
+    </div>
+    <div id="shop-action-box" style="width: 100%; display: flex; justify-content: center; margin-top: 6px;">
+      <button class="mono-btn" id="btn-equip-glider" style="border-color: var(--cyan); color: var(--cyan); padding: 9px 28px;">EQUIP</button>
+    </div>
   </div>
 </div>
 
@@ -901,7 +906,7 @@
     </div>
   </div>
 
-  <div class="control-toggle-box" style="flex-direction: column; align-items: stretch; gap: 8px;">
+  <div class="control-toggle-box desktop-only-setting" style="flex-direction: column; align-items: stretch; gap: 8px;">
     <div class="control-toggle-label">INVERSE CONTROLS</div>
     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
       <span class="control-toggle-label" style="font-size: 10px;">Pitch:</span>

@@ -2849,6 +2849,8 @@ let savedGhostData = null;
 let ghostDroneGroup = null;
 let ghostFrameIdx = 0;
 const ghostCache = {};
+let ghostWaypointTimes = {};
+let ghostDeltaTimeout = null;
 
 let impossibleDifficultyUnlocked = false;
 let devFreeCam = false;
