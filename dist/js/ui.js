@@ -621,6 +621,12 @@ currentGhostRun = [];
 ghostFrameIdx = 0;
 playerDraftTimer = 0;
 screenShake = 0;
+if (ghostDeltaTimeout) {
+  clearTimeout(ghostDeltaTimeout);
+  ghostDeltaTimeout = null;
+}
+const deltaFlashEl = document.getElementById('ghost-delta-flash');
+if (deltaFlashEl) deltaFlashEl.style.display = 'none';
 player._usedRudderBoostThisRun = false;
 player._hit165Clean = false;
 player.runDistance = 0;
@@ -1517,6 +1523,12 @@ function showGrandPrixSummary() {
 function finishRace() {
   gameState = 'FINISHED';
   audio.stopAllAudio();
+  if (ghostDeltaTimeout) {
+    clearTimeout(ghostDeltaTimeout);
+    ghostDeltaTimeout = null;
+  }
+  const deltaFlashEl = document.getElementById('ghost-delta-flash');
+  if (deltaFlashEl) deltaFlashEl.style.display = 'none';
 
   const gId = getEquippedSkinId();
   const currentDist = parseFloat(localStorage.getItem(`glider_dist_${gId}`) || 0);
@@ -1598,6 +1610,9 @@ if (isKrampusBossDuel) {
         } catch (e) {}
       ghostCache[ghostKey] = currentGhostRun.slice();
       savedGhostData = ghostCache[ghostKey];
+      if (typeof precomputeGhostWaypointTimes === 'function') {
+        precomputeGhostWaypointTimes();
+      }
     }
 
     const ghId = getEquippedGhostSkinId();
@@ -1681,6 +1696,12 @@ if (isKrampusBossDuel) {
 function endRace(reason) {
   gameState = 'FINISHED';
   audio.stopAllAudio();
+  if (ghostDeltaTimeout) {
+    clearTimeout(ghostDeltaTimeout);
+    ghostDeltaTimeout = null;
+  }
+  const deltaFlashEl = document.getElementById('ghost-delta-flash');
+  if (deltaFlashEl) deltaFlashEl.style.display = 'none';
   const gId = getEquippedSkinId();
   const currentDist = parseFloat(localStorage.getItem(`glider_dist_${gId}`) || 0);
   const currentSpd = parseFloat(localStorage.getItem(`glider_speed_${gId}`) || 0);
@@ -2177,6 +2198,7 @@ function setupUI() {
       delete ghostCache[k];
     });
     savedGhostData = null;
+    ghostWaypointTimes = {};
     updatePBTags();
     updateMedalDisplay();
     audio.playCrash();
@@ -2491,6 +2513,15 @@ function setupUI() {
   });
 
   document.getElementById('btn-shop-back').addEventListener('click', () => showScreen('screen-select'));
+
+  const btnCloseShopPreview = document.getElementById('btn-close-shop-preview');
+  if (btnCloseShopPreview) {
+    btnCloseShopPreview.addEventListener('click', () => {
+      audio.init();
+      const prevModal = document.getElementById('shop-preview-modal');
+      if (prevModal) prevModal.style.display = 'none';
+    });
+  }
 
   document.querySelectorAll('#screen-select-mobile .track-opt').forEach(opt => {
     opt.addEventListener('click', () => {
@@ -3318,17 +3349,13 @@ function showScreen(screenId) {
   const jbWidget = document.getElementById('jukebox-widget');
   if (settingsBtn) {
     settingsBtn.style.display = screenId ? 'flex' : 'none';
+    settingsBtn.style.top = isMobile ? '14px' : '18px';
+    settingsBtn.style.right = isMobile ? '14px' : '18px';
+    settingsBtn.style.bottom = 'auto';
     if (!isMobile) {
       const hasBigSettingsBtn = dashEl && dashEl.style.display === 'flex';
-      if (!hasBigSettingsBtn) {
-        settingsBtn.style.top = '18px';
-        settingsBtn.style.right = '18px';
-        settingsBtn.style.bottom = 'auto';
-      } else {
+      if (hasBigSettingsBtn) {
         settingsBtn.style.display = 'none';
-        settingsBtn.style.top = 'auto';
-        settingsBtn.style.bottom = '18px';
-        settingsBtn.style.right = '18px';
       }
     }
   }

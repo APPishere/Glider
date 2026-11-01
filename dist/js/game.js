@@ -178,7 +178,109 @@ buildParagliderMesh();
       return;
     }
     if (isActionPressed('airbrake')) player.airbrake = true;
-    if (e.code === 'Escape') togglePauseMenu();
+    if (e.code === 'Escape') {
+      const tutCard = document.getElementById('tutorial-controls-card');
+      if (tutCard && tutCard.style.display !== 'none') {
+        tutCard.style.display = 'none';
+        if (typeof skipTutorial === 'function') skipTutorial();
+        return;
+      }
+
+      const keybindModal = document.getElementById('keybind-modal-overlay');
+      if (keybindModal && keybindModal.style.display !== 'none' && !keybindModal.classList.contains('hidden')) {
+        activeRebindAction = null;
+        activeRebindIndex = -1;
+        keybindModal.style.display = 'none';
+        return;
+      }
+
+      const saveModal = document.getElementById('save-transfer-overlay');
+      if (saveModal && saveModal.style.display !== 'none' && !saveModal.classList.contains('hidden')) {
+        saveModal.style.display = 'none';
+        return;
+      }
+
+      const settingsModal = document.getElementById('settings-overlay');
+      if (settingsModal && settingsModal.style.display !== 'none' && !settingsModal.classList.contains('hidden')) {
+        settingsModal.style.display = 'none';
+        updateHalloweenThemeVisibility();
+        return;
+      }
+
+      const unlOverlay = document.getElementById('unlocked-message-overlay');
+      if (unlOverlay && unlOverlay.style.display !== 'none' && !unlOverlay.classList.contains('hidden')) {
+        unlOverlay.style.display = 'none';
+        return;
+      }
+
+      const repoOverlay = document.getElementById('mobile-reposition-overlay');
+      if (repoOverlay && repoOverlay.style.display !== 'none') {
+        closeMobileRepositionEditor(false);
+        return;
+      }
+
+      const shopPreviewModal = document.getElementById('shop-preview-modal');
+      if (shopPreviewModal && shopPreviewModal.style.display !== 'none') {
+        shopPreviewModal.style.display = 'none';
+        return;
+      }
+
+      const dashEl = document.getElementById('desktop-dashboard');
+      if (dashEl && dashEl.style.display !== 'none') {
+        const colRight = document.getElementById('dash-col-right');
+        if (colRight && colRight.style.display !== 'none' && !colRight.classList.contains('hidden')) {
+          closeDashboardRight();
+          return;
+        }
+        if (typeof currentDashboardCat !== 'undefined' && currentDashboardCat !== null) {
+          setDashboardCategory(null);
+          return;
+        }
+      }
+
+      const gpPreviewScreen = document.getElementById('screen-gp-preview');
+      if (gpPreviewScreen && !gpPreviewScreen.classList.contains('hidden') && gpPreviewScreen.style.display !== 'none') {
+        showScreen('screen-select');
+        return;
+      }
+
+      const gpSummaryScreen = document.getElementById('screen-gp-summary');
+      if (gpSummaryScreen && !gpSummaryScreen.classList.contains('hidden') && gpSummaryScreen.style.display !== 'none') {
+        grandPrixState.active = false;
+        showScreen('screen-select');
+        return;
+      }
+
+      const dispatchScreen = document.getElementById('screen-dispatch');
+      if (dispatchScreen && !dispatchScreen.classList.contains('hidden') && dispatchScreen.style.display !== 'none') {
+        showScreen('screen-select');
+        return;
+      }
+
+      const shopScreen = document.getElementById('screen-shop');
+      if (shopScreen && !shopScreen.classList.contains('hidden') && shopScreen.style.display !== 'none') {
+        showScreen('screen-select');
+        return;
+      }
+
+      const selectScreen = document.getElementById('screen-select');
+      const selectMobile = document.getElementById('screen-select-mobile');
+      if ((selectScreen && !selectScreen.classList.contains('hidden') && selectScreen.style.display !== 'none') ||
+          (selectMobile && !selectMobile.classList.contains('hidden') && selectMobile.style.display !== 'none')) {
+        showScreen('screen-start');
+        return;
+      }
+
+      const winScreen = document.getElementById('screen-win');
+      const loseScreen = document.getElementById('screen-lose');
+      if ((winScreen && !winScreen.classList.contains('hidden') && winScreen.style.display !== 'none') ||
+          (loseScreen && !loseScreen.classList.contains('hidden') && loseScreen.style.display !== 'none')) {
+        showScreen('screen-select');
+        return;
+      }
+
+      togglePauseMenu();
+    }
   });
 
   window.addEventListener('keyup', (e) => {
@@ -983,15 +1085,19 @@ function openShopMenu() {
   inspectedType = 'glider';
   inspectedGliderId = getEquippedSkinId();
   inspectedGhostId = getEquippedGhostSkinId();
+  const prevModal = document.getElementById('shop-preview-modal');
+  if (prevModal) prevModal.style.display = 'none';
   renderShop();
   showScreen('screen-shop');
 }
 
 function renderShop() {
   const listEl = document.getElementById('shop-glider-list');
+  const droneListEl = document.getElementById('shop-drone-list');
   const dashListEl = document.getElementById('dash-shop-items-list');
   if (!listEl && !dashListEl) return;
   if (listEl) listEl.innerHTML = '';
+  if (droneListEl) droneListEl.innerHTML = '';
   if (dashListEl) dashListEl.innerHTML = '';
 
   const targetCanvasWrap = !isMobileDevice()
@@ -1042,6 +1148,10 @@ function renderShop() {
       inspectedType = 'glider';
       inspectedGliderId = skin.id;
       renderShop();
+      const prevModal = document.getElementById('shop-preview-modal');
+      if (prevModal && isMobileDevice()) {
+        prevModal.style.display = 'flex';
+      }
     });
 
     if (listEl) listEl.appendChild(item);
@@ -1051,8 +1161,8 @@ function renderShop() {
   const ghostHeading = document.createElement('div');
   ghostHeading.style.cssText = 'font-size: 10px; letter-spacing: 2px; color: var(--cyan); margin: 14px 0 2px 2px; text-transform: uppercase; font-weight: 700;';
   ghostHeading.innerText = 'TIME TRIAL GHOST DRONES';
-  if (listEl) listEl.appendChild(ghostHeading);
-  if (dashListEl) dashListEl.appendChild(ghostHeading.cloneNode(true));
+  if (!droneListEl && listEl) listEl.appendChild(ghostHeading);
+  if (dashListEl) dashListEl.appendChild(ghostHeading);
 
   GHOST_SKINS.forEach(skin => {
     const isUnlocked = skin.checkUnlocked(stats);
@@ -1080,9 +1190,14 @@ function renderShop() {
       inspectedType = 'ghost';
       inspectedGhostId = skin.id;
       renderShop();
+      const prevModal = document.getElementById('shop-preview-modal');
+      if (prevModal && isMobileDevice()) {
+        prevModal.style.display = 'flex';
+      }
     });
 
-    if (listEl) listEl.appendChild(item);
+    if (droneListEl) droneListEl.appendChild(item);
+    else if (listEl) listEl.appendChild(item);
     if (dashListEl) dashListEl.appendChild(item.cloneNode(true));
   });
 
@@ -4226,6 +4341,77 @@ setupTrackHazards(courseKey, activeSubtrack);
   }
 }
 
+function precomputeGhostWaypointTimes() {
+  ghostWaypointTimes = {};
+  if (!savedGhostData || savedGhostData.length < 2) return;
+  const course = COURSES[selectedCourseId];
+  if (!course) return;
+  const activeSubtrack = course.subtracks[selectedSubtrack];
+  if (!activeSubtrack || !activeSubtrack.waypoints) return;
+  const wps = activeSubtrack.waypoints;
+
+  let fStart = 0;
+  for (let i = 1; i < wps.length; i++) {
+    const wp = wps[i];
+    let bestDist = Infinity;
+    let bestFrame = fStart;
+    let bestTime = savedGhostData[fStart].t;
+
+    for (let f = fStart; f < savedGhostData.length; f++) {
+      const frame = savedGhostData[f];
+      const d = Math.hypot(frame.x - wp.x, frame.y - wp.y, frame.z - wp.z);
+      if (d < bestDist) {
+        bestDist = d;
+        bestFrame = f;
+        bestTime = frame.t;
+      } else if (bestDist < 250 && d > bestDist + 150) {
+        break;
+      }
+    }
+
+    if (bestFrame > 0 && bestFrame < savedGhostData.length - 1) {
+      const fPrev = savedGhostData[bestFrame - 1];
+      const fCurr = savedGhostData[bestFrame];
+      const fNext = savedGhostData[bestFrame + 1];
+      const dPrev = Math.hypot(fPrev.x - wp.x, fPrev.y - wp.y, fPrev.z - wp.z);
+      const dNext = Math.hypot(fNext.x - wp.x, fNext.y - wp.y, fNext.z - wp.z);
+      const fA = (dPrev < dNext) ? fPrev : fCurr;
+      const fB = (dPrev < dNext) ? fCurr : fNext;
+      const dx = fB.x - fA.x, dy = fB.y - fA.y, dz = fB.z - fA.z;
+      const lenSq = dx * dx + dy * dy + dz * dz;
+      if (lenSq > 0.001) {
+        const tProj = Math.max(0, Math.min(1, ((wp.x - fA.x) * dx + (wp.y - fA.y) * dy + (wp.z - fA.z) * dz) / lenSq));
+        bestTime = fA.t + tProj * (fB.t - fA.t);
+      }
+    }
+
+    ghostWaypointTimes[i] = bestTime;
+    fStart = bestFrame;
+  }
+}
+
+function showGhostDeltaCheckpoint(diff) {
+  const el = document.getElementById('ghost-delta-flash');
+  if (!el) return;
+  if (ghostDeltaTimeout) {
+    clearTimeout(ghostDeltaTimeout);
+    ghostDeltaTimeout = null;
+  }
+  let formatted = Math.abs(diff).toFixed(2);
+  if (formatted.endsWith('0') && !formatted.endsWith('.00')) {
+    formatted = formatted.slice(0, -1);
+  }
+  const sign = diff < 0 ? '-' : '+';
+  el.innerText = `${sign} ${formatted}`;
+    el.style.color = (diff <= 0) ? '#000000' : '#ffffff';
+  el.style.display = 'block';
+
+  ghostDeltaTimeout = setTimeout(() => {
+    el.style.display = 'none';
+    ghostDeltaTimeout = null;
+  }, 1000);
+}
+
 function loadGhostDrone() {
   const ghostKey = `ghost_${selectedCourseId}_${selectedSubtrack}`;
   let data = ghostCache[ghostKey] || null;
@@ -4239,8 +4425,10 @@ function loadGhostDrone() {
   if (data && data.length > 2) {
     savedGhostData = data;
     createGhostDroneMesh();
+    precomputeGhostWaypointTimes();
   } else {
     savedGhostData = null;
+    ghostWaypointTimes = {};
     if (ghostDroneGroup) {
       environmentGroup.remove(ghostDroneGroup);
       ghostDroneGroup = null;
@@ -5647,7 +5835,16 @@ const is16BitGlider = (getEquippedSkinId() === 'glider_16bit');
   const dist = player.pos.distanceTo(targetGate.pos);
   if (dist < targetGate.radius + 14) {
     audio.playGateWhoosh();
+    const passedIdx = player.nextGateIdx;
     player.nextGateIdx++;
+
+    if (gameMode === 'timetrial' && savedGhostData && savedGhostData.length > 2 && ghostDroneGroup) {
+      if (passedIdx % 2 === 0 && ghostWaypointTimes && ghostWaypointTimes[passedIdx] !== undefined) {
+        const diff = ghostWaypointTimes[passedIdx] - raceElapsedTime;
+        showGhostDeltaCheckpoint(diff);
+      }
+    }
+
     if (player.nextGateIdx >= activeSubtrack.waypoints.length) {
       triggerRaceFinishSequence();
       return;   
