@@ -125,7 +125,8 @@ Open the app as normal!
 - **Mobile UI is still WIP.** Controls work but some UI elements arent finished - +95% done
 - **Heavy Front Loading On Mobile Devices / All devices really but specifically on slower internet for service workers causes the devices to be locked at the logo screen for quite a while**
 - **PC UI is still WIP** Controls work but again UI elements are not decided. - +95% done
-- **Multiplayer** WIP... (Currently top of list) 
+- **Multiplayer** WIP... (Currently top of list)
+- **Daily challenges** comming soon!
 
 
 
