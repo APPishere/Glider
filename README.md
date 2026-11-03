@@ -7,6 +7,13 @@ There is no need for engines here only pitch, roll, and the raw physics of fligh
 
 The skies are waiting but the ground is closer than it seems.
 
+### Dont Want to Download the game? Its okay! play here:
+- →  [Play On Git Pages!](https://appishere.github.io/Glider/) - supports Sw.js   
+- → [Play On Itch!](https://app-here.itch.io/glider)  
+- → [Play On Cloudflare!](https://glider.pages.dev/)  - supports Sw.js  (back up)
+- → [Play On Gamejolt!](https://gamejolt.com/games/Glider/1097745)
+- → [Play On Netlify!](https://glidergame.netlify.app/) - not recommended, very limited tokens since im on free but serves as a back up. (i also might forget to upd this) 
+
 ## CONTROLS:
 
 Keyboard (WASD Mode + Mouse):
@@ -24,6 +31,8 @@ Keyboard (WASD Mode + Mouse):
 > Move Mouse – Pitch / Roll  left/right and up /down of screen + also left click for Q, right click for E
 
 > Spacebar – Airbrake (if wanted)
+
+> Barrel roll: double tap A / D
 
 > Esc – Pause / Resume
 
@@ -48,10 +57,12 @@ Controller:
 
 > B / Circle – Back / Cancel (Menus)
 
+> Left Stick - Move to left / right twice to perform a barrel roll! 
+
 
  Mobile?
-Dont worry! You can use D-Pad, Analog, Touch anywhere on the screen OR Gyro!
-(NOTE: Some UI is STILL work in progress!)
+> Dont worry! You can use D-Pad, Analog, Touch anywhere on the screen OR Gyro just make sure to click the little settings icon in the top right to change it!
+> Barrel roll: currently not available on gyro
 
 
 > ### Check out the Artist!
@@ -60,12 +71,6 @@ Dont worry! You can use D-Pad, Analog, Touch anywhere on the screen OR Gyro!
 
 > https://www.instagram.com/konekoxart/
 
-### Dont Want to Download the game? Its okay! play here:
-- →  [Play On Git Pages!](https://appishere.github.io/Glider/) - supports Sw.js   
-- → [Play On Itch!](https://app-here.itch.io/glider)  
-- → [Play On Cloudflare!](https://glider.pages.dev/)  - supports Sw.js 
-- → [Play On Gamejolt!](https://gamejolt.com/games/Glider/1097745)
-- → [Play On Netlify!](https://glidergame.netlify.app/) - not recommended, very limited tokens since im on free but serves as a back up. (i also might forget to upd this) 
 
 
 ## Installation Troubleshooting:
@@ -119,14 +124,14 @@ Open the app as normal!
 4. Tap **Install** / **Add** when prompted.
 5. The game app icon will appear in your App Drawer and on your Home Screen!
 
+>OxygenOS Users (OnePlus): If the icon doesn't appear on your home screen, go to Settings > Home screen & Lock screen > Home screen settings and make sure "Add new apps to Home screen" is turned ON.
+
 
 
 ## Known Issues
-- **Mobile UI is still WIP.** Controls work but some UI elements arent finished - +95% done
+- **Mobile UI is still WIP.** Basically finished! just have to make sure everything on mobile side is good - 97% done
 - **Heavy Front Loading On Mobile Devices / All devices really but specifically on slower internet for service workers causes the devices to be locked at the logo screen for quite a while**
-- **PC UI is still WIP** Controls work but again UI elements are not decided. - +95% done
-- **Multiplayer** WIP... (Currently top of list)
-- **Daily challenges** comming soon!
-
+- **PC UI is still WIP** UI elementes are almost done im just testing a couple of small things. - 96% done
+- **Multiplayer** WIP... (Possibly soon)
 
 
