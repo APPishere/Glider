@@ -4764,7 +4764,7 @@ const rudderBoost = {
 const barrelRoll = {
   active: false,
   timer: 0,
-  duration: 1.2,
+  duration: 1.7,
   direction: 0,
   cooldownTimer: 0,
   immunityTimer: 0
@@ -4778,8 +4778,8 @@ function triggerBarrelRoll(direction) {
   barrelRoll.active = true;
   barrelRoll.timer = 0;
   barrelRoll.direction = direction;
-  barrelRoll.cooldownTimer = 2.5;
-  barrelRoll.immunityTimer = 1.0;
+barrelRoll.immunityTimer = barrelRoll.duration + 0.3;
+barrelRoll.cooldownTimer = 2.5;
   challengeTracker.barrelRollCount++;
   if (typeof audio !== 'undefined' && audio.playGateWhoosh) {
     audio.playGateWhoosh();

@@ -6134,7 +6134,6 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
     player.pos.x += rightX * barrelRoll.direction * currentLatSpeed * dt;
     player.pos.z += rightZ * barrelRoll.direction * currentLatSpeed * dt;
     
-    player.speed -= 12 * dt; 
     
     if (barrelRoll.timer >= barrelRoll.duration) {
       barrelRoll.active = false;
