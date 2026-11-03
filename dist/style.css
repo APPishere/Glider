@@ -3630,3 +3630,24 @@ body.in-flight #merry-christmas-decor-wrap {
   0% { transform: scale(1); filter: drop-shadow(0 0 6px var(--cyan)); }
   100% { transform: scale(1.14); filter: drop-shadow(0 0 20px var(--cyan)); }
 }
+
+@keyframes challengeBoxJump {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  18% {
+    transform: translateY(-7px);
+  }
+  36% {
+    transform: translateY(3px);
+  }
+  54% {
+    transform: translateY(-4px);
+  }
+  72% {
+    transform: translateY(1.5px);
+  }
+  90% {
+    transform: translateY(-1px);
+  }
+}

@@ -16,6 +16,7 @@ let challengeActive = null;
 let challengeMod = null;
 let challengeActiveDateKey = null;
 let challengeActiveDayOffset = 0;
+let challengeJustCompletedDateKey = null;
 const challengeTracker = {
   maxY: 0,
   thermalEntries: new Set(),
@@ -254,7 +255,7 @@ const DAILY_CHALLENGES = [
     id: 19,
     name: "Barrel Roller",
     category: "trick",
-    desc: "Hold A or D to spin around 720 deg in a single run.",
+    desc: "Do 2 Barrel rolls in one run!",
     config: "FREE",
     difficulty: "HARD"
   },
@@ -366,9 +367,14 @@ const DAILY_CHALLENGES = [
   }
 ];
 
+function getLocalDateOffset(offset = 0) {
+  const n = new Date();
+  return new Date(n.getFullYear(), n.getMonth(), n.getDate() - offset);
+}
+
 function getDayNumber(offset = 0) {
-  const now = new Date();
-  return Math.floor((now.getTime() - offset * 86400000 - now.getTimezoneOffset() * 60000) / 86400000);
+  const d = getLocalDateOffset(offset);
+  return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
 }
 
 function getDailyChallengeIndex(offset = 0) {
@@ -381,8 +387,7 @@ function getDailyChallenge(offset = 0) {
 }
 
 function getDailyChallengeDateKey(offset = 0) {
-  const now = new Date();
-  const d = new Date(now.getTime() - offset * 86400000);
+  const d = getLocalDateOffset(offset);
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
@@ -4766,6 +4771,7 @@ const barrelRoll = {
 };
 let lastRollLeftTapTime = 0;
 let lastRollRightTapTime = 0;
+let lastOtherKeyTime = 0;
 
 function triggerBarrelRoll(direction) {
   if (barrelRoll.cooldownTimer > 0 || barrelRoll.active) return;
@@ -4782,6 +4788,11 @@ function triggerBarrelRoll(direction) {
 
 function handleMobileRollTap(dir) {
   if (gameState !== 'RACING') return;
+  if (mobileYawLeft || mobileYawRight || mobileAirbrake || (typeof player !== 'undefined' && player.airbrake)) {
+    lastRollLeftTapTime = 0;
+    lastRollRightTapTime = 0;
+    return;
+  }
   const now = performance.now();
   if (dir < 0) {
     if (now - lastRollLeftTapTime < 350) {
