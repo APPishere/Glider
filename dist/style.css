@@ -87,7 +87,7 @@ button,
     font-style: italic;
     white-space: nowrap;
     pointer-events: none;
-    z-index: 46; 
+    z-index: 56; 
     opacity: 0;
     transition: opacity 1.2s ease, transform 1.2s ease, bottom 0.25s ease;
     padding: 0 20px;
@@ -3166,7 +3166,7 @@ body.dpad-mode #mobile-btn-brake.active img {
   font-style: italic;
   white-space: nowrap;
   pointer-events: none;
-  z-index: 46;
+  z-index: 56;
   opacity: 0;
   transition: opacity 1.2s ease, transform 1.2s ease;
   padding: 0 20px;

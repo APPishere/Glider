@@ -3,7 +3,7 @@ const HALLOWEEN_EVENT_ACTIVE =
  (() => {
   const now = new Date();
   const md = (now.getMonth() + 1) * 100 + now.getDate();
- return md >= 1027 && md <= 1102; 
+ return md >= 1027 && md <= 1101; 
 })();
 let halloween_door_unlocked = false;
 try {
@@ -12,6 +12,546 @@ try {
 let isHalloweenBossDuel = false;
 let halloweenPreviousSkin = null;
 let tutorialActive = false;
+let challengeActive = null;
+let challengeMod = null;
+let challengeActiveDateKey = null;
+let challengeActiveDayOffset = 0;
+const challengeTracker = {
+  maxY: 0,
+  thermalEntries: new Set(),
+  consecutiveThermalTime: 0,
+  maxConsecutiveThermalTime: 0,
+  boostedThermals: new Set(),
+  lastBoostReleaseTime: -999,
+  sinkEntries: new Set(),
+  totalSinkTime: 0,
+  enteredSink: false,
+  exitedSink: false,
+  minFlockDist: Infinity,
+  hadBirdStrike: false,
+  wasStormy: false,
+  stormDraftTime: 0,
+  totalDraftTime: 0,
+  prevRoll: 0,
+  rollAccum: 0,
+  barrelRollCount: 0,
+  stallRecoveries: 0,
+  maxChargedBoosts: 0,
+  invertedAtFinalGate: false,
+  usedYaw: false,
+  usedBoost: false,
+  usedAirbrake: false,
+  totalAirbrakeTime: 0,
+  usedPitchUp: false,
+  consecutiveLowAltTime: 0,
+  maxConsecutiveLowAltTime: 0,
+  wasInThermal: false,
+  touchdownApollo: false,
+  stoppedNearApollo: false,
+  touchdownFjord: false,
+  stoppedInFjord: false,
+  crashed: false,
+  storedGhostPBTime: null
+};
+
+function resetChallengeTracker() {
+  challengeTracker.maxY = 0;
+  challengeTracker.thermalEntries.clear();
+  challengeTracker.consecutiveThermalTime = 0;
+  challengeTracker.maxConsecutiveThermalTime = 0;
+  challengeTracker.boostedThermals.clear();
+  challengeTracker.lastBoostReleaseTime = -999;
+  challengeTracker.sinkEntries.clear();
+  challengeTracker.totalSinkTime = 0;
+  challengeTracker.enteredSink = false;
+  challengeTracker.exitedSink = false;
+  challengeTracker.minFlockDist = Infinity;
+  challengeTracker.hadBirdStrike = false;
+  challengeTracker.wasStormy = false;
+  challengeTracker.stormDraftTime = 0;
+  challengeTracker.totalDraftTime = 0;
+  challengeTracker.prevRoll = 0;
+  challengeTracker.rollAccum = 0;
+  challengeTracker.barrelRollCount = 0;
+  challengeTracker.stallRecoveries = 0;
+  challengeTracker.maxChargedBoosts = 0;
+  challengeTracker.invertedAtFinalGate = false;
+  challengeTracker.usedYaw = false;
+  challengeTracker.usedBoost = false;
+  challengeTracker.usedAirbrake = false;
+  challengeTracker.totalAirbrakeTime = 0;
+  challengeTracker.usedPitchUp = false;
+  challengeTracker.consecutiveLowAltTime = 0;
+  challengeTracker.maxConsecutiveLowAltTime = 0;
+  challengeTracker.wasInThermal = false;
+  challengeTracker.touchdownApollo = false;
+  challengeTracker.stoppedNearApollo = false;
+  challengeTracker.touchdownFjord = false;
+  challengeTracker.stoppedInFjord = false;
+  challengeTracker.crashed = false;
+  challengeTracker.storedGhostPBTime = parseFloat(localStorage.getItem('pb_' + selectedCourseId + '_' + selectedSubtrack)) || null;
+  barrelRoll.active = false;
+  barrelRoll.timer = 0;
+  barrelRoll.direction = 0;
+  barrelRoll.cooldownTimer = 0;
+  barrelRoll.immunityTimer = 0;
+  lastRollLeftTapTime = 0;
+  lastRollRightTapTime = 0;
+}
+
+const DAILY_CHALLENGES = [
+  {
+    id: 1,
+    name: "Fast Lap",
+    category: "finish",
+    desc: "Beat the Gold medal time on any track.",
+    config: "FREE",
+    difficulty: "MEDIUM"
+  },
+  {
+    id: 2,
+    name: "Ace Standard",
+    category: "finish",
+    desc: "Earn an Ace medal time on any track.",
+    config: "FREE",
+    difficulty: "HARD"
+  },
+  {
+    id: 3,
+    name: "Ash Walker",
+    category: "finish",
+    desc: "Finish a Volcanic Island race after the volcano erupts mid-race.",
+    config: "TRACK",
+    courseId: "volcano",
+    subtrack: "C",
+    difficulty: "MEDIUM"
+  },
+  {
+    id: 4,
+    name: "Canyon Ceiling",
+    category: "finish",
+    desc: "Complete a Mountain Canyons race staying under 3,000 ft AGL.",
+    config: "TRACK",
+    courseId: "canyon",
+    subtrack: "A",
+    difficulty: "EASY"
+  },
+  {
+    id: 5,
+    name: "Lunar Touchdown",
+    category: "finish",
+    desc: "Land within 100m of the Apollo 11 lander and come to a complete stop.",
+    config: "TRACK",
+    courseId: "moon",
+    subtrack: "A",
+    difficulty: "EASY"
+  },
+  {
+    id: 6,
+    name: "Speed Demon",
+    category: "speed",
+    desc: "Hit 170 kts top speed at any point during a run.",
+    config: "FREE",
+    difficulty: "MEDIUM"
+  },
+  {
+    id: 7,
+    name: "Speed Reader",
+    category: "speed",
+    desc: "Hit 120 kts top speed at any point during a run.",
+    config: "FREE",
+    difficulty: "EASY"
+  },
+  {
+    id: 8,
+    name: "Thermal Chaser",
+    category: "thermal",
+    desc: "Pass through 3 different thermal updrafts in a single run.",
+    config: "FREE",
+    difficulty: "MEDIUM"
+  },
+  {
+    id: 9,
+    name: "Thermal Dodge",
+    category: "thermal",
+    desc: "Finish a race without entering a single thermal updraft.",
+    config: "FREE",
+    difficulty: "MEDIUM"
+  },
+  {
+    id: 10,
+    name: "Updraft Surfer",
+    category: "thermal",
+    desc: "Stay inside a single thermal updraft for 15 continuous seconds.",
+    config: "FREE",
+    difficulty: "MEDIUM"
+  },
+  {
+    id: 11,
+    name: "Thermal Stacker",
+    category: "thermal",
+    desc: "Pass through 2 thermals within 0.5s of releasing a rudder boost.",
+    config: "FREE",
+    difficulty: "HARD"
+  },
+  {
+    id: 12,
+    name: "Downward Spiral",
+    category: "sink",
+    desc: "Enter 3 sink zones and finish the race without crashing.",
+    config: "FREE",
+    difficulty: "MEDIUM"
+  },
+  {
+    id: 13,
+    name: "Sink Diver",
+    category: "sink",
+    desc: "Spend a total of 5 seconds inside sink zones in a single run.",
+    config: "FREE",
+    difficulty: "MEDIUM"
+  },
+  {
+    id: 14,
+    name: "First Gust",
+    category: "sink",
+    desc: "Enter a sink zone and exit it without crashing.",
+    config: "FREE",
+    difficulty: "EASY"
+  },
+  {
+    id: 15,
+    name: "Feather Touch",
+    category: "hazard",
+    desc: "Get within 20m of a bird flock's center without colliding with any birds.",
+    config: "FREE",
+    difficulty: "EASY"
+  },
+  {
+    id: 16,
+    name: "Eye of the Storm",
+    category: "hazard",
+    desc: "Finish a race during Storm weather without crashing.",
+    config: "FREE",
+    difficulty: "HARD"
+  },
+  {
+    id: 17,
+    name: "Storm Chaser",
+    category: "hazard",
+    desc: "Draft behind an AI opponent for 4 seconds during a Storm.",
+    config: "FREE",
+    difficulty: "MEDIUM"
+  },
+  {
+    id: 18,
+    name: "Tailgating",
+    category: "hazard",
+    desc: "Draft behind an AI opponent for a total of 10 seconds.",
+    config: "FREE",
+    difficulty: "MEDIUM"
+  },
+    {
+    id: 19,
+    name: "Barrel Roller",
+    category: "trick",
+    desc: "Hold A or D to spin around 720 deg in a single run.",
+    config: "FREE",
+    difficulty: "HARD"
+  },
+  {
+    id: 20,
+    name: "Dive Bomber",
+    category: "trick",
+    desc: "Stall your aircraft (under 24 kts) and recover by diving pitch-down twice in a single run.",
+    config: "FREE",
+    difficulty: "MEDIUM"
+  },
+  {
+    id: 21,
+    name: "Power Charge",
+    category: "trick",
+    desc: "Perform 4 fully-charged Rudder Boosts in a single run.",
+    config: "FREE",
+    difficulty: "EASY"
+  },
+  {
+    id: 22,
+    name: "Inverted Crossing",
+    category: "trick",
+    desc: "Pass through the final gate completely upside down.",
+    config: "FREE",
+    difficulty: "HARD"
+  },
+  {
+    id: 23,
+    name: "Pure Flight",
+    category: "constraint",
+    desc: "Finish a race using only Pitch and Roll (No Q/E Rudder or Airbrakes).",
+    config: "MOD",
+    mod: { disableYaw: true, disableAirbrake: true },
+    difficulty: "HARD"
+  },
+  {
+    id: 24,
+    name: "Brake Check",
+    category: "constraint",
+    desc: "Deploy airbrakes for a total of 8 seconds in a single run.",
+    config: "FREE",
+    difficulty: "EASY"
+  },
+  {
+    id: 25,
+    name: "Energy Pilot",
+    category: "constraint",
+    desc: "Finish Abyssal without using pitch-up (W key) at all.",
+    config: "TRACK+MOD",
+    courseId: "islands",
+    subtrack: "B",
+    mod: { disablePitchUp: true },
+    difficulty: "HARD"
+  },
+  {
+    id: 26,
+    name: "Blind Flight",
+    category: "constraint",
+    desc: "Finish a race with the HUD compass and minimap hidden.",
+    config: "MOD",
+    mod: { hideHUD: true },
+    difficulty: "MEDIUM"
+  },
+  {
+    id: 27,
+    name: "Thermal Scent",
+    category: "constraint",
+    desc: "Finish a run with thermal particle effects hidden.",
+    config: "MOD",
+    mod: { hideThermalVisuals: true },
+    difficulty: "HARD"
+  },
+  {
+    id: 28,
+    name: "Ghost Hunter",
+    category: "combo",
+    desc: "Beat your own personal-best ghost time on any track.",
+    config: "FREE",
+    difficulty: "MEDIUM"
+  },
+  {
+    id: 29,
+    name: "Deck Skimmer",
+    category: "combo",
+    desc: "Stay below 49 ft AGL for 5 consecutive seconds.",
+    config: "FREE",
+    difficulty: "MEDIUM"
+  },
+  {
+    id: 30,
+    name: "Homeward",
+    category: "combo",
+    desc: "Land in the fjord and come to a complete stop. No rudder boost, no thermals.",
+    config: "TRACK+MOD",
+    courseId: "glacial",
+    subtrack: "A",
+    mod: { disableRudderBoost: true },
+    difficulty: "HARD"
+  },
+  {
+    id: 31,
+    name: "Cloud Reader",
+    category: "combo",
+    desc: "Finish any track with thermal visuals hidden and rudder boost disabled.",
+    config: "MOD",
+    mod: { hideThermalVisuals: true, disableRudderBoost: true },
+    difficulty: "HARD"
+  }
+];
+
+function getDayNumber(offset = 0) {
+  const now = new Date();
+  return Math.floor((now.getTime() - offset * 86400000 - now.getTimezoneOffset() * 60000) / 86400000);
+}
+
+function getDailyChallengeIndex(offset = 0) {
+  const dayNum = getDayNumber(offset);
+  return (dayNum % 31 + 31) % 31;
+}
+
+function getDailyChallenge(offset = 0) {
+  return DAILY_CHALLENGES[getDailyChallengeIndex(offset)];
+}
+
+function getDailyChallengeDateKey(offset = 0) {
+  const now = new Date();
+  const d = new Date(now.getTime() - offset * 86400000);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function getRollingDailyChallenges() {
+  const labels = ["TODAY", "YESTERDAY", "2 DAYS AGO"];
+  const badges = ["NEW", "CATCH-UP", "LAST CHANCE"];
+  const list = [];
+  for (let offset = 0; offset < 3; offset++) {
+    const ch = getDailyChallenge(offset);
+    const dateKey = getDailyChallengeDateKey(offset);
+    list.push({
+      challenge: ch,
+      dateKey: dateKey,
+      dayOffset: offset,
+      label: labels[offset],
+      badge: badges[offset]
+    });
+  }
+  return list;
+}
+
+function isDailyChallengeCompleted(id, dateKey) {
+  const key = dateKey || getDailyChallengeDateKey(0);
+  return localStorage.getItem('glider_challenge_done_' + key + '_' + id) === 'true';
+}
+
+function markDailyChallengeCompleted(id, dateKey) {
+  const key = dateKey || getDailyChallengeDateKey(0);
+  try {
+    localStorage.setItem('glider_challenge_done_' + key + '_' + id, 'true');
+  } catch (e) {}
+}
+
+function getDailyChallengeStreak() {
+  let streak = 0;
+  let freezes = 0;
+  let streakProgress = 0;
+  const frozenDates = new Set();
+
+  let earliestCompletedOffset = -1;
+  for (let off = 365; off >= 0; off--) {
+    const ch = getDailyChallenge(off);
+    const dateKey = getDailyChallengeDateKey(off);
+    if (localStorage.getItem('glider_challenge_done_' + dateKey + '_' + ch.id) === 'true') {
+      earliestCompletedOffset = off;
+      break;
+    }
+  }
+
+  if (earliestCompletedOffset >= 0) {
+    for (let off = earliestCompletedOffset; off >= 0; off--) {
+      const ch = getDailyChallenge(off);
+      const dateKey = getDailyChallengeDateKey(off);
+      const isDone = localStorage.getItem('glider_challenge_done_' + dateKey + '_' + ch.id) === 'true';
+
+      if (isDone) {
+        streak++;
+        streakProgress++;
+        if (streakProgress >= 2) {
+          freezes = Math.min(4, freezes + 1);
+          streakProgress = 0;
+        }
+      } else {
+        if (off === 0) {
+        } else {
+          if (freezes > 0) {
+            freezes--;
+            frozenDates.add(dateKey);
+          } else {
+            streak = 0;
+            freezes = 0;
+            streakProgress = 0;
+            frozenDates.clear();
+          }
+        }
+      }
+    }
+  }
+
+  const savedMax = parseInt(localStorage.getItem('glider_challenge_max_streak') || '0', 10);
+  const maxStreak = Math.max(savedMax, streak);
+  if (maxStreak > savedMax) {
+    try { localStorage.setItem('glider_challenge_max_streak', String(maxStreak)); } catch (e) {}
+  }
+  try {
+    localStorage.setItem('glider_challenge_current_streak', String(streak));
+    localStorage.setItem('glider_challenge_freezes_available', String(freezes));
+  } catch (e) {}
+
+  return { currentStreak: streak, maxStreak: maxStreak, freezesAvailable: freezes, frozenDates: frozenDates };
+}
+
+function updateDailyChallengeStreak() {
+  return getDailyChallengeStreak();
+}
+
+function checkDailyChallengeCompletion(ch) {
+  if (!ch) return false;
+  const course = COURSES[selectedCourseId];
+  const activeSubtrack = course ? course.subtracks[selectedSubtrack] : null;
+  const medals = activeSubtrack ? activeSubtrack.medals : { gold: 9999, ace: 9999 };
+
+  switch (ch.id) {
+    case 1:
+      return raceElapsedTime <= medals.gold && !challengeTracker.crashed;
+    case 2:
+      return raceElapsedTime <= medals.ace && !challengeTracker.crashed;
+    case 3:
+      return selectedCourseId === 'volcano' && selectedSubtrack === 'C' && volcanoEvent.exploded === true && !challengeTracker.crashed;
+    case 4:
+      return selectedCourseId === 'canyon' && challengeTracker.maxY <= 937 && !challengeTracker.crashed;
+    case 5:
+      return challengeTracker.stoppedNearApollo === true;
+    case 6:
+      return player.runTopSpeed >= 170 && !challengeTracker.crashed;
+    case 7:
+      return player.runTopSpeed >= 120 && !challengeTracker.crashed;
+    case 8:
+      return challengeTracker.thermalEntries.size >= 3 && !challengeTracker.crashed;
+    case 9:
+      return challengeTracker.thermalEntries.size === 0 && !challengeTracker.crashed;
+    case 10:
+      return challengeTracker.maxConsecutiveThermalTime >= 15 && !challengeTracker.crashed;
+    case 11:
+      return challengeTracker.boostedThermals.size >= 2 && !challengeTracker.crashed;
+    case 12:
+      return challengeTracker.sinkEntries.size >= 3 && !challengeTracker.crashed;
+    case 13:
+      return challengeTracker.totalSinkTime >= 5 && !challengeTracker.crashed;
+    case 14:
+      return challengeTracker.enteredSink && challengeTracker.exitedSink && !challengeTracker.crashed;
+    case 15:
+      return challengeTracker.minFlockDist <= 20 && !challengeTracker.hadBirdStrike && !challengeTracker.crashed;
+    case 16:
+      return challengeTracker.wasStormy && !challengeTracker.crashed;
+    case 17:
+      return challengeTracker.stormDraftTime >= 4 && !challengeTracker.crashed;
+    case 18:
+      return challengeTracker.totalDraftTime >= 10 && !challengeTracker.crashed;
+    case 19:
+      return challengeTracker.barrelRollCount >= 2 && !challengeTracker.crashed;
+    case 20:
+      return challengeTracker.stallRecoveries >= 2 && !challengeTracker.crashed;
+    case 21:
+      return challengeTracker.maxChargedBoosts >= 4 && !challengeTracker.crashed;
+    case 22:
+      return challengeTracker.invertedAtFinalGate === true && !challengeTracker.crashed;
+    case 23:
+      return !challengeTracker.usedYaw && !challengeTracker.usedBoost && !challengeTracker.usedAirbrake && !challengeTracker.crashed;
+    case 24:
+      return challengeTracker.totalAirbrakeTime >= 8 && !challengeTracker.crashed;
+    case 25:
+      return selectedCourseId === 'islands' && selectedSubtrack === 'B' && !challengeTracker.usedPitchUp && !challengeTracker.crashed;
+    case 26:
+      return !challengeTracker.crashed;
+    case 27:
+      return !challengeTracker.crashed;
+    case 28:
+      return challengeTracker.storedGhostPBTime !== null && raceElapsedTime < challengeTracker.storedGhostPBTime && !challengeTracker.crashed;
+    case 29:
+      return challengeTracker.maxConsecutiveLowAltTime >= 5 && !challengeTracker.crashed;
+    case 30:
+      return challengeTracker.stoppedInFjord === true;
+    case 31:
+      return !challengeTracker.usedBoost && !challengeTracker.crashed;
+    default:
+      return false;
+  }
+}
 
 
 const CHRISTMAS_EVENT_ACTIVE = (() => {
@@ -540,6 +1080,10 @@ function setupJoystick() {
     pointerId = e.pointerId;
     stick.classList.add('active');
     stick.setPointerCapture(e.pointerId);
+    const rect = stick.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    if (e.clientX < cx - 12) handleMobileRollTap(-1);
+    else if (e.clientX > cx + 12) handleMobileRollTap(1);
     handleMove(e);
   });
 
@@ -634,6 +1178,10 @@ function setupDpad() {
     e.stopPropagation();
     pointerId = e.pointerId;
     dpad.setPointerCapture(e.pointerId);
+    const rect = dpad.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    if (e.clientX < cx - 12) handleMobileRollTap(-1);
+    else if (e.clientX > cx + 12) handleMobileRollTap(1);
     handlePointer(e);
   });
 
@@ -791,6 +1339,8 @@ function setupMobileControls() {
         currX: t.clientX,
         currY: t.clientY
       });
+      if (t.clientX < window.innerWidth * 0.45) handleMobileRollTap(-1);
+      else if (t.clientX > window.innerWidth * 0.55) handleMobileRollTap(1);
     }
     updateSteeringFromTouches();
   }, { passive: false });
@@ -992,6 +1542,16 @@ function setupBannerBubble(bannerId, bubbleId, getHintText, isRetired) {
     }
     lastScreenId = currentScreenId;
 
+    const dashEl = document.getElementById('desktop-dashboard');
+    const dashOpen = dashEl && window.getComputedStyle(dashEl).display !== 'none';
+    const isMainMenu = (activeScreen && (activeScreen.id === 'screen-start' || activeScreen.id === 'screen-start-mobile')) || (!activeScreen && dashOpen && currentDashboardCat === null);
+
+    if (bannerId === 'happy-halloween-banner' && !isMainMenu) {
+      bubble.style.display = 'none';
+      hintText = '';
+      return;
+    }
+
     if (isRetired() || isEquipped) {
       bubble.style.display = 'none';
       hintText = '';
@@ -1034,18 +1594,22 @@ function updateChristmasThemeVisibility() {
   const xmasBanner = document.getElementById('merry-christmas-banner');
 
   const activeScreen = document.querySelector('.menu-screen[id]:not(.hidden)');
+  const dashEl = document.getElementById('desktop-dashboard');
+  const dashOpen = dashEl && window.getComputedStyle(dashEl).display !== 'none';
   const settingsOverlay = document.getElementById('settings-overlay');
   const settingsOpen = settingsOverlay && window.getComputedStyle(settingsOverlay).display !== 'none';
   const hudOverlay = document.getElementById('hud-overlay');
   const hudActive = hudOverlay && window.getComputedStyle(hudOverlay).display !== 'none';
 
-  const isMenuScreen = !isFlightState() && !hudActive && !!activeScreen;
+  const isMenuScreen = !isFlightState() && !hudActive && (!!activeScreen || dashOpen);
   const showXmasMenu = CHRISTMAS_EVENT_ACTIVE && isMenuScreen && !settingsOpen;
+  const isMainMenu = (activeScreen && (activeScreen.id === 'screen-start' || activeScreen.id === 'screen-start-mobile')) || (!activeScreen && dashOpen && currentDashboardCat === null);
 
   if (xmasDecor) xmasDecor.style.display = showXmasMenu ? 'block' : 'none';
   if (xmasBanner) {
-    xmasBanner.style.display = showXmasMenu ? 'block' : 'none';
-    xmasBanner.classList.toggle('visible', showXmasMenu);
+    const showBanner = showXmasMenu && isMainMenu;
+    xmasBanner.style.display = showBanner ? 'block' : 'none';
+    xmasBanner.classList.toggle('visible', showBanner);
   }
   if (showXmasMenu && refreshChristmasBubble) refreshChristmasBubble();
 }
@@ -1059,13 +1623,16 @@ function updateHalloweenThemeVisibility() {
 
   const isFlight = isFlightState();
   const activeScreen = document.querySelector('.menu-screen[id]:not(.hidden)');
+  const dashEl = document.getElementById('desktop-dashboard');
+  const dashOpen = dashEl && window.getComputedStyle(dashEl).display !== 'none';
   const settingsOverlay = document.getElementById('settings-overlay');
   const settingsOpen = settingsOverlay && window.getComputedStyle(settingsOverlay).display !== 'none';
   const hudOverlay = document.getElementById('hud-overlay');
   const hudActive = hudOverlay && window.getComputedStyle(hudOverlay).display !== 'none';
 
-  const isMenuScreen = !isFlight && !hudActive && !!activeScreen;
+  const isMenuScreen = !isFlight && !hudActive && (!!activeScreen || dashOpen);
   const showHalloweenMenu = HALLOWEEN_EVENT_ACTIVE && isMenuScreen && !settingsOpen;
+  const isMainMenu = (activeScreen && (activeScreen.id === 'screen-start' || activeScreen.id === 'screen-start-mobile')) || (!activeScreen && dashOpen && currentDashboardCat === null);
 
   if (hwDecor) {
     hwDecor.style.display = showHalloweenMenu ? 'block' : 'none';
@@ -1078,7 +1645,7 @@ function updateHalloweenThemeVisibility() {
   }
 
   if (banner) {
-    if (showHalloweenMenu && activeScreen) {
+    if (showHalloweenMenu && isMainMenu) {
       banner.style.display = 'block';
       banner.style.top = '20px';
       banner.style.bottom = 'auto';
@@ -1701,7 +2268,7 @@ function createGlacialIceArch(x, y, z, span = 260, height = 180, rotY = 0) {
   return archGroup;
 }
 
-const STAT_KEY_PREFIXES = ['glider_dist_', 'glider_speed_', 'ghost_runs_', 'ghost_dist_', 'glider_unlock_speedofsound_drone'];
+const STAT_KEY_PREFIXES = ['glider_dist_', 'glider_speed_', 'ghost_runs_', 'ghost_dist_', 'glider_unlock_speedofsound_drone', 'glider_challenge_', 'glider_catchup_count', 'glider_hard_dailies_count', 'glider_unlocked_piggy_bank', 'glider_unlocked_money_bag', 'glider_timetrial_runs_count'];
 
 const AphelionEncoder = (() => {
   const SECRET_KEY = [65, 112, 104, 101, 108, 105, 111, 110, 83, 101, 99, 114, 101, 116]; 
@@ -3811,6 +4378,20 @@ const GLIDER_SKINS = [
     checkUnlocked: (stats) => !!stats.hasTvEasterEgg
   },
   {
+    id: 'glider_tryhard',
+    name: 'The Try Hard',
+    colorName: 'Bouncy balls!',
+    color: 0xff007f,
+    previewColor: '#ff007f',
+    emissive: 0xff6600,
+    emissiveIntensity: 0.85,
+    roughness: 0.25,
+    metalness: 0.15,
+    isGlowing: true,
+    reqText: 'Complete 5 HARD difficulty daily challenges',
+    checkUnlocked: (stats) => (stats.totalHardDailiesCompleted || 0) >= 5
+  },
+  {
     id: 'first_silver',
     name: 'The Beginning Of A Pro',
     colorName: 'Chrome / Silver',
@@ -3895,10 +4476,91 @@ const GLIDER_SKINS = [
     isGlowing: true,
     reqText: 'Earn Ace medals on all 20 tracks IN TIME TRIALS',
     checkUnlocked: (stats) => stats.totalAceOrBetter >= 20 && stats.hasGhost
+  },
+  {
+    id: 'glider_money_bag',
+    name: 'Money Bag',
+    colorName: 'Banknote Green',
+    color: 0x2d6a4f,
+    previewColor: '#52b788',
+    emissive: 0x52b788,
+    emissiveIntensity: 0.35,
+    roughness: 0.32,
+    metalness: 0.15,
+    isGlowing: true,
+    reqText: 'Click "Buy: 5.99" to unlock!',
+    checkUnlocked: () => !!localStorage.getItem('glider_unlocked_money_bag')
   }
 ];
 
 const GHOST_SKINS = [
+  {
+    id: 'ghost_clockwork',
+    name: 'The Clockwork',
+    colorName: 'Gilded',
+    color: 0xc59b27,
+    previewColor: '#c59b27',
+    emissive: 0x4a3508,
+    emissiveIntensity: 0.35,
+    roughness: 0.28,
+    metalness: 0.85,
+    isGlowing: true,
+    reqText: 'Reach a 7-day daily challenge streak',
+    checkUnlocked: (stats) => (stats.streakCount || 0) >= 7
+  },
+  {
+    id: 'ghost_apex_warden',
+    name: 'RS-99',
+    colorName: 'Black + magenta',
+    color: 0x0a0a0e,
+    previewColor: '#ff00aa',
+    emissive: 0xff00aa,
+    emissiveIntensity: 0.75,
+    roughness: 0.15,
+    metalness: 0.90,
+    isGlowing: true,
+    reqText: 'Reach a 14 day daily challenge streak',
+    checkUnlocked: (stats) => (stats.streakCount || 0) >= 14
+  },
+  {
+    id: 'ghost_t9',
+    name: 'T-9',
+    colorName: 'Cyan Hologram',
+    color: 0x00f0ff,
+    previewColor: '#00f0ff',
+    emissive: 0x00f0ff,
+    emissiveIntensity: 0.85,
+    roughness: 0.2,
+    metalness: 0.8,
+    isGlowing: true,
+    reqText: 'Reach a 21-day daily challenge streak',
+    checkUnlocked: (stats) => (stats.streakCount || 0) >= 21
+  },
+  {
+    id: 'ghost_404',
+    name: '404 Glider Not Found',
+    colorName: 'hacked',
+    color: 0x00ff66,
+    previewColor: '#00ff66',
+    emissive: 0x00aa33,
+    emissiveIntensity: 0.65,
+    roughness: 0.2,
+    metalness: 0.4,
+    isGlowing: true,
+    reqText: 'Reach a 31-day perfect daily challenge streak',
+    checkUnlocked: (stats) => (stats.streakCount || 0) >= 31
+  },
+  {
+    id: 'ghost_scrapheap',
+    name: 'Scrapheap Chaser',
+    colorName: 'Split Red and Yellow',
+    color: 0xee2233,
+    previewColor: '#ffea00',
+    roughness: 0.35,
+    metalness: 0.1,
+    reqText: 'Complete 3 catch-up daily challenges',
+    checkUnlocked: (stats) => (stats.catchUpChallengesCompleted || 0) >= 3
+  },
   {
     id: 'ghost_krampus',
     name: 'Krampus Drone',
@@ -3976,6 +4638,69 @@ const GHOST_SKINS = [
     isGlowing: true,
     reqText: 'Earn Ace medals on any 18 tracks + record a Ghost (TIME TRIAL ONLY).',
     checkUnlocked: (stats) => stats.totalAceOrBetter >= 18 && stats.hasGhost
+  },
+  {
+    id: 'ghost_aero_scout',
+    name: 'The Aero Scout',
+    colorName: 'Silver',
+    color: 0xd0d7de,
+    previewColor: '#d0d7de',
+    roughness: 0.18,
+    metalness: 0.85,
+    reqText: 'Earn your first Silver medal (or higher) in Time Trials.',
+    checkUnlocked: (stats) => !!stats.hasSilver
+  },
+  {
+    id: 'ghost_dart',
+    name: 'The Dart',
+    colorName: 'Neon Orange',
+    color: 0xff6600,
+    previewColor: '#ff6600',
+    emissive: 0xaa2200,
+    emissiveIntensity: 0.55,
+    roughness: 0.25,
+    metalness: 0.4,
+    isGlowing: true,
+    reqText: 'Complete 5 Time Trials (on any track, any medal).',
+    checkUnlocked: (stats) => (stats.completedTimeTrials || 0) >= 5 || (stats.totalTimeTrialRuns || 0) >= 5
+  },
+  {
+    id: 'ghost_paper_airplane',
+    name: 'Paper Airplane',
+    colorName: 'Folded Paper',
+    color: 0xffffff,
+    previewColor: '#ffffff',
+    emissive: 0x000000,
+    emissiveIntensity: 0.0,
+    roughness: 0.9,
+    metalness: 0.0,
+    reqText: 'Earn 3 Gold medals (or higher) in Time Trials.',
+    checkUnlocked: (stats) => (stats.totalGoldOrBetter || 0) >= 3
+  },
+  {
+    id: 'ghost_ace_circuit',
+    name: 'Ace Circuit',
+    colorName: 'Apex Violet',
+    color: 0xa020f0,
+    previewColor: '#a020f0',
+    emissive: 0xa020f0,
+    emissiveIntensity: 0.45,
+    roughness: 0.2,
+    metalness: 0.7,
+    isGlowing: true,
+    reqText: 'Earn at least 2 stars in 3 different Grand Prix Cups.',
+    checkUnlocked: (stats) => (stats.gpCupsWith2Stars || 0) >= 3
+  },
+  {
+    id: 'ghost_piggy_bank',
+    name: 'Piggy bank',
+    colorName: 'Cute Pink',
+    color: 0xffa0b8,
+    previewColor: '#ffa0b8',
+    roughness: 0.35,
+    metalness: 0.1,
+    reqText: 'Click "Buy: 5.99" to unlock!',
+    checkUnlocked: () => !!localStorage.getItem('glider_unlocked_piggy_bank')
   }
 ];
 
@@ -4030,6 +4755,50 @@ const rudderBoost = {
   releasePitch: 0,
   activeDir: 0
 };
+
+const barrelRoll = {
+  active: false,
+  timer: 0,
+  duration: 1.2,
+  direction: 0,
+  cooldownTimer: 0,
+  immunityTimer: 0
+};
+let lastRollLeftTapTime = 0;
+let lastRollRightTapTime = 0;
+
+function triggerBarrelRoll(direction) {
+  if (barrelRoll.cooldownTimer > 0 || barrelRoll.active) return;
+  barrelRoll.active = true;
+  barrelRoll.timer = 0;
+  barrelRoll.direction = direction;
+  barrelRoll.cooldownTimer = 2.5;
+  barrelRoll.immunityTimer = 1.0;
+  challengeTracker.barrelRollCount++;
+  if (typeof audio !== 'undefined' && audio.playGateWhoosh) {
+    audio.playGateWhoosh();
+  }
+}
+
+function handleMobileRollTap(dir) {
+  if (gameState !== 'RACING') return;
+  const now = performance.now();
+  if (dir < 0) {
+    if (now - lastRollLeftTapTime < 350) {
+      triggerBarrelRoll(invertRoll ? 1 : -1);
+      lastRollLeftTapTime = 0;
+    } else {
+      lastRollLeftTapTime = now;
+    }
+  } else if (dir > 0) {
+    if (now - lastRollRightTapTime < 350) {
+      triggerBarrelRoll(invertRoll ? -1 : 1);
+      lastRollRightTapTime = 0;
+    } else {
+      lastRollRightTapTime = now;
+    }
+  }
+}
 
 const player = {
   pos: new THREE.Vector3(0, 350, 0),

@@ -126,6 +126,26 @@ buildParagliderMesh();
     audio.init();
     keys[e.code] = true;
     if (e.repeat) return;
+    if (gameState === 'RACING') {
+      const rollLeftCodes = (keybinds && keybinds.rollLeft) || defaultKeybinds.rollLeft;
+      const rollRightCodes = (keybinds && keybinds.rollRight) || defaultKeybinds.rollRight;
+      const now = performance.now();
+      if (rollLeftCodes.includes(e.code)) {
+        if (now - lastRollLeftTapTime < 250) {
+          triggerBarrelRoll(invertRoll ? 1 : -1);
+          lastRollLeftTapTime = 0;
+        } else {
+          lastRollLeftTapTime = now;
+        }
+      } else if (rollRightCodes.includes(e.code)) {
+        if (now - lastRollRightTapTime < 350) {
+          triggerBarrelRoll(invertRoll ? -1 : 1);
+          lastRollRightTapTime = 0;
+        } else {
+          lastRollRightTapTime = now;
+        }
+      }
+    }
     if (gameState === 'GHOST_FLEET_CINEMATIC' || gameState === 'KRAMPUS_CINEMATIC') {
       if (e.code === 'Escape' || e.code === 'Space') {
         if (gameState === 'KRAMPUS_CINEMATIC') finishKrampusCinematic();
@@ -213,15 +233,19 @@ buildParagliderMesh();
         return;
       }
 
-      const repoOverlay = document.getElementById('mobile-reposition-overlay');
-      if (repoOverlay && repoOverlay.style.display !== 'none') {
+      if (typeof isRepositionMode !== 'undefined' && isRepositionMode) {
         closeMobileRepositionEditor(false);
         return;
       }
 
       const shopPreviewModal = document.getElementById('shop-preview-modal');
-      if (shopPreviewModal && shopPreviewModal.style.display !== 'none') {
+      if (shopPreviewModal && shopPreviewModal.style.display === 'flex') {
         shopPreviewModal.style.display = 'none';
+        return;
+      }
+
+      if (gameState === 'RACING' || gameState === 'RUNUP') {
+        togglePauseMenu();
         return;
       }
 
@@ -367,27 +391,41 @@ function getEquippedGhostSkinId() {
 }
 
 const tvNoiseCanvas = document.createElement('canvas');
-tvNoiseCanvas.width = 128;
-tvNoiseCanvas.height = 64;
+tvNoiseCanvas.width = 256;
+tvNoiseCanvas.height = 128;
 const tvNoiseCtx = tvNoiseCanvas.getContext('2d');
+
+(() => {
+  const imgData = tvNoiseCtx.createImageData(256, 128);
+  for (let i = 0; i < imgData.data.length; i += 4) {
+    const val = (Math.random() * 255) | 0;
+    imgData.data[i] = val;
+    imgData.data[i + 1] = val;
+    imgData.data[i + 2] = val;
+    imgData.data[i + 3] = 255;
+  }
+  tvNoiseCtx.putImageData(imgData, 0, 0);
+})();
+
 const tvNoiseTexture = new THREE.CanvasTexture(tvNoiseCanvas);
 tvNoiseTexture.magFilter = THREE.NearestFilter;
 tvNoiseTexture.minFilter = THREE.NearestFilter;
 tvNoiseTexture.wrapS = THREE.RepeatWrapping;
 tvNoiseTexture.wrapT = THREE.RepeatWrapping;
-tvNoiseTexture.repeat.set(3, 1);
+tvNoiseTexture.repeat.set(2, 1);
 
 let tvGlitchBarY = 0;
-
 let lastTvStaticUpdate = 0;
+
 function updateTvStaticTexture() {
   const isEquipped = getEquippedSkinId() === 'glider_tv_static';
   const isInspected = inspectedType === 'glider' && inspectedGliderId === 'glider_tv_static';
-  const shopVisible = document.getElementById('screen-shop') && !document.getElementById('screen-shop').classList.contains('hidden');
+  const isDashShop = !isMobileDevice() && typeof currentDashboardCat !== 'undefined' && currentDashboardCat === 'shop' && (document.getElementById('desktop-dashboard')?.style.display !== 'none');
+  const shopVisible = isDashShop || (document.getElementById('screen-shop') && !document.getElementById('screen-shop').classList.contains('hidden'));
   if (!isEquipped && !(shopVisible && isInspected)) return;
 
   const now = performance.now();
-  if (now - lastTvStaticUpdate < 66) return;
+  if (now - lastTvStaticUpdate < 55) return; 
   lastTvStaticUpdate = now;
 
   const w = tvNoiseCanvas.width;
@@ -395,26 +433,187 @@ function updateTvStaticTexture() {
   const imgData = tvNoiseCtx.createImageData(w, h);
   const data = imgData.data;
 
-
   for (let i = 0; i < data.length; i += 4) {
-    const noise = (Math.random() * 235 + 20) | 0;
-    data[i]     = noise;  // Red
-    data[i + 1] = noise;  // Green
-    data[i + 2] = noise;  // Blue
+    const isBright = Math.random() > 0.45;
+    const noise = isBright ? ((Math.random() * 190 + 65) | 0) : ((Math.random() * 55) | 0);
+    const tint = Math.random() < 0.03 ? ((Math.random() * 40 - 20) | 0) : 0;
+    data[i]     = Math.min(255, Math.max(0, noise + tint));
+    data[i + 1] = noise;
+    data[i + 2] = Math.min(255, Math.max(0, noise - tint));
     data[i + 3] = 255;
   }
   tvNoiseCtx.putImageData(imgData, 0, 0);
 
-  tvNoiseCtx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-  for (let y = 0; y < h; y += 3) {
-    tvNoiseCtx.fillRect(0, y, w, 1.5);
+  tvNoiseCtx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+  for (let y = 0; y < h; y += 2) {
+    tvNoiseCtx.fillRect(0, y, w, 1);
   }
 
-  tvGlitchBarY = (tvGlitchBarY + 1.8) % (h + 24);
-  tvNoiseCtx.fillStyle = 'rgba(255, 255, 255, 0.28)';
-  tvNoiseCtx.fillRect(0, tvGlitchBarY - 12, w, 6);
+  tvGlitchBarY = (tvGlitchBarY + 3.2) % (h + 30);
+  tvNoiseCtx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+  tvNoiseCtx.fillRect(0, tvGlitchBarY - 14, w, 8);
+  tvNoiseCtx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  tvNoiseCtx.fillRect(0, tvGlitchBarY - 6, w, 4);
+
+  if (Math.random() < 0.25) {
+    const tearY = (Math.random() * h) | 0;
+    const tearH = (Math.random() * 8 + 3) | 0;
+    tvNoiseCtx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+    tvNoiseCtx.fillRect(0, tearY, w, tearH);
+  }
 
   tvNoiseTexture.needsUpdate = true;
+}
+
+const tryHardCanvas = document.createElement('canvas');
+tryHardCanvas.width = 512;
+tryHardCanvas.height = 256;
+const tryHardCtx = tryHardCanvas.getContext('2d');
+
+const tryHardBlobs = [
+  { x: 50,  y: 40,  r: 26, vy: 46,  color: 'orange' },
+  { x: 110, y: 220, r: 28, vy: -42, color: 'pink' },
+  { x: 180, y: 70,  r: 32, vy: 55,  color: 'orange' },
+  { x: 250, y: 190, r: 30, vy: -48, color: 'pink' },
+  { x: 320, y: 90,  r: 24, vy: 52,  color: 'orange' },
+  { x: 390, y: 230, r: 34, vy: -44, color: 'pink' },
+  { x: 460, y: 50,  r: 28, vy: 54,  color: 'orange' },
+  { x: 150, y: 160, r: 22, vy: -36, color: 'pink' },
+  { x: 290, y: 130, r: 25, vy: 48,  color: 'orange' },
+  { x: 420, y: 110, r: 20, vy: -38, color: 'pink' }
+];
+
+function drawTryHardFrame() {
+  const w = 512, h = 256;
+  tryHardCtx.fillStyle = '#000000';
+  tryHardCtx.fillRect(0, 0, w, h);
+
+  tryHardCtx.fillStyle = '#ff6600';
+  tryHardCtx.fillRect(0, 0, w, 16);
+  tryHardCtx.fillStyle = '#ff007f';
+  tryHardCtx.fillRect(0, h - 16, w, 16);
+
+  tryHardBlobs.forEach(b => {
+    tryHardCtx.save();
+    tryHardCtx.translate(b.x, b.y);
+    const stretchY = 1.0 + Math.abs(b.vy) * 0.008;
+    const stretchX = 1.0 / Math.sqrt(stretchY);
+    tryHardCtx.scale(stretchX, stretchY);
+
+    const grad = tryHardCtx.createRadialGradient(0, -b.r * 0.25, 2, 0, 0, b.r);
+    if (b.color === 'orange') {
+      grad.addColorStop(0, '#ffa834');
+      grad.addColorStop(0.55, '#ff6600');
+      grad.addColorStop(0.95, '#cc3300');
+      grad.addColorStop(1, 'rgba(255, 102, 0, 0)');
+      tryHardCtx.shadowColor = '#ff6600';
+    } else {
+      grad.addColorStop(0, '#ff77cc');
+      grad.addColorStop(0.55, '#ff007f');
+      grad.addColorStop(0.95, '#b30059');
+      grad.addColorStop(1, 'rgba(255, 0, 127, 0)');
+      tryHardCtx.shadowColor = '#ff007f';
+    }
+    tryHardCtx.shadowBlur = 10;
+    tryHardCtx.fillStyle = grad;
+    tryHardCtx.beginPath();
+    tryHardCtx.arc(0, 0, b.r, 0, Math.PI * 2);
+    tryHardCtx.fill();
+    tryHardCtx.restore();
+  });
+}
+drawTryHardFrame();
+
+const tryHardTexture = new THREE.CanvasTexture(tryHardCanvas);
+tryHardTexture.wrapS = THREE.RepeatWrapping;
+tryHardTexture.wrapT = THREE.RepeatWrapping;
+tryHardTexture.repeat.set(2, 1);
+
+let lastTryHardUpdate = 0;
+function updateTryHardTexture() {
+  const isEquipped = getEquippedSkinId() === 'glider_tryhard';
+  const isInspected = inspectedType === 'glider' && inspectedGliderId === 'glider_tryhard';
+  const isDashShop = !isMobileDevice() && typeof currentDashboardCat !== 'undefined' && currentDashboardCat === 'shop' && (document.getElementById('desktop-dashboard')?.style.display !== 'none');
+  const shopVisible = isDashShop || (document.getElementById('screen-shop') && !document.getElementById('screen-shop').classList.contains('hidden'));
+  if (!isEquipped && !(shopVisible && isInspected)) return;
+
+  const now = performance.now();
+  if (now - lastTryHardUpdate < 100) return; // 10 FPS
+  lastTryHardUpdate = now;
+
+  tryHardBlobs.forEach(b => {
+    b.y += b.vy * 0.1;
+    if (b.color === 'orange' && b.y > 240) {
+      b.y = 20;
+      b.x = (b.x + 47) % 512;
+    } else if (b.color === 'pink' && b.y < 16) {
+      b.y = 236;
+      b.x = (b.x + 53) % 512;
+    }
+  });
+
+  drawTryHardFrame();
+  tryHardTexture.needsUpdate = true;
+}
+
+const matrixCanvas = document.createElement('canvas');
+matrixCanvas.width = 256;
+matrixCanvas.height = 256;
+const matrixCtx = matrixCanvas.getContext('2d');
+const matrixChars = '01404APHELIONNOTFOUNDXYZ89#$*';
+const matrixCols = 16;
+const matrixDrops = new Array(matrixCols).fill(0).map(() => Math.floor(Math.random() * 20));
+
+function drawMatrixFrame() {
+  matrixCtx.fillStyle = 'rgba(2, 12, 4, 0.28)';
+  matrixCtx.fillRect(0, 0, 256, 256);
+  matrixCtx.font = 'bold 13px monospace';
+
+  for (let i = 0; i < matrixCols; i++) {
+    const char = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+    const x = i * 16 + 2;
+    const y = matrixDrops[i] * 16;
+
+    matrixCtx.fillStyle = '#d4ffea';
+    matrixCtx.shadowColor = '#39ff14';
+    matrixCtx.shadowBlur = 8;
+    matrixCtx.fillText(char, x, y);
+
+    // Phosphor green body
+    matrixCtx.fillStyle = '#00ff66';
+    matrixCtx.shadowBlur = 0;
+    const prevChar = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+    matrixCtx.fillText(prevChar, x, y - 16);
+
+    if (y > 256 && Math.random() > 0.96) {
+      matrixDrops[i] = 0;
+    }
+    matrixDrops[i]++;
+  }
+}
+matrixCtx.fillStyle = '#020c04';
+matrixCtx.fillRect(0, 0, 256, 256);
+drawMatrixFrame();
+
+const matrixTexture = new THREE.CanvasTexture(matrixCanvas);
+matrixTexture.wrapS = THREE.RepeatWrapping;
+matrixTexture.wrapT = THREE.RepeatWrapping;
+matrixTexture.repeat.set(2, 2);
+
+let lastMatrixUpdate = 0;
+function updateMatrixTexture() {
+  const isEquipped = getEquippedGhostSkinId() === 'ghost_404';
+  const isInspected = inspectedType === 'ghost' && inspectedGhostId === 'ghost_404';
+  const isDashShop = !isMobileDevice() && typeof currentDashboardCat !== 'undefined' && currentDashboardCat === 'shop' && (document.getElementById('desktop-dashboard')?.style.display !== 'none');
+  const shopVisible = isDashShop || (document.getElementById('screen-shop') && !document.getElementById('screen-shop').classList.contains('hidden'));
+  if (!isEquipped && !(shopVisible && isInspected)) return;
+
+  const now = performance.now();
+  if (now - lastMatrixUpdate < 50) return; 
+  lastMatrixUpdate = now;
+
+  drawMatrixFrame();
+  matrixTexture.needsUpdate = true;
 }
 
 const { lunarVoyagerTexture, lunarVoyagerEmissiveTexture } = (() => {
@@ -571,18 +770,103 @@ const { lunarVoyagerTexture, lunarVoyagerEmissiveTexture } = (() => {
   return { lunarVoyagerTexture: diffTex, lunarVoyagerEmissiveTexture: emTex };
 })();
 
+const { moneyBagTexture, moneyBagEmissiveTexture } = (() => {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+
+  const emCanvas = document.createElement('canvas');
+  emCanvas.width = 1024;
+  emCanvas.height = 256;
+  const emCtx = emCanvas.getContext('2d');
+
+  ctx.fillStyle = '#1e3f20';
+  ctx.fillRect(0, 0, 1024, 256);
+  emCtx.fillStyle = '#000000';
+  emCtx.fillRect(0, 0, 1024, 256);
+
+  ctx.strokeStyle = '#52b788';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(10, 10, 1004, 236);
+
+  ctx.strokeStyle = '#74c69d';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(18, 18, 988, 220);
+
+  ctx.strokeStyle = 'rgba(82, 183, 136, 0.22)';
+  ctx.lineWidth = 1;
+  for (let x = 24; x < 1000; x += 12) {
+    ctx.beginPath();
+    ctx.moveTo(x, 20); ctx.lineTo(x, 236);
+    ctx.stroke();
+  }
+
+  const cx = 512, cy = 128;
+  ctx.fillStyle = '#132a13';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, 140, 90, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#74c69d';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  ctx.fillStyle = '#d8f3dc';
+  ctx.font = 'bold 92px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('$', cx, cy + 4);
+
+  emCtx.fillStyle = '#52b788';
+  emCtx.font = 'bold 92px monospace';
+  emCtx.textAlign = 'center';
+  emCtx.textBaseline = 'middle';
+  emCtx.fillText('$', cx, cy + 4);
+
+  ctx.fillStyle = '#d8f3dc';
+  ctx.font = 'bold 15px monospace';
+  ctx.fillText('IN FLIGHT WE TRUST', cx, cy - 65);
+  ctx.fillText('MONEY BAG • 5.99', cx, cy + 68);
+
+  ctx.font = 'bold 28px monospace';
+  [[48, 48], [976, 48], [48, 208], [976, 208]].forEach(([x, y]) => {
+    ctx.fillText('$', x, y);
+    emCtx.fillStyle = '#52b788';
+    emCtx.font = 'bold 28px monospace';
+    emCtx.fillText('$', x, y);
+  });
+
+  const diffTex = new THREE.CanvasTexture(canvas);
+  const emTex = new THREE.CanvasTexture(emCanvas);
+  return { moneyBagTexture: diffTex, moneyBagEmissiveTexture: emTex };
+})();
+
 function createSkinMaterial(skinId) {
   const skin = GLIDER_SKINS.find(s => s.id === skinId) || GLIDER_SKINS[0];
 
-  // Animated TV static skin
   if (skinId === 'glider_tv_static') {
     return new THREE.MeshStandardMaterial({
+      color: 0xffffff,
       map: tvNoiseTexture,
       emissiveMap: tvNoiseTexture,
       emissive: 0xffffff,
-      emissiveIntensity: 0.45,
+      emissiveIntensity: 0.95,
+      roughness: 0.2,
+      metalness: 0.1,
+      side: THREE.DoubleSide
+    });
+  }
+
+  if (skinId === 'glider_tryhard') {
+    return new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      map: tryHardTexture,
+      emissiveMap: tryHardTexture,
+      emissive: 0xffffff,
+      emissiveIntensity: 0.95,
       roughness: 0.25,
-      metalness: 0.2,
+      metalness: 0.15,
       side: THREE.DoubleSide
     });
   }
@@ -600,7 +884,6 @@ function createSkinMaterial(skinId) {
     });
   }
 
-  // Aphelion Apex 
   if (skinId === 'aphelion_apex') {
     return new THREE.MeshStandardMaterial({
       map: aphelionApexTexture,
@@ -609,6 +892,18 @@ function createSkinMaterial(skinId) {
       emissiveIntensity: 0.55,
       roughness: 0.18,
       metalness: 0.85,
+      side: THREE.DoubleSide
+    });
+  }
+
+  if (skinId === 'glider_money_bag') {
+    return new THREE.MeshStandardMaterial({
+      map: moneyBagTexture,
+      emissiveMap: moneyBagEmissiveTexture,
+      emissive: 0x52b788,
+      emissiveIntensity: 0.35,
+      roughness: 0.32,
+      metalness: 0.15,
       side: THREE.DoubleSide
     });
   }
@@ -815,6 +1110,360 @@ function buildKrampusDrone(group, mat) {
   group.add(body, wings);
 }
 
+function buildClockworkDrone(group, mat) {
+  const droneMat = mat || createGhostSkinMaterial('ghost_clockwork');
+
+  const bodyGeom = new THREE.ConeGeometry(5, 24, 4);
+  bodyGeom.rotateX(-Math.PI / 2);
+  const body = new THREE.Mesh(bodyGeom, droneMat);
+  group.add(body);
+
+  const wingGeom = new THREE.BoxGeometry(42, 0.4, 6);
+  const wing = new THREE.Mesh(wingGeom, droneMat);
+  wing.position.set(0, 0, 3);
+  group.add(wing);
+}
+
+function buildApexWardenDrone(group, mat) {
+  const obsidianMat = new THREE.MeshStandardMaterial({
+    color: 0x07070a,
+    roughness: 0.12,
+    metalness: 0.95,
+    flatShading: true
+  });
+  const neonMagentaMat = new THREE.MeshBasicMaterial({ color: 0xff00aa });
+  const eyeGlowMat = new THREE.MeshBasicMaterial({ color: 0xff0088 });
+  const pupilMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+  const noseGeom = new THREE.ConeGeometry(2.4, 8.5, 4);
+  noseGeom.rotateX(-Math.PI / 2);
+  noseGeom.scale(1.2, 0.7, 1.0);
+  const nose = new THREE.Mesh(noseGeom, obsidianMat);
+  nose.position.set(0, 0, -8.2);
+  group.add(nose);
+
+  const fuseGeom = new THREE.BoxGeometry(6.4, 2.2, 11.0);
+  const fuse = new THREE.Mesh(fuseGeom, obsidianMat);
+  fuse.position.set(0, 0.1, 0.2);
+  group.add(fuse);
+
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 11.2), neonMagentaMat);
+  stripe.position.set(0, 1.25, 0.2);
+  group.add(stripe);
+
+  const eyeSocket = new THREE.Mesh(new THREE.TorusGeometry(2.0, 0.38, 8, 20), obsidianMat);
+  eyeSocket.rotation.x = Math.PI / 2;
+  eyeSocket.position.set(0, 1.2, -1.2);
+  group.add(eyeSocket);
+
+  const eyeSphere = new THREE.Mesh(new THREE.SphereGeometry(1.6, 16, 16), eyeGlowMat);
+  eyeSphere.position.set(0, 1.2, -1.2);
+  eyeSphere.scale.set(1.0, 0.45, 1.0);
+  group.add(eyeSphere);
+
+  const pupil = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.15, 2.2), pupilMat);
+  pupil.position.set(0, 1.45, -1.2);
+  group.add(pupil);
+
+  [-1, 1].forEach(side => {
+    const wingGeom = new THREE.BoxGeometry(19.0, 0.45, 6.5);
+    const wing = new THREE.Mesh(wingGeom, obsidianMat);
+    wing.position.set(side * 11.5, 0.25, 2.0);
+    wing.rotation.y = side * -0.25;
+    group.add(wing);
+
+    const edge = new THREE.Mesh(new THREE.BoxGeometry(19.2, 0.52, 0.5), neonMagentaMat);
+    edge.position.set(side * 11.5, 0.25, -1.25);
+    edge.rotation.y = side * -0.25;
+    group.add(edge);
+
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.4, 5.5, 4.5), obsidianMat);
+    fin.position.set(side * 4.2, 2.5, 6.0);
+    fin.rotation.z = side * -0.38;
+    group.add(fin);
+
+    const finTrim = new THREE.Mesh(new THREE.BoxGeometry(0.45, 5.6, 0.4), neonMagentaMat);
+    finTrim.position.set(side * 4.2, 2.5, 8.2);
+    finTrim.rotation.z = side * -0.38;
+    group.add(finTrim);
+  });
+}
+
+function buildMatrixDrone(group, mat) {
+  const matrixDroneMat = new THREE.MeshStandardMaterial({
+    map: matrixTexture,
+    emissiveMap: matrixTexture,
+    emissive: 0x00ff66,
+    emissiveIntensity: 0.85,
+    roughness: 0.25,
+    metalness: 0.45,
+    side: THREE.DoubleSide
+  });
+
+  const bodyGeom = new THREE.ConeGeometry(5, 24, 4);
+  bodyGeom.rotateX(-Math.PI / 2);
+  const body = new THREE.Mesh(bodyGeom, matrixDroneMat);
+  group.add(body);
+
+  const wingGeom = new THREE.BoxGeometry(42, 0.4, 6);
+  const wing = new THREE.Mesh(wingGeom, matrixDroneMat);
+  wing.position.set(0, 0, 3);
+  group.add(wing);
+}
+
+function buildScrapheapDrone(group) {
+  const redMat = new THREE.MeshStandardMaterial({
+    color: 0xee2233,
+    roughness: 0.35,
+    metalness: 0.1,
+    side: THREE.DoubleSide
+  });
+  const yellowMat = new THREE.MeshStandardMaterial({
+    color: 0xffea00,
+    roughness: 0.35,
+    metalness: 0.1,
+    side: THREE.DoubleSide
+  });
+
+  const leftBodyGeom = new THREE.ConeGeometry(5, 24, 2, 1, false, Math.PI, Math.PI);
+  leftBodyGeom.rotateX(-Math.PI / 2);
+  const leftBody = new THREE.Mesh(leftBodyGeom, redMat);
+  group.add(leftBody);
+
+  const rightBodyGeom = new THREE.ConeGeometry(5, 24, 2, 1, false, 0, Math.PI);
+  rightBodyGeom.rotateX(-Math.PI / 2);
+  const rightBody = new THREE.Mesh(rightBodyGeom, yellowMat);
+  group.add(rightBody);
+
+  const leftWingGeom = new THREE.BoxGeometry(21, 0.4, 6);
+  const leftWing = new THREE.Mesh(leftWingGeom, redMat);
+  leftWing.position.set(-10.5, 0, 3);
+  group.add(leftWing);
+
+  const rightWingGeom = new THREE.BoxGeometry(21, 0.4, 6);
+  const rightWing = new THREE.Mesh(rightWingGeom, yellowMat);
+  rightWing.position.set(10.5, 0, 3);
+  group.add(rightWing);
+}
+
+function buildT9Drone(group) {
+  const coreMat = new THREE.MeshStandardMaterial({
+    color: 0x0a0e14,
+    roughness: 0.5,
+    metalness: 0.2,
+    side: THREE.DoubleSide
+  });
+  const wireMat = new THREE.MeshBasicMaterial({
+    color: 0x00f0ff,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.85,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+
+  const coreBodyGeom = new THREE.ConeGeometry(5, 24, 4);
+  coreBodyGeom.rotateX(-Math.PI / 2);
+  const coreBody = new THREE.Mesh(coreBodyGeom, coreMat);
+  coreBody.scale.set(0.85, 0.85, 0.85);
+  group.add(coreBody);
+
+  const coreWingGeom = new THREE.BoxGeometry(42, 0.4, 6);
+  const coreWing = new THREE.Mesh(coreWingGeom, coreMat);
+  coreWing.position.set(0, 0, 3);
+  coreWing.scale.set(0.85, 0.85, 0.85);
+  group.add(coreWing);
+
+  const wireBodyGeom = new THREE.ConeGeometry(5, 24, 4);
+  wireBodyGeom.rotateX(-Math.PI / 2);
+  const wireBody = new THREE.Mesh(wireBodyGeom, wireMat);
+  wireBody.name = 't9WireShell';
+  group.add(wireBody);
+
+  const wireWingGeom = new THREE.BoxGeometry(42, 0.4, 6);
+  const wireWing = new THREE.Mesh(wireWingGeom, wireMat);
+  wireWing.position.set(0, 0, 3);
+  wireWing.name = 't9WireShell';
+  group.add(wireWing);
+}
+
+function buildPaperAirplane(group, mat) {
+  const paperMat = mat || new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    roughness: 0.9,
+    metalness: 0.05,
+    flatShading: true,
+    side: THREE.DoubleSide
+  });
+
+  const positions = new Float32Array([
+    0, 0, -14,   -1.2, 0.6, 9,   -20, 2.2, 8,
+    0, 0, -14,   20, 2.2, 8,      1.2, 0.6, 9,
+    0, 0, -14,    1.2, 0.6, 9,    0, 0.1, 9.5,
+    0, 0, -14,    0, 0.1, 9.5,   -1.2, 0.6, 9,
+    0, 0, -14,   -1.2, 0.6, 9,    0, -4.2, 7,
+    0, 0, -14,    0, -4.2, 7,     1.2, 0.6, 9,
+    -20, 2.2, 8, -19.5, 5.0, 8.2, -11, 1.6, -1,
+    20, 2.2, 8,   11, 1.6, -1,   19.5, 5.0, 8.2
+  ]);
+
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geom.computeVertexNormals();
+
+  const mesh = new THREE.Mesh(geom, paperMat);
+  group.add(mesh);
+}
+
+function buildAceCircuitDrone(group, mat) {
+  const violetMat = mat || new THREE.MeshStandardMaterial({
+    color: 0xa020f0,
+    emissive: 0xa020f0,
+    emissiveIntensity: 0.45,
+    roughness: 0.2,
+    metalness: 0.7,
+    side: THREE.DoubleSide
+  });
+  if (violetMat.color) {
+    violetMat.color.setHex(0xa020f0);
+  }
+  if (violetMat.emissive) {
+    violetMat.emissive.setHex(0xa020f0);
+    violetMat.emissiveIntensity = 0.45;
+  }
+  const blackMat = new THREE.MeshStandardMaterial({
+    color: 0x0a0a0f,
+    roughness: 0.35,
+    metalness: 0.85
+  });
+
+  const bodyGeom = new THREE.ConeGeometry(5, 24, 4);
+  bodyGeom.rotateX(-Math.PI / 2);
+  const body = new THREE.Mesh(bodyGeom, violetMat);
+  group.add(body);
+
+  const wingGeom = new THREE.BoxGeometry(42, 0.4, 6);
+  const wing = new THREE.Mesh(wingGeom, violetMat);
+  wing.position.set(0, 0, 3);
+  group.add(wing);
+
+  const canopyGeom = new THREE.ConeGeometry(1.5, 9.0, 4);
+  canopyGeom.rotateX(-Math.PI / 2);
+  canopyGeom.scale(0.85, 0.7, 1.0);
+  const canopy = new THREE.Mesh(canopyGeom, blackMat);
+  canopy.position.set(0, 1.15, -1.2);
+  group.add(canopy);
+
+  const edgeGeom = new THREE.BoxGeometry(42.2, 0.44, 0.8);
+  const frontEdge = new THREE.Mesh(edgeGeom, blackMat);
+  frontEdge.position.set(0, 0, 0.3);
+  group.add(frontEdge);
+
+  [-21, 21].forEach(side => {
+    const winglet = new THREE.Mesh(new THREE.BoxGeometry(0.35, 2.5, 5.5), blackMat);
+    winglet.position.set(side, 0.8, 3.0);
+    group.add(winglet);
+  });
+
+  [-7, 7].forEach(x => {
+    const thruster = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 2.2), blackMat);
+    thruster.position.set(x, 0, 6.1);
+    group.add(thruster);
+  });
+}
+
+function buildPiggyBankDrone(group, mat) {
+  const pinkMat = mat || new THREE.MeshStandardMaterial({
+    color: 0xffa0b8,
+    roughness: 0.35,
+    metalness: 0.1
+  });
+  const darkPinkMat = new THREE.MeshStandardMaterial({
+    color: 0xcc5c77,
+    roughness: 0.4,
+    metalness: 0.1
+  });
+  const blackEyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(7.2, 16, 16), pinkMat);
+  body.scale.set(1.15, 1.0, 1.35);
+  group.add(body);
+
+  const snout = new THREE.Mesh(new THREE.CylinderGeometry(2.3, 2.5, 2.2, 12), pinkMat);
+  snout.rotateX(-Math.PI / 2);
+  snout.position.set(0, 0, -9.2);
+  group.add(snout);
+
+  [-0.8, 0.8].forEach(nx => {
+    const nostril = new THREE.Mesh(new THREE.SphereGeometry(0.45, 6, 6), darkPinkMat);
+    nostril.position.set(nx, 0, -10.3);
+    group.add(nostril);
+  });
+
+  [-1, 1].forEach(side => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.7, 8, 8), blackEyeMat);
+    eye.position.set(side * 3.4, 2.6, -8.2);
+    group.add(eye);
+
+    const ear = new THREE.Mesh(new THREE.ConeGeometry(2.0, 3.8, 3), darkPinkMat);
+    ear.position.set(side * 3.8, 5.8, -4.2);
+    ear.rotation.set(-0.35, 0, side * -0.45);
+    group.add(ear);
+
+    const legF = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.1, 3.5, 8), darkPinkMat);
+    legF.position.set(side * 3.5, -6.0, -4.2);
+    const legB = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.1, 3.5, 8), darkPinkMat);
+    legB.position.set(side * 3.5, -6.0, 4.2);
+    group.add(legF, legB);
+
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(11, 0.35, 4.5), pinkMat);
+    wing.position.set(side * 10.5, 0.8, 0);
+    wing.rotation.y = side * -0.15;
+    group.add(wing);
+
+    const wingTip = new THREE.Mesh(new THREE.BoxGeometry(11.2, 0.45, 0.5), darkPinkMat);
+    wingTip.position.set(side * 10.5, 0.8, -2.25);
+    wingTip.rotation.y = side * -0.15;
+    group.add(wingTip);
+  });
+
+  const slot = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.5, 5.2), blackEyeMat);
+  slot.position.set(0, 7.25, 0);
+  group.add(slot);
+
+  const tail = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.45, 8, 12, Math.PI * 1.5), darkPinkMat);
+  tail.position.set(0, 1.2, 9.6);
+  tail.rotation.x = Math.PI / 2;
+  group.add(tail);
+}
+
+let lastT9GlowUpdate = 0;
+function updateT9Glow() {
+  const isEquipped = getEquippedGhostSkinId() === 'ghost_t9';
+  const isInspected = inspectedType === 'ghost' && inspectedGhostId === 'ghost_t9';
+  const isDashShop = !isMobileDevice() && typeof currentDashboardCat !== 'undefined' && currentDashboardCat === 'shop' && (document.getElementById('desktop-dashboard')?.style.display !== 'none');
+  const shopVisible = isDashShop || (document.getElementById('screen-shop') && !document.getElementById('screen-shop').classList.contains('hidden'));
+  const splashGrp = (typeof splashGhostGroup !== 'undefined') ? splashGhostGroup : null;
+  if (!isEquipped && !(shopVisible && isInspected) && !splashGrp) return;
+
+  const now = performance.now();
+  if (now - lastT9GlowUpdate < 66.67) return;
+  lastT9GlowUpdate = now;
+
+  const op = 0.75 + Math.sin(now * 0.006) * 0.10;
+  const groups = [ghostDroneGroup, shopDroneGroup, splashGrp];
+  for (let i = 0; i < groups.length; i++) {
+    const grp = groups[i];
+    if (grp) {
+      grp.traverse(child => {
+        if (child.name === 't9WireShell' && child.material) {
+          child.material.opacity = op;
+        }
+      });
+    }
+  }
+}
+
 function getTrackStats() {
   const courses = ['canyon', 'islands', 'coastal', 'volcano', 'glacial', 'moon'];
   const subs = ['A', 'B', 'C', 'D'];
@@ -825,8 +1474,22 @@ function getTrackStats() {
   let hasSilver = false;
   let hasGold = false;
   let hasGhost = false;
+  let completedTimeTrials = 0;
   const hasDevTools = localStorage.getItem('glider_achieve_devtools') === 'true';
   const hasTvEasterEgg = localStorage.getItem('glider_achieve_tv') === 'true';
+
+  const streakData = (typeof getDailyChallengeStreak === 'function') ? getDailyChallengeStreak() : { currentStreak: 0, maxStreak: 0 };
+  const streakCount = Math.max(streakData.currentStreak || 0, streakData.maxStreak || 0);
+
+  let catchUpChallengesCompleted = parseInt(localStorage.getItem('glider_catchup_count') || '0', 10);
+  if (typeof getRollingDailyChallenges === 'function') {
+    const rolling = getRollingDailyChallenges();
+    if (rolling.length > 0 && rolling.every(item => isDailyChallengeCompleted(item.challenge.id, item.dateKey))) {
+      catchUpChallengesCompleted = Math.max(catchUpChallengesCompleted, 3);
+    }
+  }
+
+  const totalHardDailiesCompleted = parseInt(localStorage.getItem('glider_hard_dailies_count') || '0', 10);
 
   courses.forEach(c => {
     subs.forEach(s => {
@@ -834,6 +1497,7 @@ function getTrackStats() {
       const medals = COURSES[c].subtracks[s].medals;
       const pbStr = localStorage.getItem(`pb_${c}_${s}`);
       if (pbStr) {
+        completedTimeTrials++;
         const pb = parseFloat(pbStr);
         if (pb <= medals.ace) {
           totalAceOrBetter++;
@@ -862,6 +1526,10 @@ function getTrackStats() {
     });
   });
 
+  const totalTimeTrialRuns = parseInt(localStorage.getItem('glider_timetrial_runs_count') || '0', 10);
+  const gpCups = ['sunrise', 'ember', 'gale', 'aether', 'odyssey', 'aphelion'];
+  const gpCupsWith2Stars = gpCups.filter(c => parseInt(localStorage.getItem(`gp_stars_${c}`) || '0', 10) >= 2).length;
+
   return {
     totalBronzeOrBetter,
     totalSilverOrBetter,
@@ -871,12 +1539,30 @@ function getTrackStats() {
     hasGold,
     hasGhost,
     hasDevTools,
-    hasTvEasterEgg
+    hasTvEasterEgg,
+    streakCount,
+    catchUpChallengesCompleted,
+    totalHardDailiesCompleted,
+    completedTimeTrials,
+    totalTimeTrialRuns,
+    gpCupsWith2Stars
   };
 }
 
 const ACHIEVEMENT_SUBTITLES = {
-  'Wait What was that?!': 'What was that?'
+  'Wait What was that?!': 'What was that?',
+  'The Clockwork': 'Time flies! 7-day challenge streak achieved.',
+  'RS-99': '14-day streak! The Aphelion server watchdog.',
+  'T-9': '21-day streak! Holographic prototype drone unlocked.',
+  '404 Glider Not Found': '31-day perfect streak! A true daily challenge machine.',
+  'Scrapheap Chaser': 'Pieced back together! 3 catch-up challenges completed.',
+  'The Try-Hard': '5 Hard dailies conquered! Neon liquid bubbler unlocked.',
+  'The Aero Scout': 'Silver standard achieved! Reconnaissance drone unlocked.',
+  'The Dart': '5 Time Trials logged! High-speed orange drone unlocked.',
+  'Paper Airplane': '3 Gold medals earned! The paper speedster unlocked.',
+  'Ace Circuit': 'Grand Prix star! Apex racing interceptor unlocked.',
+  'Piggy bank': 'Purchased for 5.99! Oink oink.',
+  'Money Bag': 'Purchased for 5.99! In flight we trust.'
 };
 
 function showAchievementNotifications(unlockedItems) {
@@ -1091,7 +1777,60 @@ function openShopMenu() {
   showScreen('screen-shop');
 }
 
+const GLIDER_SORT_ORDER = [
+  'default',
+  'first_silver',
+  'all_bronze',
+  'first_gold',
+  'all_silver',
+  'all_gold',
+  'lava_core',
+  'lunar_voyager',
+  'glider_tv_static',
+  'glider_tryhard',
+  'aphelion_apex',
+  'all_ace',
+  'glider_santa',
+  'glider_halloween',
+  'glider_16bit',
+  'glider_money_bag'
+];
+
+const GHOST_SORT_ORDER = [
+  'ghost_default',
+  'ghost_aero_scout',
+  'ghost_purple',
+  'ghost_dart',
+  'ghost_paper_airplane',
+  'ghost_speedofsound',
+  'ghost_gold',
+  'ghost_ace_circuit',
+  'ghost_scrapheap',
+  'ghost_clockwork',
+  'ghost_apex_warden',
+  'ghost_t9',
+  'ghost_404',
+  'ghost_krampus',
+  'ghost_16bit',
+  'ghost_piggy_bank'
+];
+
+function sortShopSkins() {
+  GLIDER_SKINS.sort((a, b) => {
+    const ai = GLIDER_SORT_ORDER.indexOf(a.id);
+    const bi = GLIDER_SORT_ORDER.indexOf(b.id);
+    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+  });
+  GHOST_SKINS.sort((a, b) => {
+    const ai = GHOST_SORT_ORDER.indexOf(a.id);
+    const bi = GHOST_SORT_ORDER.indexOf(b.id);
+    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+  });
+}
+sortShopSkins();
+
 function renderShop() {
+  sortShopSkins();
   const listEl = document.getElementById('shop-glider-list');
   const droneListEl = document.getElementById('shop-drone-list');
   const dashListEl = document.getElementById('dash-shop-items-list');
@@ -1114,14 +1853,26 @@ function renderShop() {
     dashTvSlot.appendChild(shopTv);
   }
 
+  const cellarWrap = document.getElementById('shop-cellar-door-wrap');
+  if (cellarWrap) {
+    if (!isMobileDevice() && dashTvSlot && cellarWrap.parentElement !== dashTvSlot.parentElement) {
+      dashTvSlot.parentElement.insertBefore(cellarWrap, dashTvSlot.nextSibling);
+      cellarWrap.style.position = 'relative';
+      cellarWrap.style.bottom = 'auto';
+      cellarWrap.style.right = 'auto';
+      cellarWrap.style.margin = '10px auto';
+    } else if (isMobileDevice() && document.getElementById('screen-shop') && cellarWrap.parentElement !== document.getElementById('screen-shop')) {
+      document.getElementById('screen-shop').appendChild(cellarWrap);
+      cellarWrap.style.position = 'absolute';
+      cellarWrap.style.bottom = '14px';
+      cellarWrap.style.right = '20px';
+      cellarWrap.style.margin = '';
+    }
+  }
+
   const stats = getTrackStats();
   const equippedGliderId = getEquippedSkinId();
   const equippedGhostId = getEquippedGhostSkinId();
-
-  const gliderHeading = document.createElement('div');
-  gliderHeading.style.cssText = 'font-size: 10px; letter-spacing: 2px; color: var(--cyan); margin: 4px 0 2px 2px; text-transform: uppercase; font-weight: 700;';
-  gliderHeading.innerText = 'PARAGLIDER CANOPIES';
-  listEl.appendChild(gliderHeading);
 
   GLIDER_SKINS.forEach(skin => {
     const isUnlocked = skin.checkUnlocked(stats);
@@ -1301,6 +2052,30 @@ function renderShop() {
     } else if (inspectedGhostId === 'ghost_krampus') {
       buildKrampusDrone(shopDroneGroup, previewMat);
       shopDroneGroup.is2DDrone = false;
+    } else if (inspectedGhostId === 'ghost_clockwork') {
+      buildClockworkDrone(shopDroneGroup, previewMat);
+      shopDroneGroup.is2DDrone = false;
+    } else if (inspectedGhostId === 'ghost_apex_warden') {
+      buildApexWardenDrone(shopDroneGroup, previewMat);
+      shopDroneGroup.is2DDrone = false;
+    } else if (inspectedGhostId === 'ghost_404') {
+      buildMatrixDrone(shopDroneGroup, previewMat);
+      shopDroneGroup.is2DDrone = false;
+    } else if (inspectedGhostId === 'ghost_scrapheap') {
+      buildScrapheapDrone(shopDroneGroup);
+      shopDroneGroup.is2DDrone = false;
+    } else if (inspectedGhostId === 'ghost_t9') {
+      buildT9Drone(shopDroneGroup);
+      shopDroneGroup.is2DDrone = false;
+    } else if (inspectedGhostId === 'ghost_paper_airplane') {
+      buildPaperAirplane(shopDroneGroup, previewMat);
+      shopDroneGroup.is2DDrone = false;
+    } else if (inspectedGhostId === 'ghost_ace_circuit') {
+      buildAceCircuitDrone(shopDroneGroup, previewMat);
+      shopDroneGroup.is2DDrone = false;
+    } else if (inspectedGhostId === 'ghost_piggy_bank') {
+      buildPiggyBankDrone(shopDroneGroup, previewMat);
+      shopDroneGroup.is2DDrone = false;
     } else {
       const bodyGeom = new THREE.ConeGeometry(5, 24, 4);
       bodyGeom.rotateX(-Math.PI / 2);
@@ -1386,6 +2161,24 @@ function renderShop() {
         renderShop();
       });
       box.appendChild(btn);
+    } else if (inspectedSkin.id === 'ghost_piggy_bank' || inspectedSkin.id === 'glider_money_bag') {
+      const buyBtn = document.createElement('button');
+      buyBtn.className = 'mono-btn';
+      buyBtn.style.borderColor = 'var(--gold)';
+      buyBtn.style.color = 'var(--gold)';
+      buyBtn.innerText = 'Buy: 5.99';
+      buyBtn.addEventListener('click', () => {
+        if (inspectedSkin.id === 'ghost_piggy_bank') {
+          localStorage.setItem('glider_unlocked_piggy_bank', 'true');
+          showAchievementNotifications([{ name: 'Piggy bank' }]);
+        } else {
+          localStorage.setItem('glider_unlocked_money_bag', 'true');
+          showAchievementNotifications([{ name: 'Money Bag' }]);
+        }
+        audio.playRecoveryBoost();
+        renderShop();
+      });
+      box.appendChild(buyBtn);
     } else {
       const btn = document.createElement('div');
       btn.style.fontSize = '10px';
@@ -1416,7 +2209,23 @@ function updateCameraView(shakeX = 0, shakeY = 0, snap = false) {
   camera.rotation.order = 'YXZ';
   camera.rotation.y = player.yaw + (player.rudderDeflection * 0.85);
   camera.rotation.x = player.pitch;
-  camera.rotation.z = -player.roll * 0.35;
+  
+  if (typeof barrelRoll !== 'undefined' && barrelRoll.active) {
+    const p = Math.min(1.0, barrelRoll.timer / barrelRoll.duration);
+    const phi = p * Math.PI * 2;
+    camera.rotation.z = -barrelRoll.direction * phi; 
+  } else {
+    camera.rotation.z = -player.roll * 0.35;
+  }
+
+  const is16Bit = typeof getEquippedSkinId === 'function' && getEquippedSkinId() === 'glider_16bit';
+  const baseY = is16Bit ? 4.3 : 2.5;
+  const baseZ = is16Bit ? -2.2 : -3.2;
+
+  if (paragliderWingGroup) {
+    paragliderWingGroup.position.set(0, baseY, baseZ);
+    paragliderWingGroup.rotation.z = 0;
+  }
 
   camSmoothYaw = camera.rotation.y;
   camSmoothPitch = camera.rotation.x;
@@ -1666,6 +2475,36 @@ function createGhostDroneMesh() {
   } else if (equippedSkinId === 'ghost_krampus') {
     const mat = createGhostSkinMaterial(equippedSkinId);
     buildKrampusDrone(ghostDroneGroup, mat);
+    ghostDroneGroup.is2DDrone = false;
+  } else if (equippedSkinId === 'ghost_clockwork') {
+    const mat = createGhostSkinMaterial(equippedSkinId);
+    buildClockworkDrone(ghostDroneGroup, mat);
+    ghostDroneGroup.is2DDrone = false;
+  } else if (equippedSkinId === 'ghost_apex_warden') {
+    const mat = createGhostSkinMaterial(equippedSkinId);
+    buildApexWardenDrone(ghostDroneGroup, mat);
+    ghostDroneGroup.is2DDrone = false;
+  } else if (equippedSkinId === 'ghost_404') {
+    const mat = createGhostSkinMaterial(equippedSkinId);
+    buildMatrixDrone(ghostDroneGroup, mat);
+    ghostDroneGroup.is2DDrone = false;
+  } else if (equippedSkinId === 'ghost_scrapheap') {
+    buildScrapheapDrone(ghostDroneGroup);
+    ghostDroneGroup.is2DDrone = false;
+  } else if (equippedSkinId === 'ghost_t9') {
+    buildT9Drone(ghostDroneGroup);
+    ghostDroneGroup.is2DDrone = false;
+  } else if (equippedSkinId === 'ghost_paper_airplane') {
+    const mat = createGhostSkinMaterial(equippedSkinId);
+    buildPaperAirplane(ghostDroneGroup, mat);
+    ghostDroneGroup.is2DDrone = false;
+  } else if (equippedSkinId === 'ghost_ace_circuit') {
+    const mat = createGhostSkinMaterial(equippedSkinId);
+    buildAceCircuitDrone(ghostDroneGroup, mat);
+    ghostDroneGroup.is2DDrone = false;
+  } else if (equippedSkinId === 'ghost_piggy_bank') {
+    const mat = createGhostSkinMaterial(equippedSkinId);
+    buildPiggyBankDrone(ghostDroneGroup, mat);
     ghostDroneGroup.is2DDrone = false;
   } else {
     const mat = createGhostSkinMaterial(equippedSkinId);
@@ -2094,26 +2933,25 @@ function createBirdFlockMesh(flockDef) {
     speed: flockDef.speed || 80,
     subClusters: subClusters,
     birdWings: birdWings,
-    currentPos: flockDef.start.clone()
+    currentPos: flockDef.start.clone(),
+    startTime: flockDef.startTime !== undefined ? flockDef.startTime : (typeof raceElapsedTime !== 'undefined' ? raceElapsedTime : 0)
   });
 }
 
 function updateBirdFlocks(dt) {
   const time = raceElapsedTime;
   activeBirdFlocks.forEach(flock => {
-    const progress = ((time * flock.speed) % flock.totalDist) / flock.totalDist;
+    const elapsed = flock.startTime !== undefined ? Math.max(0, time - flock.startTime) : time;
+    const progress = ((elapsed * flock.speed) % flock.totalDist) / flock.totalDist;
     flock.currentPos.lerpVectors(flock.start, flock.end, progress);
     flock.mesh.position.copy(flock.currentPos);
 
-    // Look towards destination
     flock.mesh.lookAt(flock.end.x, flock.currentPos.y, flock.end.z);
 
-    // Update global world coordinates of each tiered cluster for collision
     flock.subClusters.forEach(cluster => {
       cluster.worldPos.copy(cluster.localOffset).applyQuaternion(flock.mesh.quaternion).add(flock.currentPos);
     });
 
-    // Animate flapping wings
     const tSec = performance.now() * 0.001;
     flock.birdWings.forEach(w => {
       const angle = Math.sin(tSec * w.flapSpeed + w.flapPhase) * 0.55;
@@ -2136,7 +2974,6 @@ function setupTrackHazards(courseKey, activeSubtrack) {
   const shoveFrom = 5; // from 5-6
   const shoveTo   = 6;
 
-  // Safe clamping in case a custom track has fewer waypoints
   const b1Idx = Math.min(birdFrom, wps.length - 2);
   const b2Idx = Math.min(birdTo, wps.length - 1);
   const s1Idx = Math.min(shoveFrom, wps.length - 2);
@@ -2196,7 +3033,6 @@ function setupTrackHazards(courseKey, activeSubtrack) {
     birdMidZ + bAxisZ * spanDist + (bDz / bLen) * skewAlong
   );
 
-  // Multi-altitude tiered sub-flocks 
   const tiers = [
     { dx: -140, dy: -42, dz: -70, radius: 65, count: 20 }, 
     { dx: -20,  dy: 14,  dz: -10, radius: 65, count: 22 }, 
@@ -4304,6 +5140,12 @@ const outerRing = new THREE.Mesh(
 
 setupTrackHazards(courseKey, activeSubtrack);
 
+  if (challengeMod && challengeMod.hideThermalVisuals) {
+    thermalSystems.forEach(sys => {
+      if (sys.points) sys.points.visible = false;
+    });
+  }
+
   if (CHRISTMAS_EVENT_ACTIVE && courseKey === 'glacial') {
     const pTex = createPixelTexture('present.png');
     const pGeom = new THREE.BoxGeometry(16, 16, 16);
@@ -5230,6 +6072,23 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
   if (mobileYawRight) yawInput += 1.0;
   if (mobileAirbrake) player.airbrake = true;
 
+  if (challengeMod) {
+    if (challengeMod.disableYaw) {
+      yawInput = 0;
+      player.rudderDeflection = 0;
+    }
+    if (challengeMod.disableAirbrake) {
+      player.airbrake = false;
+    }
+  }
+
+  if (yawInput !== 0) challengeTracker.usedYaw = true;
+  if (player.airbrake) {
+    challengeTracker.usedAirbrake = true;
+    challengeTracker.totalAirbrakeTime += dt;
+  }
+  challengeTracker.maxY = Math.max(challengeTracker.maxY, player.pos.y);
+
   if (Math.abs(pitchInput) > 0.001) hasPitchInput = true;
   if (Math.abs(rollInput) > 0.001) hasRollInput = true;
 
@@ -5243,26 +6102,58 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
     yawInput = -yawInput;
   }
 
-  if (rudderBoost.cooldownTimer > 0) {
-    rudderBoost.cooldownTimer -= dt;
+  if (barrelRoll.cooldownTimer > 0) {
+    barrelRoll.cooldownTimer -= dt;
   }
-  if (!rudderBoost.rearmed) {
-    if (Math.abs(player.pitch - rudderBoost.releasePitch) >= 0.15) {
-      rudderBoost.rearmed = true;
+  if (barrelRoll.immunityTimer > 0) {
+    barrelRoll.immunityTimer -= dt;
+  }
+  if (barrelRoll.active) {
+    barrelRoll.timer += dt;
+    const p = Math.min(1.0, barrelRoll.timer / barrelRoll.duration);
+    const phi = p * Math.PI * 2;
+    
+    player.roll = -barrelRoll.direction * phi;
+    
+    const rightX = Math.cos(player.yaw);
+    const rightZ = -Math.sin(player.yaw);
+    
+    const maxLateralSpeed = 250; 
+    const currentLatSpeed = maxLateralSpeed * Math.sin(p * Math.PI);
+    
+    player.pos.x += rightX * barrelRoll.direction * currentLatSpeed * dt;
+    player.pos.z += rightZ * barrelRoll.direction * currentLatSpeed * dt;
+    
+    player.speed -= 12 * dt; 
+    
+    if (barrelRoll.timer >= barrelRoll.duration) {
+      barrelRoll.active = false;
+      barrelRoll.timer = 0;
+      player.roll = 0;
+      player.targetRoll = 0;
     }
   }
 
-const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
+  if (rudderBoost.cooldownTimer > 0) {
+    rudderBoost.cooldownTimer -= dt;
+  }
+
+const currentYawDir = (challengeMod && challengeMod.disableRudderBoost) ? 0 : (yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0));
 
   if (currentYawDir !== 0) {
     if (!rudderBoost.charging) {
-      if (rudderBoost.cooldownTimer <= 0 && rudderBoost.rearmed) {
+      if (rudderBoost.cooldownTimer <= 0) {
         rudderBoost.charging = true;
         rudderBoost.chargeTimer = 0;
         rudderBoost.activeDir = currentYawDir;
       }
     } else if (rudderBoost.activeDir !== currentYawDir) {
-        if (rudderBoost.chargeTimer >= 0.4 && rudderBoost.cooldownTimer <= 0 && rudderBoost.rearmed) {
+        if (rudderBoost.chargeTimer >= 0.4 && rudderBoost.cooldownTimer <= 0) {
+        challengeTracker.usedBoost = true;
+        challengeTracker.lastBoostReleaseTime = performance.now();
+        if (rudderBoost.chargeTimer >= 1.0) {
+          challengeTracker.maxChargedBoosts++;
+        }
         const effectiveCharge = Math.min(rudderBoost.chargeTimer, 1.2);
         const boost = 18 + ((effectiveCharge - 0.4) / 0.8) * 10;
         player.speed = Math.min(player.speed + boost, 185);
@@ -5270,8 +6161,6 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
         audio.playRecoveryBoost();
         screenShake = Math.max(screenShake, 0.4);
         rudderBoost.cooldownTimer = 2.5;
-        rudderBoost.rearmed = false;
-        rudderBoost.releasePitch = player.pitch;
       }
       rudderBoost.charging = true;
       rudderBoost.chargeTimer = 0;
@@ -5282,6 +6171,11 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
   } else {
     if (rudderBoost.charging) {
       if (rudderBoost.chargeTimer >= 0.4) {
+        challengeTracker.usedBoost = true;
+        challengeTracker.lastBoostReleaseTime = performance.now();
+        if (rudderBoost.chargeTimer >= 1.0) {
+          challengeTracker.maxChargedBoosts++;
+        }
         const effectiveCharge = Math.min(rudderBoost.chargeTimer, 1.2);
         const boost = 18 + ((effectiveCharge - 0.4) / 0.8) * 10;
         player.speed = Math.min(player.speed + boost, 185);
@@ -5289,8 +6183,6 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
         audio.playRecoveryBoost();
         screenShake = Math.max(screenShake, 0.4);
         rudderBoost.cooldownTimer = 2.5;
-        rudderBoost.rearmed = false;
-        rudderBoost.releasePitch = player.pitch;
       }
       rudderBoost.charging = false;
       rudderBoost.chargeTimer = 0;
@@ -5306,14 +6198,37 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
     player.targetPitch = THREE.MathUtils.lerp(player.targetPitch, 0.0, 3.5 * dt);
   }
 
-  if (hasRollInput) {
-    player.targetRoll = THREE.MathUtils.lerp(player.targetRoll, rollInput * 0.85, 8.0 * dt);
-  } else {
-    player.targetRoll = THREE.MathUtils.lerp(player.targetRoll, 0.0, 3.8 * dt);
+  if (challengeMod && challengeMod.disablePitchUp) {
+    if (player.targetPitch > 0.01) challengeTracker.usedPitchUp = true;
+    player.targetPitch = Math.min(0, player.targetPitch);
+  }
+
+  if (!barrelRoll.active) {
+    if (hasRollInput) {
+      player.targetRoll = THREE.MathUtils.lerp(player.targetRoll, rollInput * 0.85, 8.0 * dt);
+    } else {
+      player.targetRoll = THREE.MathUtils.lerp(player.targetRoll, 0.0, 3.8 * dt);
+    }
+    player.roll = THREE.MathUtils.lerp(player.roll, player.targetRoll, 8.0 * dt);
   }
 
   player.pitch = THREE.MathUtils.lerp(player.pitch, player.targetPitch, 7.0 * dt);
-  player.roll = THREE.MathUtils.lerp(player.roll, player.targetRoll, 8.0 * dt);
+
+  let dRoll = player.roll - challengeTracker.prevRoll;
+  challengeTracker.prevRoll = player.roll;
+  while (dRoll > Math.PI) dRoll -= Math.PI * 2;
+  while (dRoll < -Math.PI) dRoll += Math.PI * 2;
+  if (Math.abs(dRoll) > 0.001) {
+    if (challengeTracker.rollAccum !== 0 && Math.sign(dRoll) !== Math.sign(challengeTracker.rollAccum)) {
+      challengeTracker.rollAccum = dRoll;
+    } else {
+      challengeTracker.rollAccum += dRoll;
+    }
+    if (Math.abs(challengeTracker.rollAccum) >= Math.PI * 2) {
+      challengeTracker.barrelRollCount++;
+      challengeTracker.rollAccum = 0;
+    }
+  }
 
   if (yawInput !== 0) {
     const cap = 0.32;
@@ -5324,8 +6239,10 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
     player.rudderDeflection -= player.rudderDeflection * 0.20 * 32.0 * dt;
   }
 
-  const bankYawRate = -player.roll * 1.35;
-  player.yaw += (bankYawRate + player.rudderDeflection * 1.5) * dt;
+  if (!barrelRoll.active) {
+    const bankYawRate = -player.roll * 1.35;
+    player.yaw += (bankYawRate + player.rudderDeflection * 1.5) * dt;
+  }
 
   const alphaRad = player.pitch - player.flightPathPitch;
   const alphaDeg = alphaRad * (180 / Math.PI);
@@ -5345,6 +6262,16 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
 
   const hTerrain = getTerrainHeight(player.pos.x, player.pos.z, selectedCourseId);
   const altitudeAGL = player.pos.y - hTerrain;
+
+  const aglFt = altitudeAGL * 3.2;
+  if (aglFt > 0 && aglFt < 49) {
+    challengeTracker.consecutiveLowAltTime += dt;
+    if (challengeTracker.consecutiveLowAltTime > challengeTracker.maxConsecutiveLowAltTime) {
+      challengeTracker.maxConsecutiveLowAltTime = challengeTracker.consecutiveLowAltTime;
+    }
+  } else {
+    challengeTracker.consecutiveLowAltTime = 0;
+  }
 
   const turbMult = weather.isStormy2X ? 2.0 : 1.0;
 
@@ -5447,6 +6374,7 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
       }
 
       if (stallMechanic.canBonus && stallMechanic.recoveryWindowTimer > 0 && pitchInput < -0.3) {
+        challengeTracker.stallRecoveries++;
         player.speed = Math.min(player.speed + 38, 175);
         stallMechanic.canBonus = false;
         birdStrikeDragTimer = 0;
@@ -5540,8 +6468,16 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
     });
   }
 
+  if (weather.isStormy2X) {
+    challengeTracker.wasStormy = true;
+  }
+
   if (isPlayerDrafting) {
     playerDraftTimer += dt;
+    challengeTracker.totalDraftTime += dt;
+    if (weather.isStormy2X) {
+      challengeTracker.stormDraftTime += dt;
+    }
     if (playerDraftTimer >= 3.0) {
       player.speed = Math.min(player.speed + 34.0 * dt, 165);
       screenShake = Math.max(screenShake, 0.2);
@@ -5561,10 +6497,12 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
 
   if (activeSubtrack.sinks) {
     const sinkMult = weather.isStormy2X ? 2.0 : 1.0;
-    activeSubtrack.sinks.forEach(sink => {
+    activeSubtrack.sinks.forEach((sink, sinkIdx) => {
       const dist2D = Math.hypot(player.pos.x - sink.pos.x, player.pos.z - sink.pos.z);
       if (dist2D < sink.radius && player.pos.y > sink.pos.y - 50 && player.pos.y < sink.pos.y + 400) {
         inSink = true;
+        challengeTracker.sinkEntries.add(sinkIdx);
+        challengeTracker.enteredSink = true;
         const effStrength = sink.strength * sinkMult;
         player.verticalVelocity -= effStrength * 0.9 * dt;
         player.speed -= effStrength * 1.2 * dt;
@@ -5579,6 +6517,12 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
         audio.playBeep(180, 'sawtooth', 0.1, 0.08);
       }
     });
+  }
+
+  if (inSink) {
+    challengeTracker.totalSinkTime += dt;
+  } else if (challengeTracker.enteredSink) {
+    challengeTracker.exitedSink = true;
   }
 
   // Check Lateral Shoves
@@ -5617,31 +6561,34 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
     }
   });
 
-  // Check Bird Strikes
   activeBirdFlocks.forEach(flock => {
     flock.subClusters.forEach(cluster => {
       const distToBird = player.pos.distanceTo(cluster.worldPos);
+      const edgeDist = Math.max(0, distToBird - cluster.radius);
+      challengeTracker.minFlockDist = Math.min(challengeTracker.minFlockDist, edgeDist);
       if (distToBird < cluster.radius + 12) {
-        const nowSec = performance.now() * 0.001;
-        if (nowSec - lastBirdStrikeTime > 0.35) {
-          lastBirdStrikeTime = nowSec;
-          birdStrikeDragTimer = Math.min(birdStrikeDragTimer + 1.8, 3.6);
-          screenShake = Math.max(screenShake, 0.95);
+        if (barrelRoll.immunityTimer <= 0) {
+          challengeTracker.hadBirdStrike = true;
+          const nowSec = performance.now() * 0.001;
+          if (nowSec - lastBirdStrikeTime > 0.35) {
+            lastBirdStrikeTime = nowSec;
+            birdStrikeDragTimer = Math.min(birdStrikeDragTimer + 1.8, 3.6);
+            screenShake = Math.max(screenShake, 0.95);
 
-          // nose down pitch
-          const rollKick = Math.random() > 0.5 ? 0.95 : -0.95;
-          player.targetRoll += rollKick;
-          player.rudderDeflection += (rollKick > 0 ? 0.22 : -0.22);
-          player.targetPitch += 0.36;
-          player.flightPathPitch -= 0.14;
+            const rollKick = Math.random() > 0.5 ? 0.95 : -0.95;
+            player.targetRoll += rollKick;
+            player.rudderDeflection += (rollKick > 0 ? 0.22 : -0.22);
+            player.targetPitch += 0.36;
+            player.flightPathPitch -= 0.14;
 
-          audio.playBirdStrike();
+            audio.playBirdStrike();
 
-          if (!inSink) {
-            thHint.innerText = 'BIRD STRIKE! SEVERE DRAG & SPIRAL';
-            thHint.style.color = '#ff4444';
-            thHint.style.borderColor = '#ff4444';
-            thHint.style.display = 'block';
+            if (!inSink) {
+              thHint.innerText = 'BIRD STRIKE! SEVERE DRAG & SPIRAL';
+              thHint.style.color = '#ff4444';
+              thHint.style.borderColor = '#ff4444';
+              thHint.style.display = 'block';
+            }
           }
         }
       }
@@ -5649,14 +6596,28 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
   });
 
 
-  activeSubtrack.thermals.forEach(th => {
+  activeSubtrack.thermals.forEach((th, thIdx) => {
     const dist2D = Math.hypot(player.pos.x - th.pos.x, player.pos.z - th.pos.z);
     if (dist2D < th.radius && player.pos.y > th.pos.y - 60 && player.pos.y < th.pos.y + 800) {
       player.inThermal = true;
       thBoostLift = th.boost * rainThermalBonus;
       player.speed = Math.max(player.speed, 85);
+      challengeTracker.thermalEntries.add(thIdx);
+      challengeTracker.wasInThermal = true;
+      if (performance.now() - challengeTracker.lastBoostReleaseTime <= 500) {
+        challengeTracker.boostedThermals.add(thIdx);
+      }
     }
   });
+
+  if (player.inThermal) {
+    challengeTracker.consecutiveThermalTime += dt;
+    if (challengeTracker.consecutiveThermalTime > challengeTracker.maxConsecutiveThermalTime) {
+      challengeTracker.maxConsecutiveThermalTime = challengeTracker.consecutiveThermalTime;
+    }
+  } else {
+    challengeTracker.consecutiveThermalTime = 0;
+  }
 
   if (player.inThermal) {
     thHint.style.display = 'block';
@@ -5750,6 +6711,29 @@ const currentYawDir = yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0);
       player.verticalVelocity = Math.max(player.verticalVelocity, 4.0);
       player.speed = Math.max(0, player.speed - 36 * dt);
       screenShake = Math.max(screenShake, 0.35);
+
+      if (challengeActive === 5 && selectedCourseId === 'moon') {
+        const distApollo = Math.hypot(player.pos.x - 600, player.pos.z - (-1600));
+        if (distApollo < 100) {
+          challengeTracker.touchdownApollo = true;
+        }
+        if (challengeTracker.touchdownApollo && player.speed <= 5) {
+          challengeTracker.stoppedNearApollo = true;
+          triggerRaceFinishSequence();
+          return;
+        }
+      }
+
+      if (challengeActive === 30 && selectedCourseId === 'glacial') {
+        if (player.pos.y < 100) {
+          challengeTracker.touchdownFjord = true;
+        }
+        if (challengeTracker.touchdownFjord && player.speed <= 5 && !challengeTracker.usedBoost && !challengeTracker.wasInThermal) {
+          challengeTracker.stoppedInFjord = true;
+          triggerRaceFinishSequence();
+          return;
+        }
+      }
     }
   }
 
@@ -5837,6 +6821,12 @@ const is16BitGlider = (getEquippedSkinId() === 'glider_16bit');
     audio.playGateWhoosh();
     const passedIdx = player.nextGateIdx;
     player.nextGateIdx++;
+
+    if (passedIdx >= activeSubtrack.waypoints.length - 1) {
+      if (Math.abs(player.roll) > 1.57) {
+        challengeTracker.invertedAtFinalGate = true;
+      }
+    }
 
     if (gameMode === 'timetrial' && savedGhostData && savedGhostData.length > 2 && ghostDroneGroup) {
       if (passedIdx % 2 === 0 && ghostWaypointTimes && ghostWaypointTimes[passedIdx] !== undefined) {

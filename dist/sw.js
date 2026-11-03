@@ -1,4 +1,4 @@
-const CACHE_NAME = 'glider-cache-v18';
+const CACHE_NAME = 'glider-cache-v23';
 
 function isHalloweenSeason() {
   const md = (new Date().getMonth() + 1) * 100 + new Date().getDate();
@@ -65,6 +65,7 @@ const ASSETS = [
   './aphelionlogo.png',
   './singletrack.png',
   './grandprix.png',
+  './challenges.png',
   './canyon.png',
   './islands.png',
   './cliffs.png',
@@ -247,7 +248,10 @@ self.addEventListener('fetch', (e) => {
         }
         return cachedResponse;
       }
-      return fetch(e.request);
+      return fetch(e.request).catch(() => {
+        return new Response('', { status: 404, statusText: 'Not Found' });
+      });
     })
+    
   );
 });

@@ -132,97 +132,103 @@
 </button>
 
 <div id="settings-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 560; display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px);">
-  <div class="menu-screen" style="position: relative; top: auto; left: auto; transform: none; width: 92%; max-width: 520px; max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch; z-index: 561;">
-    <div class="menu-title">SETTINGS</div>
-    <div class="menu-subtitle">CONFIGURATION Stuff</div>
+  <div class="menu-screen" style="position: relative; top: auto; left: auto; transform: none; width: 95%; max-width: 800px; max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch; z-index: 561; padding: 14px 20px;">
+    <div class="menu-title" style="margin-bottom: 2px;">SETTINGS</div>
+    <div class="menu-subtitle" style="margin-bottom: 10px;">CONFIGURATION Stuff</div>
 
-    <div class="control-toggle-box">
-      <div class="control-toggle-label">GAME AUDIO <span class="sfx-vol-label" style="color: var(--cyan); margin-left: 6px;">80%</span></div>
-      <div class="row-group" style="width: auto; margin-bottom: 0; align-items: center;">
-        <input type="range" class="volume-slider sfx-volume-slider" min="0" max="100" value="80">
-      </div>
-    </div>
+    <div style="display: flex; gap: 14px; width: 100%; align-items: stretch; justify-content: space-between; flex-wrap: wrap;">
+      <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
+        <div class="control-toggle-box" style="margin-bottom: 0;">
+          <div class="control-toggle-label">GAME AUDIO <span class="sfx-vol-label" style="color: var(--cyan); margin-left: 6px;">80%</span></div>
+          <div class="row-group" style="width: auto; margin-bottom: 0; align-items: center;">
+            <input type="range" class="volume-slider sfx-volume-slider" min="0" max="100" value="80">
+          </div>
+        </div>
 
-    <div class="control-toggle-box">
-      <div class="control-toggle-label">MUSIC VOLUME <span class="music-vol-label" style="color: var(--cyan); margin-left: 6px;">80%</span></div>
-      <div class="row-group" style="width: auto; margin-bottom: 0; align-items: center;">
-        <input type="range" class="volume-slider music-volume-slider" min="0" max="100" value="80">
-      </div>
-    </div>
+        <div class="control-toggle-box" style="margin-bottom: 0;">
+          <div class="control-toggle-label">MUSIC VOLUME <span class="music-vol-label" style="color: var(--cyan); margin-left: 6px;">80%</span></div>
+          <div class="row-group" style="width: auto; margin-bottom: 0; align-items: center;">
+            <input type="range" class="volume-slider music-volume-slider" min="0" max="100" value="80">
+          </div>
+        </div>
 
-    <div class="control-toggle-box" id="settings-joystick-box">
-      <div class="control-toggle-label" style="margin-bottom: 8px;">MOBILE CONTROL SCHEME</div>
-      <div class="row-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; margin-bottom: 0;">
-        <button class="mono-btn joystick-btn active" data-joystick="analog">ANALOG</button>
-        <button class="mono-btn joystick-btn" data-joystick="invisible">INVISIBLE ANALOG</button>
-        <button class="mono-btn joystick-btn" data-joystick="dpad">D-PAD</button>
-        <button class="mono-btn joystick-btn" data-joystick="gyro">GYRO</button>
-      </div>
-    </div>
+        <div class="control-toggle-box" id="settings-joystick-box" style="margin-bottom: 0;">
+          <div class="control-toggle-label" style="margin-bottom: 6px;">MOBILE CONTROL SCHEME</div>
+          <div class="row-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; margin-bottom: 0;">
+            <button class="mono-btn joystick-btn active" data-joystick="analog">ANALOG</button>
+            <button class="mono-btn joystick-btn" data-joystick="invisible">INVISIBLE ANALOG</button>
+            <button class="mono-btn joystick-btn" data-joystick="dpad">D-PAD</button>
+            <button class="mono-btn joystick-btn" data-joystick="gyro">GYRO</button>
+          </div>
+        </div>
 
-    <div class="control-toggle-box desktop-only-setting" id="settings-steering-box">
-      <div class="control-toggle-label">STEERING MODE</div>
-      <div class="row-group" style="width: auto; margin-bottom: 0;">
-        <button class="mono-btn ctrl-btn active" data-mode="wasd">WASD ONLY</button>
-        <button class="mono-btn ctrl-btn" data-mode="mouse">MOUSE ONLY</button>
-      </div>
-    </div>
+        <div class="control-toggle-box desktop-only-setting" id="settings-steering-box" style="margin-bottom: 0;">
+          <div class="control-toggle-label">STEERING MODE</div>
+          <div class="row-group" style="width: auto; margin-bottom: 0;">
+            <button class="mono-btn ctrl-btn active" data-mode="wasd">WASD ONLY</button>
+            <button class="mono-btn ctrl-btn" data-mode="mouse">MOUSE ONLY</button>
+          </div>
+        </div>
 
-    <div class="control-toggle-box" style="flex-direction: column; align-items: stretch; gap: 8px;">
-      <div class="control-toggle-label">INVERSE CONTROLS</div>
-      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-        <span class="control-toggle-label" style="font-size: 10px;">Pitch:</span>
-        <div class="row-group" style="width: auto !important; margin-bottom: 0;">
-          <button class="mono-btn invert-btn active" data-axis="pitch" data-invert="normal">normal</button>
-          <button class="mono-btn invert-btn" data-axis="pitch" data-invert="inverse">inverse</button>
+        <div class="control-toggle-box desktop-only-setting" id="settings-gfx-box" style="margin-bottom: 0;">
+          <div class="control-toggle-label">GRAPHICS QUALITY</div>
+          <div class="row-group" style="width: auto; margin-bottom: 0;">
+            <button class="mono-btn gfx-btn active" data-gfx="low">LOW</button>
+            <button class="mono-btn gfx-btn" data-gfx="high">HIGH</button>
+          </div>
         </div>
       </div>
-      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-        <span class="control-toggle-label" style="font-size: 10px;">Roll:</span>
-        <div class="row-group" style="width: auto !important; margin-bottom: 0;">
-          <button class="mono-btn invert-btn active" data-axis="roll" data-invert="normal">normal</button>
-          <button class="mono-btn invert-btn" data-axis="roll" data-invert="inverse">inverse</button>
+
+      <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
+        <div class="control-toggle-box" style="flex-direction: column; align-items: stretch; gap: 6px; margin-bottom: 0;">
+          <div class="control-toggle-label">INVERSE CONTROLS</div>
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <span class="control-toggle-label" style="font-size: 10px;">Pitch:</span>
+            <div class="row-group" style="width: auto !important; margin-bottom: 0;">
+              <button class="mono-btn invert-btn active" data-axis="pitch" data-invert="normal">normal</button>
+              <button class="mono-btn invert-btn" data-axis="pitch" data-invert="inverse">inverse</button>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <span class="control-toggle-label" style="font-size: 10px;">Roll:</span>
+            <div class="row-group" style="width: auto !important; margin-bottom: 0;">
+              <button class="mono-btn invert-btn active" data-axis="roll" data-invert="normal">normal</button>
+              <button class="mono-btn invert-btn" data-axis="roll" data-invert="inverse">inverse</button>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <span class="control-toggle-label" style="font-size: 10px;">rudder:</span>
+            <div class="row-group" style="width: auto !important; margin-bottom: 0;">
+              <button class="mono-btn invert-btn active" data-axis="rudder" data-invert="normal">normal</button>
+              <button class="mono-btn invert-btn" data-axis="rudder" data-invert="inverse">inverse</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-toggle-box desktop-only-setting" id="settings-pointer-box" style="display: none; margin-bottom: 0;">
+          <div class="control-toggle-label">SPEEDOMETER NEEDLE</div>
+          <div class="row-group" style="width: auto; margin-bottom: 0;">
+            <button class="mono-btn pointer-btn active" data-pointer="default">PURPLE</button>
+            <button class="mono-btn pointer-btn" data-pointer="pointer2">POINTER 2</button>
+          </div>
+        </div>
+
+        <div class="row-group" style="margin-bottom: 0; margin-top: 2px;">
+          <button class="mono-btn" id="btn-open-keybinds" style="width: 100%; border-color: var(--cyan); color: var(--cyan); padding: 8px 12px;">CUSTOMIZE CONTROLS</button>
+        </div>
+
+        <div class="row-group" style="margin-bottom: 0; margin-top: 2px;">
+          <button class="mono-btn" id="btn-settings-tutorial" style="width: 100%; border-color: var(--cyan); color: var(--cyan); padding: 8px 12px;">TUTORIAL</button>
+        </div>
+
+        <div class="row-group" style="margin-bottom: 0; margin-top: 2px;">
+          <button class="mono-btn" id="btn-settings-credits" style="width: 100%; border-color: var(--gold); color: var(--gold); padding: 8px 12px;">CREDITS</button>
         </div>
       </div>
-      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-        <span class="control-toggle-label" style="font-size: 10px;">rudder:</span>
-        <div class="row-group" style="width: auto !important; margin-bottom: 0;">
-          <button class="mono-btn invert-btn active" data-axis="rudder" data-invert="normal">normal</button>
-          <button class="mono-btn invert-btn" data-axis="rudder" data-invert="inverse">inverse</button>
-        </div>
-      </div>
     </div>
 
-    <div class="control-toggle-box desktop-only-setting" id="settings-pointer-box" style="display: none;">
-      <div class="control-toggle-label">SPEEDOMETER NEEDLE</div>
-      <div class="row-group" style="width: auto; margin-bottom: 0;">
-        <button class="mono-btn pointer-btn active" data-pointer="default">PURPLE</button>
-        <button class="mono-btn pointer-btn" data-pointer="pointer2">POINTER 2</button>
-      </div>
-    </div>
-
-    <div class="control-toggle-box desktop-only-setting" id="settings-gfx-box">
-      <div class="control-toggle-label">GRAPHICS QUALITY</div>
-      <div class="row-group" style="width: auto; margin-bottom: 0;">
-        <button class="mono-btn gfx-btn active" data-gfx="low">LOW</button>
-        <button class="mono-btn gfx-btn" data-gfx="high">HIGH</button>
-      </div>
-    </div>
-
-    <div class="row-group" style="margin-bottom: 8px; margin-top: 6px;">
-      <button class="mono-btn" id="btn-open-keybinds" style="width: 100%; border-color: var(--cyan); color: var(--cyan);">CUSTOMIZE CONTROLS</button>
-    </div>
-
-    <div class="row-group" style="margin-bottom: 8px; margin-top: 4px;">
-      <button class="mono-btn" id="btn-settings-tutorial" style="width: 100%; border-color: var(--cyan); color: var(--cyan);">TUTORIAL</button>
-    </div>
-
-    <div class="row-group" style="margin-bottom: 10px; margin-top: 4px;">
-      <button class="mono-btn" id="btn-settings-credits" style="width: 100%; border-color: var(--gold); color: var(--gold);">CREDITS</button>
-    </div>
-
-    <div class="row-group" style="margin-bottom: 0; margin-top: 4px;">
-      <button class="mono-btn" id="btn-settings-close" style="border-color: var(--cyan); color: var(--cyan); padding: 9px 28px;">CLOSE</button>
+    <div class="row-group" style="margin-bottom: 0; margin-top: 12px; width: 100%; justify-content: center;">
+      <button class="mono-btn" id="btn-settings-close" style="border-color: var(--cyan); color: var(--cyan); padding: 10px 42px; min-width: 160px;">BACK</button>
     </div>
   </div>
 
@@ -255,13 +261,13 @@
 
 <div id="merry-christmas-banner">Merry Christmas<div id="xmas-banner-bubble" class="banner-bubble xmas">tap me</div></div>
 
-<div id="merry-christmas-decor-wrap" style="position: fixed; inset: 0; pointer-events: none; z-index: 45; display: none;">
+<div id="merry-christmas-decor-wrap" style="position: fixed; inset: 0; pointer-events: none; z-index: 55; display: none;">
   <div class="xmas-lights"></div>
   <div class="xmas-decor xmas-decor-left">🎄</div>
   <div class="xmas-decor xmas-decor-right">⛄</div>
 </div>
 
-<div id="halloween-decor-wrap" style="position: fixed; inset: 0; pointer-events: none; z-index: 45; display: none;">
+<div id="halloween-decor-wrap" style="position: fixed; inset: 0; pointer-events: none; z-index: 55; display: none;">
   <img src="cornercobweb.png" alt="Cobweb" class="hw-decor hw-corner-web left" style="position: absolute; top: 0; left: 0; width: 180px; height: auto; image-rendering: pixelated; opacity: 0.82; filter: drop-shadow(0 0 8px rgba(0,0,0,0.9));">
   <img src="cornercobweb.png" alt="Cobweb" class="hw-decor hw-corner-web right" style="position: absolute; top: 0; right: 0; width: 180px; height: auto; transform: scaleX(-1); image-rendering: pixelated; opacity: 0.82; filter: drop-shadow(0 0 8px rgba(0,0,0,0.9));">
   <img src="bigcobweb.png" alt="Big Cobweb" class="hw-decor hw-big-web" style="position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 135px; height: auto; image-rendering: pixelated; opacity: 0.50; filter: drop-shadow(0 0 10px rgba(0,0,0,0.95));">
@@ -281,8 +287,10 @@
 
     <div class="row-group" style="margin-bottom: 0;">
       <button class="mono-btn" id="btn-save-modal-action" style="border-color: var(--cyan); color: var(--cyan); padding: 9px 24px;">ACTION</button>
+      <button class="mono-btn" id="btn-save-modal-file" style="border-color: var(--gold); color: var(--gold); padding: 9px 24px;">DOWNLOAD</button>
       <button class="mono-btn" id="btn-save-modal-close" style="padding: 9px 24px;">CLOSE</button>
     </div>
+    <input type="file" id="save-file-input" accept=".aphelion,.txt" style="display: none;">
   </div>
 </div>
 
@@ -363,6 +371,10 @@
         <span class="dash-nav-bullet"></span>
         <span class="dash-nav-label">GRAND PRIX</span>
       </button>
+      <button class="dash-nav-btn" id="dash-nav-challenge" data-cat="challenge">
+        <span class="dash-nav-bullet"></span>
+        <span class="dash-nav-label">DAILY CHALLENGE</span>
+      </button>
       <button class="dash-nav-btn" id="dash-nav-shop" data-cat="shop">
         <span class="dash-nav-bullet"></span>
         <span class="dash-nav-label">SHOP</span>
@@ -387,8 +399,9 @@
   <section id="dash-col-middle" class="hidden" style="display: none;">
     <div class="dash-mid-panel hidden" id="dash-mid-single">
       <div class="dash-panel-header">
-        <div class="menu-title">SELECT COURSE</div>
-        <div class="menu-subtitle">CHOOSE FLIGHT MAP</div>
+        <img src="singletrack.png" alt="Single Track" style="max-height: 90px; width: auto; object-fit: contain; display: block; margin: 0 auto; pointer-events: none;">
+        
+        <div class="menu-subtitle">CHOOSE MAP</div>
       </div>
       <div class="track-list" id="single-track-list-dt" style="max-height: 72vh;">
         <div class="track-opt active" data-course="canyon"><div><img src="canyon.png" class="track-name"><div class="track-desc">Expansive gorge cliffs.</div></div></div>
@@ -400,9 +413,17 @@
       </div>
     </div>
 
+    <div class="dash-mid-panel hidden" id="dash-mid-challenge">
+      <div class="dash-panel-header">
+        <img src="challenges.png" alt="Daily Challenges" style="max-height: 90px; width: auto; object-fit: contain; display: block; margin: 0 auto; pointer-events: none;">
+        <div class="menu-subtitle">MUST complete the race to achive</div>
+      </div>
+      <div id="dash-challenge-card-wrap" style="width: 100%; display: flex; flex-direction: column; gap: 12px;"></div>
+    </div>
+
     <div class="dash-mid-panel hidden" id="dash-mid-gp">
       <div class="dash-panel-header">
-        <div class="menu-title">GRAND PRIX</div>
+        <img src="grandprix.png" alt="GRAND PRIX" style="max-height: 90px; width: auto; object-fit: contain; display: block; margin: 0 auto; pointer-events: none;">
         <div class="menu-subtitle">CHOOSE CHAMPIONSHIP</div>
       </div>
       <div style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; width: 100%;">
@@ -429,6 +450,7 @@
       </div>
       <div id="dash-shop-tv-slot" style="margin-bottom: 12px; display: flex; justify-content: center;"></div>
       <div id="dash-shop-items-list" style="width: 100%; max-height: 62vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
+      <div style="font-size: 8.5px; letter-spacing: 1.5px; color: var(--mono-60); text-align: center; text-transform: uppercase; margin-top: 8px; opacity: 0.7;">New Stuff comming soon!</div>
     </div>
 
     <div class="dash-mid-panel hidden" id="dash-mid-settings">
@@ -615,10 +637,13 @@
 
   <div class="row-group" id="select-mode-toggle" style="margin-bottom: 12px;">
     <button class="mono-btn select-tab-btn active" id="btn-tab-single" style="padding: 6px 20px;">
-      <img src="singletrack.png" alt="SINGLE TRACK" style="max-height: 38px; width: auto; object-fit: contain; display: block; margin: 0 auto; pointer-events: none;">
+      <img src="singletrack.png" alt="SINGLE TRACK" style="max-height: 70px; width: auto; object-fit: contain; display: block; margin: 0 auto; pointer-events: none;">
     </button>
     <button class="mono-btn select-tab-btn" id="btn-tab-gp" style="padding: 6px 20px;">
-      <img src="grandprix.png" alt="GRAND PRIX" style="max-height: 38px; width: auto; object-fit: contain; display: block; margin: 0 auto; pointer-events: none;">
+      <img src="grandprix.png" alt="GRAND PRIX" style="max-height: 70px; width: auto; object-fit: contain; display: block; margin: 0 auto; pointer-events: none;">
+    </button>
+    <button class="mono-btn select-tab-btn" id="btn-tab-challenge" style="padding: 6px 20px;">
+      <img src="challenges.png" alt="GRAND PRIX" style="max-height: 70px; width: auto; object-fit: contain; display: block; margin: 0 auto; pointer-events: none;">
     </button>
   </div>
 
@@ -669,6 +694,10 @@
     </div>
   </div>
 
+  <div id="challenge-select-container" class="hidden" style="display: none; width: 100%; flex-direction: column; align-items: center;">
+    <div id="mobile-challenge-card-wrap" style="width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 10px;"></div>
+  </div>
+
   <div class="row-group" style="margin-top: 10px; margin-bottom: 0;">
     <button class="mono-btn ss-dock-btn" id="btn-select-back" style="padding: 10px 36px;">BACK</button>
   </div>
@@ -704,6 +733,8 @@
       <div id="shop-drone-list" class="shop-items-scroll"></div>
     </div>
   </div>
+
+  <div style="font-size: 8.5px; letter-spacing: 1.5px; color: var(--mono-60); text-align: center; text-transform: uppercase; margin-top: 8px; opacity: 0.7;">New Stuff comming soon!</div>
 
   <div id="shop-preview-modal">
     <button id="btn-close-shop-preview" class="mono-btn">✕</button>
