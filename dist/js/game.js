@@ -130,19 +130,24 @@ buildParagliderMesh();
       const rollLeftCodes = (keybinds && keybinds.rollLeft) || defaultKeybinds.rollLeft;
       const rollRightCodes = (keybinds && keybinds.rollRight) || defaultKeybinds.rollRight;
       const now = performance.now();
+      if (!rollLeftCodes.includes(e.code) && !rollRightCodes.includes(e.code)) {
+        lastOtherKeyTime = now;
+      }
+      const hasOtherKeyHeld = Object.keys(keys).some(code => keys[code] && !rollLeftCodes.includes(code) && !rollRightCodes.includes(code));
+      const canRoll = !hasOtherKeyHeld && (now - lastOtherKeyTime >= 150);
       if (rollLeftCodes.includes(e.code)) {
-        if (now - lastRollLeftTapTime < 250) {
+        if (canRoll && now - lastRollLeftTapTime < 350) {
           triggerBarrelRoll(invertRoll ? 1 : -1);
           lastRollLeftTapTime = 0;
         } else {
-          lastRollLeftTapTime = now;
+          lastRollLeftTapTime = canRoll ? now : 0;
         }
       } else if (rollRightCodes.includes(e.code)) {
-        if (now - lastRollRightTapTime < 350) {
+        if (canRoll && now - lastRollRightTapTime < 350) {
           triggerBarrelRoll(invertRoll ? -1 : 1);
           lastRollRightTapTime = 0;
         } else {
-          lastRollRightTapTime = now;
+          lastRollRightTapTime = canRoll ? now : 0;
         }
       }
     }
@@ -309,6 +314,11 @@ buildParagliderMesh();
 
   window.addEventListener('keyup', (e) => {
     keys[e.code] = false;
+    const rollLeftCodes = (keybinds && keybinds.rollLeft) || defaultKeybinds.rollLeft;
+    const rollRightCodes = (keybinds && keybinds.rollRight) || defaultKeybinds.rollRight;
+    if (!rollLeftCodes.includes(e.code) && !rollRightCodes.includes(e.code)) {
+      lastOtherKeyTime = performance.now();
+    }
     if (!isActionPressed('airbrake') && !mobileAirbrake && !gpAirbrake) player.airbrake = false;
   });
 
@@ -6131,6 +6141,8 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
       barrelRoll.timer = 0;
       player.roll = 0;
       player.targetRoll = 0;
+      challengeTracker.prevRoll = 0;
+      challengeTracker.rollAccum = 0;
     }
   }
 
@@ -6218,7 +6230,7 @@ const currentYawDir = (challengeMod && challengeMod.disableRudderBoost) ? 0 : (y
   challengeTracker.prevRoll = player.roll;
   while (dRoll > Math.PI) dRoll -= Math.PI * 2;
   while (dRoll < -Math.PI) dRoll += Math.PI * 2;
-  if (Math.abs(dRoll) > 0.001) {
+  if (!barrelRoll.active && Math.abs(dRoll) > 0.001) {
     if (challengeTracker.rollAccum !== 0 && Math.sign(dRoll) !== Math.sign(challengeTracker.rollAccum)) {
       challengeTracker.rollAccum = dRoll;
     } else {

@@ -1554,6 +1554,8 @@ function finishRace() {
       const isPastDay = (typeof challengeActiveDayOffset !== 'undefined' && challengeActiveDayOffset > 0);
       const wasAlreadyCompleted = isDailyChallengeCompleted(activeCh.id, challengeActiveDateKey);
       markDailyChallengeCompleted(activeCh.id, challengeActiveDateKey);
+      challengeJustCompletedDateKey = challengeActiveDateKey;
+      try { sessionStorage.setItem('glider_challenge_just_completed', challengeActiveDateKey); } catch (e) {}
 
       if (!wasAlreadyCompleted) {
         if (activeCh.difficulty === 'HARD') {
@@ -3092,6 +3094,15 @@ function updateMedalDisplay() {
 }
 
 function renderDailyChallenge() {
+  if (!document.getElementById('challenge-box-jump-anim')) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'challenge-box-jump-anim';
+    styleEl.textContent = `@keyframes challengeBoxJump { 0%, 100% { transform: translateY(0); } 18% { transform: translateY(-7px); } 36% { transform: translateY(3px); } 54% { transform: translateY(-4px); } 72% { transform: translateY(1.5px); } 90% { transform: translateY(-1px); } }`;
+    document.head.appendChild(styleEl);
+  }
+  const justDoneKey = challengeJustCompletedDateKey || (() => {
+    try { return sessionStorage.getItem('glider_challenge_just_completed'); } catch (e) { return null; }
+  })();
   const isMob = isMobileDevice();
   const rolling = (typeof getRollingDailyChallenges === 'function')
     ? getRollingDailyChallenges()
@@ -3108,11 +3119,14 @@ function renderDailyChallenge() {
     const ch = getDailyChallenge(off);
     const dateKey = getDailyChallengeDateKey(off);
     const isDone = isDailyChallengeCompleted(ch.id, dateKey);
-    const isFrozen = (frozenDates && frozenDates.has(dateKey))
+    const isFrozen = (frozenDates && frozenDates.has(dateKey));
     let boxStyle = 'background: transparent; border: 1.5px solid rgba(255, 255, 255, 0.4);';
     let boxTitle = (off === 0 ? 'Today' : (off === 1 ? 'Yesterday' : '2 Days Ago')) + ': ' + (off === 0 ? 'Not completed yet' : 'Missed');
     if (isDone) {
       boxStyle = 'background: #000000; border: 1.5px solid #ffffff; box-shadow: 0 0 2px rgba(255, 255, 255, 0.6);';
+      if (justDoneKey && dateKey === justDoneKey) {
+        boxStyle += ' animation: challengeBoxJump 1.1s ease-in-out;';
+      }
       boxTitle = (off === 0 ? 'Today' : (off === 1 ? 'Yesterday' : '2 Days Ago')) + ': Completed';
     } else if (isFrozen) {
       boxStyle = 'background: var(--cyan); border: 1.5px solid var(--cyan); box-shadow: 0 0 6px var(--cyan);';
@@ -3294,6 +3308,10 @@ function renderDailyChallenge() {
         btn.onclick = () => handleChallengeAction(ch, true, dateKey, dayOffset);
       }
     });
+  }
+  if (justDoneKey) {
+    challengeJustCompletedDateKey = null;
+    try { sessionStorage.removeItem('glider_challenge_just_completed'); } catch (e) {}
   }
 }
 
@@ -3795,7 +3813,7 @@ function showScreen(screenId) {
         "Super Funny joke: I told my glider to ride the volcano's thermals <br> Now it's a 'lava' glider… and not in the cool way.",
         'Dont go pressing random keybinds like: <br> cmd/ctrl + W or cmd/ctrl + T or alt + shift+ D especially not that one',
         'i rate those 2 funny jokes a solid 6.25/10!',
-        'Did you know: this game alone is just about 19k lines <br> as of making this message, but it will hit 20k soon stay tuned!',
+        'Did you know: this game alone is just about 23k lines <br> as of making this message, but it will hit 25k soon stay tuned!',
         'Hey you better NOT get that greatest glider to ever live! <br> it costs TREE(3) EACH to make and that can get expensive yk',
         'Our state of the art anti theft and anti robbery Aphelion Encoder™ <br> will not allow cheators from editing their save files!',
         'Watch out! playing this game might cause you to get <br> BUTTERFINGERS',
