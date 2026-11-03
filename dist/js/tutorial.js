@@ -603,10 +603,58 @@ function tickTutorial(dt) {
     }
   } else if (tutorialBeat === 17) {
     tutorialDelayTimer -= dt;
-    if (tutorialDelayTimer <= 0 && tutorialDelayTimer > -10) {
+    if (tutorialDelayTimer <= 0) {
+      showTutorialBanner('FLY THROUGH GATE 5');
+    }
+    if (player.nextGateIdx >= 6) {
+      const fwd = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw)).normalize();
+      const right = new THREE.Vector3(-fwd.z, 0, fwd.x).normalize();
+      const flockStart = player.pos.clone().addScaledVector(fwd, 520);
+      flockStart.y = player.pos.y;
+      const flockEnd = player.pos.clone().addScaledVector(fwd, -350);
+      flockEnd.y = player.pos.y;
+      createBirdFlockMesh({
+        start: flockStart,
+        end: flockEnd,
+        speed: 60,
+        startTime: typeof raceElapsedTime !== 'undefined' ? raceElapsedTime : 0,
+        tiers: [
+          { dx: -140, dy: -25, dz: -40, radius: 70, count: 30 },
+          { dx: -70, dy: 15, dz: -15, radius: 75, count: 35 },
+          { dx: 0, dy: 0, dz: 0, radius: 85, count: 45 },
+          { dx: 70, dy: -15, dz: 15, radius: 75, count: 35 },
+          { dx: 140, dy: 25, dz: 40, radius: 70, count: 30 },
+          { dx: -35, dy: 35, dz: -20, radius: 65, count: 25 },
+          { dx: 35, dy: -35, dz: 20, radius: 65, count: 25 }
+        ]
+      });
+      tutorialBulletTime = true;
+      tutorialBeat = 18;
+      showTutorialBanner(isMob ? 'BIRDS AHEAD! DOUBLE-TAP LEFT OR RIGHT TO BARREL ROLL!' : 'BIRDS AHEAD! DOUBLE-TAP A OR D TO BARREL ROLL!');
+    }
+  } else if (tutorialBeat === 18) {
+    if (barrelRoll.active || barrelRoll.immunityTimer > 0) {
+      tutorialBulletTime = false;
+      tutorialBeat = 18.5;
+      tutorialDelayTimer = 2.5;
+      showTutorialBanner('BARREL ROLL! IMMUNE TO BIRD STRIKES!');
+      if (typeof audio !== 'undefined' && audio.playRecoveryBoost) audio.playRecoveryBoost();
+    } else if (player.nextGateIdx >= 7) {
+      tutorialBulletTime = false;
+      tutorialBeat = 19;
+      tutorialDelayTimer = 3.0;
       showTutorialBanner('FLY THROUGH THE REMAINING GATES TO FINISH!');
     }
-    if (tutorialDelayTimer < -4.0) {
+  } else if (tutorialBeat === 18.5) {
+    tutorialDelayTimer -= dt;
+    if (tutorialDelayTimer <= 0) {
+      tutorialBeat = 19;
+      tutorialDelayTimer = 3.0;
+      showTutorialBanner('FLY THROUGH THE REMAINING GATES TO FINISH!');
+    }
+  } else if (tutorialBeat === 19) {
+    tutorialDelayTimer -= dt;
+    if (tutorialDelayTimer <= 0) {
       hideTutorialBanner();
     }
   }

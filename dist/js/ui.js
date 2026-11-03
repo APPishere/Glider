@@ -80,7 +80,7 @@ function drawHudCanvas() {
 
   const course = COURSES[selectedCourseId];
   const activeSubtrack = course.subtracks[selectedSubtrack];
-  if (course && gateMeshes[player.nextGateIdx]) {
+  if (course && gateMeshes[player.nextGateIdx] && (!challengeMod || !challengeMod.hideHUD)) {
     const targetWp = activeSubtrack.waypoints[player.nextGateIdx];
     const dx = targetWp.x - player.pos.x;
     const dz = targetWp.z - player.pos.z;
@@ -339,6 +339,12 @@ function drawCustomSpeedometer(ctx, x, y, speed, rBoost) {
 let lastMinimapDrawTime = 0;
 function drawMinimap() {
   if (!minimapCtx) return;
+  const mmEl = document.getElementById('minimap-container');
+  if (challengeMod && challengeMod.hideHUD) {
+    if (mmEl) mmEl.style.display = 'none';
+    return;
+  }
+  if (mmEl && isFlightState()) mmEl.style.display = '';
   const now = performance.now();
   if (now - lastMinimapDrawTime < 55) return;
   lastMinimapDrawTime = now;
@@ -574,6 +580,7 @@ const isPointToPoint = (selectedSubtrack === 'C' && (selectedCourseId === 'volca
 function startCountdown() {
   if (typeof checkTutorialTrigger === 'function' && checkTutorialTrigger()) return;
   audio.init();
+  resetChallengeTracker();
   if (screen.orientation && screen.orientation.lock) {
     screen.orientation.lock('landscape').catch(() => {});
   }
@@ -652,6 +659,13 @@ stallMechanic.active = false;
   rudderBoost.rearmed = true;
   rudderBoost.releasePitch = 0;
   rudderBoost.activeDir = 0;
+  barrelRoll.active = false;
+  barrelRoll.timer = 0;
+  barrelRoll.direction = 0;
+  barrelRoll.cooldownTimer = 0;
+  barrelRoll.immunityTimer = 0;
+  lastRollLeftTapTime = 0;
+  lastRollRightTapTime = 0;
   lunarMeteorEvent.triggered = false;
   lunarMeteorEvent.active = false;
   lunarMeteorEvent.timer = 0;
@@ -798,6 +812,8 @@ function getPlayerGliderColor() {
       return '#ff6600'; 
     case 'glider_tv_static':
       return '#ffffff'; 
+    case 'glider_tryhard':
+      return '#ff007f';
     case 'lunar_voyager':
       return '#e5a93b'; 
     case 'first_silver':
@@ -814,6 +830,8 @@ function getPlayerGliderColor() {
       return '#00f0ff'; 
     case 'all_ace':
       return '#ca8aff'; 
+    case 'glider_money_bag':
+      return '#52b788';
     default:
       return '#00f0ff';
   }
@@ -1530,6 +1548,38 @@ function finishRace() {
   const deltaFlashEl = document.getElementById('ghost-delta-flash');
   if (deltaFlashEl) deltaFlashEl.style.display = 'none';
 
+  if (challengeActive) {
+    const activeCh = DAILY_CHALLENGES.find(c => c.id === challengeActive);
+    if (activeCh && checkDailyChallengeCompletion(activeCh)) {
+      const isPastDay = (typeof challengeActiveDayOffset !== 'undefined' && challengeActiveDayOffset > 0);
+      const wasAlreadyCompleted = isDailyChallengeCompleted(activeCh.id, challengeActiveDateKey);
+      markDailyChallengeCompleted(activeCh.id, challengeActiveDateKey);
+
+      if (!wasAlreadyCompleted) {
+        if (activeCh.difficulty === 'HARD') {
+          let hardCount = parseInt(localStorage.getItem('glider_hard_dailies_count') || '0', 10);
+          hardCount++;
+          try { localStorage.setItem('glider_hard_dailies_count', String(hardCount)); } catch (e) {}
+        }
+        if (isPastDay) {
+          let catchUpCount = parseInt(localStorage.getItem('glider_catchup_count') || '0', 10);
+          catchUpCount++;
+          try { localStorage.setItem('glider_catchup_count', String(catchUpCount)); } catch (e) {}
+        }
+      }
+
+      if (typeof updateDailyChallengeStreak === 'function') {
+        updateDailyChallengeStreak();
+      }
+
+      showAchievementNotifications([{
+        name: "Challenge Complete: " + activeCh.name,
+        sub: isPastDay ? "Catch-up challenge cleared!" : "Great flying, pilot! You beat today's daily challenge."
+      }]);
+      audio.playFinishFanfare();
+    }
+  }
+
   const gId = getEquippedSkinId();
   const currentDist = parseFloat(localStorage.getItem(`glider_dist_${gId}`) || 0);
   const currentSpd = parseFloat(localStorage.getItem(`glider_speed_${gId}`) || 0);
@@ -1594,6 +1644,10 @@ if (isKrampusBossDuel) {
   const isNewPB = raceElapsedTime < currentPB;
 
   if (!impossibleDifficultyUnlocked) {
+    if (gameMode === 'timetrial') {
+      let ttRuns = parseInt(localStorage.getItem('glider_timetrial_runs_count') || '0', 10);
+      try { localStorage.setItem('glider_timetrial_runs_count', String(ttRuns + 1)); } catch (e) {}
+    }
     if (gameMode === 'timetrial' && isNewPB) {
       try {
         localStorage.setItem(pbKey, raceElapsedTime.toFixed(2));
@@ -1683,6 +1737,12 @@ if (isKrampusBossDuel) {
     winStatsEl.innerText = `FINAL TIME: ${timeStr}`;
     winMedalEl.innerText = 'Dev Tools = Invalid Run';
     winMedalEl.style.color = '#ff4444';
+  } else if (challengeActive && isDailyChallengeCompleted(challengeActive, challengeActiveDateKey)) {
+    const activeCh = DAILY_CHALLENGES.find(c => c.id === challengeActive);
+    winTitleEl.innerText = "CHALLENGE COMPLETED";
+    winStatsEl.innerText = `FINAL TIME: ${timeStr}`;
+    winMedalEl.innerText = `★ ${activeCh ? activeCh.name.toUpperCase() : 'DAILY CHALLENGE'} CLEARED`;
+    winMedalEl.style.color = 'var(--gold)';
   } else {
     winTitleEl.innerText = gameMode === 'timetrial' ? 'TIME TRIAL COMPLETED' : `POSITION ${player.rank} / 5`;
     winStatsEl.innerText = `FINAL TIME: ${timeStr}`;
@@ -1694,6 +1754,7 @@ if (isKrampusBossDuel) {
 }
 
 function endRace(reason) {
+  challengeTracker.crashed = true;
   gameState = 'FINISHED';
   audio.stopAllAudio();
   if (ghostDeltaTimeout) {
@@ -2218,7 +2279,29 @@ function setupUI() {
     const textarea = document.getElementById('save-key-textarea');
     const status = document.getElementById('save-modal-status');
     const actionBtn = document.getElementById('btn-save-modal-action');
+    let fileBtn = document.getElementById('btn-save-modal-file');
+    let fileInput = document.getElementById('save-file-input');
     if (!overlay || !textarea || !actionBtn) return;
+
+    if (!fileInput) {
+      fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.id = 'save-file-input';
+      fileInput.accept = '.aphelion,.txt';
+      fileInput.style.display = 'none';
+      document.body.appendChild(fileInput);
+    }
+
+    if (!fileBtn) {
+      fileBtn = document.createElement('button');
+      fileBtn.className = 'mono-btn';
+      fileBtn.id = 'btn-save-modal-file';
+      fileBtn.style.cssText = 'border-color: var(--gold); color: var(--gold); padding: 9px 24px;';
+      const closeBtn = document.getElementById('btn-save-modal-close');
+      if (closeBtn && closeBtn.parentNode) {
+        closeBtn.parentNode.insertBefore(fileBtn, closeBtn);
+      }
+    }
 
     overlay.style.display = 'flex';
     if (mode === 'export') {
@@ -2275,10 +2358,30 @@ function setupUI() {
             status.style.color = 'var(--gold)';
           }
         };
+
+        if (fileBtn) {
+          fileBtn.innerText = 'DOWNLOAD';
+          fileBtn.style.display = '';
+          fileBtn.onclick = () => {
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'GliderSaveKey.aphelion';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            status.innerText = 'FILE DOWNLOADED!';
+            status.style.color = 'var(--gold)';
+            audio.playRecoveryBoost();
+          };
+        }
       } catch (err) {
         textarea.value = '';
         status.innerText = 'ERROR ENCODING SAVE DATA';
         status.style.color = 'var(--red)';
+        if (fileBtn) fileBtn.style.display = 'none';
       }
     } else {
       title.innerText = 'IMPORT SAVE CODE';
@@ -2339,6 +2442,30 @@ function setupUI() {
           audio.playCrash();
         }
       };
+
+      if (fileBtn) {
+        fileBtn.innerText = 'IMPORT FILE';
+        fileBtn.style.display = '';
+        fileBtn.onclick = () => {
+          if (fileInput) {
+            fileInput.value = '';
+            fileInput.click();
+          }
+        };
+      }
+
+      if (fileInput) {
+        fileInput.onchange = (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            textarea.value = (event.target.result || '').trim();
+            actionBtn.click();
+          };
+          reader.readAsText(file);
+        };
+      }
     }
   }
 
@@ -2437,38 +2564,40 @@ function setupUI() {
   const singleList = document.getElementById('single-track-list');
   const gpContainer = document.getElementById('gp-select-container');
 
+  const btnTabChallenge = document.getElementById('btn-tab-challenge');
+  const challengeContainer = document.getElementById('challenge-select-container');
+
   function setSelectTab(tab) {
     audio.init();
     selectedSelectTab = tab;
-    if (tab === 'single') {
-      if (btnTabSingle) btnTabSingle.classList.add('active');
-      if (btnTabGp) btnTabGp.classList.remove('active');
-      if (singleList) {
-        singleList.classList.remove('hidden');
-        singleList.style.display = 'grid';
-      }
-      if (gpContainer) {
-        gpContainer.classList.add('hidden');
-        gpContainer.style.display = 'none';
-      }
-    } else {
-      if (btnTabSingle) btnTabSingle.classList.remove('active');
-      if (btnTabGp) btnTabGp.classList.add('active');
-      if (singleList) {
-        singleList.classList.add('hidden');
-        singleList.style.display = 'none';
-      }
-      if (gpContainer) {
-        gpContainer.classList.remove('hidden');
-        gpContainer.style.display = 'flex';
-      }
+    if (btnTabSingle) btnTabSingle.classList.toggle('active', tab === 'single');
+    if (btnTabGp) btnTabGp.classList.toggle('active', tab === 'gp');
+    if (btnTabChallenge) btnTabChallenge.classList.toggle('active', tab === 'challenge');
+
+    if (singleList) {
+      singleList.classList.toggle('hidden', tab !== 'single');
+      singleList.style.display = tab === 'single' ? 'grid' : 'none';
+    }
+    if (gpContainer) {
+      gpContainer.classList.toggle('hidden', tab !== 'gp');
+      gpContainer.style.display = tab === 'gp' ? 'flex' : 'none';
+    }
+    if (challengeContainer) {
+      challengeContainer.classList.toggle('hidden', tab !== 'challenge');
+      challengeContainer.style.display = tab === 'challenge' ? 'flex' : 'none';
+    }
+
+    if (tab === 'gp') {
       renderGrandPrixCupList();
+    } else if (tab === 'challenge') {
+      renderDailyChallenge();
     }
   }
 
   if (btnTabSingle && btnTabGp) {
     btnTabSingle.addEventListener('click', () => setSelectTab('single'));
     btnTabGp.addEventListener('click', () => setSelectTab('gp'));
+    if (btnTabChallenge) btnTabChallenge.addEventListener('click', () => setSelectTab('challenge'));
   }
 
   const btnStartPlay = document.getElementById('btn-start-play');
@@ -2962,13 +3091,261 @@ function updateMedalDisplay() {
   document.getElementById('m-ace').innerText = formatTime(m.ace);
 }
 
+function renderDailyChallenge() {
+  const isMob = isMobileDevice();
+  const rolling = (typeof getRollingDailyChallenges === 'function')
+    ? getRollingDailyChallenges()
+    : [{ challenge: getDailyChallenge(), dateKey: getDailyChallengeDateKey(), dayOffset: 0, label: "TODAY", badge: "NEW" }];
+
+  const streakData = (typeof getDailyChallengeStreak === 'function') ? getDailyChallengeStreak() : { currentStreak: 0, maxStreak: 0, freezesAvailable: 0, frozenDates: new Set() };
+  const currentStreak = streakData.currentStreak || 0;
+  const freezesAvailable = streakData.freezesAvailable || 0;
+  const frozenDates = streakData.frozenDates || new Set();
+
+  const offsets = [2, 1, 0];
+  let boxesHtml = '';
+  offsets.forEach(off => {
+    const ch = getDailyChallenge(off);
+    const dateKey = getDailyChallengeDateKey(off);
+    const isDone = isDailyChallengeCompleted(ch.id, dateKey);
+    const isFrozen = (frozenDates && frozenDates.has(dateKey))
+    let boxStyle = 'background: transparent; border: 1.5px solid rgba(255, 255, 255, 0.4);';
+    let boxTitle = (off === 0 ? 'Today' : (off === 1 ? 'Yesterday' : '2 Days Ago')) + ': ' + (off === 0 ? 'Not completed yet' : 'Missed');
+    if (isDone) {
+      boxStyle = 'background: #000000; border: 1.5px solid #ffffff; box-shadow: 0 0 2px rgba(255, 255, 255, 0.6);';
+      boxTitle = (off === 0 ? 'Today' : (off === 1 ? 'Yesterday' : '2 Days Ago')) + ': Completed';
+    } else if (isFrozen) {
+      boxStyle = 'background: var(--cyan); border: 1.5px solid var(--cyan); box-shadow: 0 0 6px var(--cyan);';
+      boxTitle = (off === 0 ? 'Today' : (off === 1 ? 'Yesterday' : '2 Days Ago')) + ': Streak Freeze Used';
+    }
+    boxesHtml += `<span title="${boxTitle}" style="display: inline-block; width: ${isMob ? '16px' : '13px'}; height: ${isMob ? '16px' : '13px'}; border-radius: 2px; box-sizing: border-box; ${boxStyle}"></span>`;
+  });
+
+  let streakBannerHtml = `
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding: ${isMob ? '16px 18px' : '12px 16px'}; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--mono-20); border-radius: 4px; margin: 4px 0 10px 0;">
+      <div style="font-size: ${isMob ? '13px' : '11px'}; font-weight: 800; letter-spacing: 2px; color: var(--mono); text-transform: uppercase;">
+        DAILY STREAK
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: ${isMob ? '13px' : '11px'}; font-weight: 800; letter-spacing: 1.5px; color: var(--white); text-transform: uppercase;">${currentStreak} DAY${currentStreak === 1 ? '' : 'S'}</span>
+        <div style="display: flex; gap: 5px; align-items: center;">
+          ${boxesHtml}
+        </div>
+      </div>
+    </div>
+  `;
+
+  const now = new Date();
+  const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+  const diffMs = Math.max(0, nextMidnight.getTime() - now.getTime());
+  const expireHours = Math.floor(diffMs / 3600000);
+  const expireMins = Math.floor((diffMs % 3600000) / 60000);
+  const expireTimerHtml = `
+    <div style="font-family: monospace; font-size: ${isMob ? '10px' : '9.5px'}; color: rgba(255, 255, 255, 0.6); letter-spacing: 1px; text-transform: lowercase; text-align: center; margin: 2px 0 6px 0; width: 100%;">
+      expires in ${expireHours}h ${expireMins}m
+    </div>
+  `;
+
+  const infoSubtitleHtml = `
+    <div style="font-size: ${isMob ? '10px' : '9px'}; color: #ffffff; opacity: 0.75; letter-spacing: 0.8px; text-transform: uppercase; text-align: center; line-height: 1.6; margin: 6px 4px 4px 4px; width: 100%;">
+      UNFILLED = MISSED • BLACK = COMPLETED • BLUE = FREEZE USED<br>
+      STREAK FREEZES: ${freezesAvailable} / 4 AVAILABLE (+1 EVERY 2 STREAK DAYS)
+    </div>
+  `;
+
+  let cardsHtml = '';
+
+  rolling.forEach((item, index) => {
+    const ch = item.challenge;
+    if (!ch) return;
+
+    const isDone = isDailyChallengeCompleted(ch.id, item.dateKey);
+    const isActive = (challengeActive === ch.id && challengeActiveDateKey === item.dateKey);
+
+    let statusText = 'AVAILABLE';
+    let statusColor = '#ffffff';
+
+    if (isDone) {
+      statusText = '★ COMPLETED';
+      statusColor = '#ffffff';
+    } else if (isActive) {
+      statusText = 'ACTIVE';
+      statusColor = '#ffffff';
+    } else if (item.dayOffset === 1) {
+      statusText = 'GONE SOON';
+      statusColor = '#ffffff';
+    } else if (item.dayOffset === 2) {
+      statusText = 'LAST CHANCE';
+      statusColor = '#ffffff';
+    }
+
+    let diffBorder = 'var(--cyan)';
+    let diffColor = 'var(--cyan)';
+    if (ch.difficulty === 'MEDIUM') {
+      diffBorder = 'var(--gold)';
+      diffColor = 'var(--gold)';
+    } else if (ch.difficulty === 'HARD') {
+      diffBorder = 'var(--red)';
+      diffColor = 'var(--red)';
+    }
+
+    let btnLabel = (ch.config === 'TRACK' || ch.config === 'TRACK+MOD') ? 'LAUNCH' : 'ACCEPT';
+    let btnColor = 'var(--cyan)';
+    if (isDone) {
+      btnLabel = 'REPLAY';
+    } else if (isActive) {
+      btnLabel = 'CANCEL';
+      btnColor = 'var(--red)';
+    }
+
+    let trackInfo = '';
+    if (ch.courseId) {
+      const cName = COURSES[ch.courseId] ? COURSES[ch.courseId].name : ch.courseId.toUpperCase();
+      trackInfo = `<div style="font-size: ${isMob ? '11px' : '9.5px'}; letter-spacing: 1.2px; color: var(--gold); text-transform: uppercase;">FORCED TRACK: ${cName} (${ch.subtrack || 'A'})</div>`;
+    }
+    let modInfo = '';
+    if (ch.mod) {
+      const modParts = [];
+      if (ch.mod.disableYaw) modParts.push('NO YAW');
+      if (ch.mod.disableAirbrake) modParts.push('NO BRAKE');
+      if (ch.mod.disablePitchUp) modParts.push('NO PITCH UP');
+      if (ch.mod.hideHUD) modParts.push('HUD HIDDEN');
+      if (ch.mod.hideThermalVisuals) modParts.push('THERMAL PARTICLES HIDDEN');
+      if (ch.mod.disableRudderBoost) modParts.push('NO RUDDER BOOST');
+      modInfo = `<div style="font-size: ${isMob ? '11px' : '9.5px'}; letter-spacing: 1.2px; color: var(--red); text-transform: uppercase;">MODS: ${modParts.join(' • ')}</div>`;
+    }
+
+    const badgeColor = '#ffffff';
+
+    const cardPadding = isMob ? '23px 20px' : '15px 16px';
+    const gapSize = isMob ? '14px' : '8px';
+    const titleSize = isMob ? '16px' : '13px';
+    const descSize = isMob ? '13px' : '10.5px';
+    const btnPadding = isMob ? '14px 28px' : '6px 16px';
+    const btnFontSize = isMob ? '13px' : '10px';
+
+    cardsHtml += `
+      <div class="control-toggle-box" style="flex-direction: column; align-items: stretch; gap: ${gapSize}; padding: ${cardPadding}; background: rgba(0, 0, 0, 0.75); border: 1.5px solid var(--mono-20); width: 100%;">
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span style="font-size: 9px; font-weight: 900; letter-spacing: 1.5px; color: ${badgeColor}; border: 1px solid ${badgeColor}; padding: 3px 8px; border-radius: 2px; text-transform: uppercase;">${item.label}</span>
+            <span style="font-size: ${titleSize}; font-weight: 800; letter-spacing: 1.5px; color: var(--mono); text-transform: uppercase;">${ch.name}</span>
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <span style="font-size: 9px; font-weight: 800; padding: 3px 8px; border-radius: 2px; letter-spacing: 1.2px; text-transform: uppercase; border: 1px solid ${diffBorder}; color: ${diffColor};">${ch.difficulty}</span>
+          </div>
+        </div>
+
+        <div style="font-size: ${descSize}; color: var(--mono-90); line-height: 1.5; text-align: left; letter-spacing: 0.8px;" title="${ch.desc}">
+          ${ch.shortDesc || ch.desc}
+        </div>
+
+        ${trackInfo}
+        ${modInfo}
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-top: 1px solid var(--mono-20); padding-top: 12px; margin-top: 4px; width: 100%;">
+          <div style="display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+            <span style="font-size: ${isMob ? '11px' : '9.5px'}; color: var(--mono-60); letter-spacing: 1.2px; font-weight: 700;">STATUS:</span>
+            <span style="font-size: ${isMob ? '12px' : '10px'}; font-weight: 800; letter-spacing: 1.2px; color: ${statusColor};">${statusText}</span>
+          </div>
+          <button class="mono-btn challenge-action-trigger" data-chid="${ch.id}" data-date="${item.dateKey}" data-offset="${item.dayOffset}" style="flex: none !important; width: auto !important; border-color: ${btnColor}; color: ${btnColor}; font-weight: 800; padding: ${btnPadding}; font-size: ${btnFontSize}; margin-left: auto;">
+            ${btnLabel}
+          </button>
+        </div>
+      </div>
+    `;
+
+    if (index === 0) {
+      cardsHtml += streakBannerHtml;
+    } else if (index === 1) {
+      cardsHtml += expireTimerHtml;
+    }
+  });
+
+  cardsHtml += infoSubtitleHtml;
+
+  const desktopWrap = document.getElementById('dash-challenge-card-wrap');
+  if (desktopWrap) {
+    desktopWrap.style.maxHeight = '68vh';
+    desktopWrap.style.overflowY = 'auto';
+    desktopWrap.innerHTML = cardsHtml;
+    desktopWrap.querySelectorAll('.challenge-action-trigger').forEach(btn => {
+      const chId = parseInt(btn.getAttribute('data-chid'), 10);
+      const dateKey = btn.getAttribute('data-date');
+      const dayOffset = parseInt(btn.getAttribute('data-offset'), 10);
+      const ch = DAILY_CHALLENGES.find(c => c.id === chId);
+      if (ch) {
+        btn.onclick = () => handleChallengeAction(ch, false, dateKey, dayOffset);
+      }
+    });
+  }
+
+  const mobileWrap = document.getElementById('mobile-challenge-card-wrap');
+  if (mobileWrap) {
+    mobileWrap.style.maxHeight = '68vh';
+    mobileWrap.style.overflowY = 'auto';
+    mobileWrap.innerHTML = cardsHtml;
+    mobileWrap.querySelectorAll('.challenge-action-trigger').forEach(btn => {
+      const chId = parseInt(btn.getAttribute('data-chid'), 10);
+      const dateKey = btn.getAttribute('data-date');
+      const dayOffset = parseInt(btn.getAttribute('data-offset'), 10);
+      const ch = DAILY_CHALLENGES.find(c => c.id === chId);
+      if (ch) {
+        btn.onclick = () => handleChallengeAction(ch, true, dateKey, dayOffset);
+      }
+    });
+  }
+}
+
+function handleChallengeAction(ch, isMobile, dateKey, dayOffset = 0) {
+  audio.init();
+
+  if (challengeActive === ch.id && challengeActiveDateKey === dateKey) {
+    challengeActive = null;
+    challengeMod = null;
+    challengeActiveDateKey = null;
+    challengeActiveDayOffset = 0;
+    audio.playBeep(300, 'sine', 0.12);
+    renderDailyChallenge();
+    return;
+  }
+
+  challengeActive = ch.id;
+  challengeMod = ch.mod || null;
+  challengeActiveDateKey = dateKey || getDailyChallengeDateKey(dayOffset);
+  challengeActiveDayOffset = dayOffset;
+
+  if (ch.config === 'TRACK' || ch.config === 'TRACK+MOD') {
+    selectedCourseId = ch.courseId || 'canyon';
+    selectedSubtrack = ch.subtrack || 'A';
+    if (mobileJoystickMode === 'gyro') {
+      requestGyroPermission();
+    }
+    startCountdown();
+  } else {
+    showAchievementNotifications([{
+      name: "Challenge Accepted: " + ch.name,
+      sub: ch.config === 'MOD' ? "Modifiers active! Pick any track to fly." : "Pick any track to complete this challenge."
+    }]);
+    audio.playBeep(660, 'sine', 0.1);
+
+    renderDailyChallenge();
+
+    if (isMobile) {
+      setSelectTab('single');
+    } else {
+      setDashboardCategory('single');
+    }
+  }
+}
+
 let currentDashboardCat = null;
 
 function openDashboardRight(panelId) {
   const colRight = document.getElementById('dash-col-right');
   if (!colRight) return;
 
-  const categories = ['single', 'gp', 'shop', 'settings'];
+  const categories = ['single', 'gp', 'challenge', 'shop', 'settings'];
   categories.forEach(c => {
     const rightP = document.getElementById(`dash-right-${c}`);
     if (rightP) rightP.classList.toggle('hidden', c !== panelId);
@@ -2986,7 +3363,7 @@ function closeDashboardRight() {
   if (!colRight) return;
   colRight.style.display = 'none';
   colRight.classList.add('hidden');
-  const categories = ['single', 'gp', 'shop', 'settings'];
+  const categories = ['single', 'gp', 'challenge', 'shop', 'settings'];
   categories.forEach(c => {
     const rightP = document.getElementById(`dash-right-${c}`);
     if (rightP) rightP.classList.add('hidden');
@@ -3008,11 +3385,12 @@ function setDashboardCategory(cat) {
       colMid.style.display = 'none';
       colMid.classList.add('hidden');
     }
-    const categories = ['single', 'gp', 'shop', 'settings'];
+    const categories = ['single', 'gp', 'challenge', 'shop', 'settings'];
     categories.forEach(c => {
       const midP = document.getElementById(`dash-mid-${c}`);
       if (midP) midP.classList.add('hidden');
     });
+    if (typeof updateHalloweenThemeVisibility === 'function') updateHalloweenThemeVisibility();
     return;
   }
 
@@ -3024,7 +3402,7 @@ function setDashboardCategory(cat) {
     colMid.classList.add('dash-sliding');
   }
 
-  const categories = ['single', 'gp', 'shop', 'settings'];
+  const categories = ['single', 'gp', 'challenge', 'shop', 'settings'];
   categories.forEach(c => {
     const midP = document.getElementById(`dash-mid-${c}`);
     if (midP) midP.classList.toggle('hidden', c !== cat);
@@ -3039,6 +3417,9 @@ function setDashboardCategory(cat) {
     renderGrandPrixCupList();
     refreshDashboardGp();
     playMenuTheme('menu');
+  } else if (cat === 'challenge') {
+    renderDailyChallenge();
+    playMenuTheme('menu');
   } else if (cat === 'shop') {
     renderShop();
     updateCellarDoorVisibility();
@@ -3047,6 +3428,7 @@ function setDashboardCategory(cat) {
     renderKeybindList();
     playMenuTheme('menu');
   }
+  if (typeof updateHalloweenThemeVisibility === 'function') updateHalloweenThemeVisibility();
 }
 
 function refreshDashboardSingle() {
@@ -3418,7 +3800,7 @@ function showScreen(screenId) {
         'Our state of the art anti theft and anti robbery Aphelion Encoder™ <br> will not allow cheators from editing their save files!',
         'Watch out! playing this game might cause you to get <br> BUTTERFINGERS',
         'Check out Butterfingers by team Aphelion! <br> available right in your kitchen! (and on your computer)',
-        "NASA said we're good to use the Moon.<br>They did NOT say we could keep it.",
+        "NASA said we're good to use the Moon.<br>They did NOT say we couldn't keep it.",
         'Warning: If lost on the moon <br> FLY BACK',
         'Ice spikes in glacial are inspired by: <br> Hyper Karts Blizzard Circuit!',
         'Holy cow, this project is a lot of lines.<br>At least 3 of them work. I think.',
@@ -4061,6 +4443,9 @@ function animate() {
   handleGamepadUI(dt);
   updateBackGifFrame();
   updateTvStaticTexture();
+  updateTryHardTexture();
+  updateMatrixTexture();
+  updateT9Glow();
   updateRestartHold(dt);
 
   if (devFadeInTimer > 0) {
@@ -4199,6 +4584,28 @@ function buildSplashGhostMesh() {
   } else if (ghostSkinId === 'ghost_krampus') {
     const mat = createGhostSkinMaterial(ghostSkinId);
     buildKrampusDrone(splashGhostGroup, mat);
+  } else if (ghostSkinId === 'ghost_clockwork') {
+    const mat = createGhostSkinMaterial(ghostSkinId);
+    buildClockworkDrone(splashGhostGroup, mat);
+  } else if (ghostSkinId === 'ghost_apex_warden') {
+    const mat = createGhostSkinMaterial(ghostSkinId);
+    buildApexWardenDrone(splashGhostGroup, mat);
+  } else if (ghostSkinId === 'ghost_404') {
+    const mat = createGhostSkinMaterial(ghostSkinId);
+    buildMatrixDrone(splashGhostGroup, mat);
+  } else if (ghostSkinId === 'ghost_scrapheap') {
+    buildScrapheapDrone(splashGhostGroup);
+  } else if (ghostSkinId === 'ghost_t9') {
+    buildT9Drone(splashGhostGroup);
+  } else if (ghostSkinId === 'ghost_paper_airplane') {
+    const mat = createGhostSkinMaterial(ghostSkinId);
+    buildPaperAirplane(splashGhostGroup, mat);
+  } else if (ghostSkinId === 'ghost_ace_circuit') {
+    const mat = createGhostSkinMaterial(ghostSkinId);
+    buildAceCircuitDrone(splashGhostGroup, mat);
+  } else if (ghostSkinId === 'ghost_piggy_bank') {
+    const mat = createGhostSkinMaterial(ghostSkinId);
+    buildPiggyBankDrone(splashGhostGroup, mat);
   } else {
     const mat = createGhostSkinMaterial(ghostSkinId);
     const bodyGeom = new THREE.ConeGeometry(5, 24, 4);
