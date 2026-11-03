@@ -1,4 +1,4 @@
-const CACHE_NAME = 'glider-cache-v23';
+const CACHE_NAME = 'glider-cache-v24';
 
 function isHalloweenSeason() {
   const md = (new Date().getMonth() + 1) * 100 + new Date().getDate();
