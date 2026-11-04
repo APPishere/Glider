@@ -414,10 +414,13 @@ function isDailyChallengeCompleted(id, dateKey) {
   return localStorage.getItem('glider_challenge_done_' + key + '_' + id) === 'true';
 }
 
-function markDailyChallengeCompleted(id, dateKey) {
+function markDailyChallengeCompleted(id, dateKey, isCatchup = false) {
   const key = dateKey || getDailyChallengeDateKey(0);
   try {
     localStorage.setItem('glider_challenge_done_' + key + '_' + id, 'true');
+    if (isCatchup) {
+      localStorage.setItem('glider_challenge_is_catchup_' + key + '_' + id, 'true');
+    }
   } catch (e) {}
 }
 
@@ -425,6 +428,7 @@ function getDailyChallengeStreak() {
   let streak = 0;
   let freezes = 0;
   let streakProgress = 0;
+  let catchupDays = 0;
   const frozenDates = new Set();
 
   let earliestCompletedOffset = -1;
@@ -442,13 +446,18 @@ function getDailyChallengeStreak() {
       const ch = getDailyChallenge(off);
       const dateKey = getDailyChallengeDateKey(off);
       const isDone = localStorage.getItem('glider_challenge_done_' + dateKey + '_' + ch.id) === 'true';
+      const isCatchup = isDone && (localStorage.getItem('glider_challenge_is_catchup_' + dateKey + '_' + ch.id) === 'true');
 
       if (isDone) {
-        streak++;
-        streakProgress++;
-        if (streakProgress >= 2) {
-          freezes = Math.min(4, freezes + 1);
-          streakProgress = 0;
+        if (isCatchup) {
+          catchupDays++;
+        } else {
+          streak++;
+          streakProgress++;
+          if (streakProgress >= 2) {
+            freezes = Math.min(4, freezes + 1);
+            streakProgress = 0;
+          }
         }
       } else {
         if (off === 0) {
@@ -458,6 +467,7 @@ function getDailyChallengeStreak() {
             frozenDates.add(dateKey);
           } else {
             streak = 0;
+            catchupDays = 0;
             freezes = 0;
             streakProgress = 0;
             frozenDates.clear();
@@ -465,6 +475,13 @@ function getDailyChallengeStreak() {
         }
       }
     }
+  }
+
+  const bonusFromCatchups = Math.floor(catchupDays / 2);
+  streak += bonusFromCatchups;
+  streakProgress += (catchupDays % 2);
+  if (streakProgress >= 2) {
+    freezes = Math.min(4, freezes + Math.floor(streakProgress / 2));
   }
 
   const savedMax = parseInt(localStorage.getItem('glider_challenge_max_streak') || '0', 10);
@@ -596,6 +613,49 @@ let lastMobileCtrlGameState = null;
 let mobileJoystickMode = localStorage.getItem('glider_mobile_joystick') || 'visible';
 const activeSteeringTouches = new Map();
 
+let savedMouseSens = parseFloat(localStorage.getItem('glider_mouse_sensitivity'));
+let mouseSensitivity = (!isNaN(savedMouseSens) && isFinite(savedMouseSens)) ? savedMouseSens : 1.0;
+
+let savedGyroSens = parseFloat(localStorage.getItem('glider_gyro_sensitivity'));
+let gyroSensitivity = (!isNaN(savedGyroSens) && isFinite(savedGyroSens)) ? savedGyroSens : 1.0;
+
+function updateMouseSensitivity(val) {
+  mouseSensitivity = Math.max(0.2, Math.min(2.5, val));
+  try {
+    localStorage.setItem('glider_mouse_sensitivity', mouseSensitivity.toFixed(2));
+  } catch (e) {}
+  document.querySelectorAll('.mouse-sens-slider').forEach(s => {
+    s.value = Math.round(mouseSensitivity * 100);
+  });
+  document.querySelectorAll('.mouse-sens-label').forEach(l => {
+    l.innerText = `${Math.round(mouseSensitivity * 100)}%`;
+  });
+}
+
+function updateGyroSensitivity(val) {
+  gyroSensitivity = Math.max(0.2, Math.min(2.5, val));
+  try {
+    localStorage.setItem('glider_gyro_sensitivity', gyroSensitivity.toFixed(2));
+  } catch (e) {}
+  document.querySelectorAll('.gyro-sens-slider').forEach(s => {
+    s.value = Math.round(gyroSensitivity * 100);
+  });
+  document.querySelectorAll('.gyro-sens-label').forEach(l => {
+    l.innerText = `${Math.round(gyroSensitivity * 100)}%`;
+  });
+}
+
+function updateSensitivityVisibility() {
+  const showMouse = (controlScheme === 'mouse');
+  const showGyro = (mobileJoystickMode === 'gyro');
+  document.querySelectorAll('.mouse-sens-box').forEach(el => {
+    el.style.display = showMouse ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.gyro-sens-box').forEach(el => {
+    el.style.display = showGyro ? 'flex' : 'none';
+  });
+}
+
 let gyroCurrentBeta = 0;
 let gyroCurrentGamma = 0;
 let gyroCalBeta = 0;
@@ -654,7 +714,7 @@ function updateGyroSteering() {
     diffRoll = Math.sign(diffRoll) * (Math.abs(diffRoll) - 3.0);
   }
 
-  const maxTilt = 25.0;
+  const maxTilt = 25.0 / (gyroSensitivity || 1.0);
   mobilePitchInput = THREE.MathUtils.clamp(diffPitch / maxTilt, -1, 1);
   mobileRollInput = THREE.MathUtils.clamp(diffRoll / maxTilt, -1, 1);
 }
@@ -2273,7 +2333,15 @@ function createGlacialIceArch(x, y, z, span = 260, height = 180, rotY = 0) {
   return archGroup;
 }
 
-const STAT_KEY_PREFIXES = ['glider_dist_', 'glider_speed_', 'ghost_runs_', 'ghost_dist_', 'glider_unlock_speedofsound_drone', 'glider_challenge_', 'glider_catchup_count', 'glider_hard_dailies_count', 'glider_unlocked_piggy_bank', 'glider_unlocked_money_bag', 'glider_timetrial_runs_count'];
+const STAT_KEY_PREFIXES = [
+  'glider_dist_', 'glider_speed_', 'ghost_runs_', 'ghost_dist_',
+  'glider_unlock_speedofsound_drone', 'glider_challenge_',
+  'glider_catchup_count', 'glider_hard_dailies_count',
+  'glider_unlocked_piggy_bank', 'glider_unlocked_money_bag',
+  'glider_timetrial_runs_count',
+  'gp_stars_', 'gp_best_pos_', 'gp_best_pts_',  
+  'glider_achieve_apex',
+];
 
 const AphelionEncoder = (() => {
   const SECRET_KEY = [65, 112, 104, 101, 108, 105, 111, 110, 83, 101, 99, 114, 101, 116]; 

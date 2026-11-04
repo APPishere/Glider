@@ -162,11 +162,25 @@
           </div>
         </div>
 
+        <div class="control-toggle-box gyro-sens-box" style="display: none; margin-bottom: 0;">
+          <div class="control-toggle-label">GYRO SENSITIVITY <span class="gyro-sens-label" style="color: var(--cyan); margin-left: 6px;">100%</span></div>
+          <div class="row-group" style="width: auto; margin-bottom: 0; align-items: center;">
+            <input type="range" class="volume-slider gyro-sens-slider" min="20" max="250" value="100">
+          </div>
+        </div>
+
         <div class="control-toggle-box desktop-only-setting" id="settings-steering-box" style="margin-bottom: 0;">
           <div class="control-toggle-label">STEERING MODE</div>
           <div class="row-group" style="width: auto; margin-bottom: 0;">
             <button class="mono-btn ctrl-btn active" data-mode="wasd">WASD ONLY</button>
             <button class="mono-btn ctrl-btn" data-mode="mouse">MOUSE ONLY</button>
+          </div>
+        </div>
+
+        <div class="control-toggle-box desktop-only-setting mouse-sens-box" style="display: none; margin-bottom: 0;">
+          <div class="control-toggle-label">MOUSE SENSITIVITY <span class="mouse-sens-label" style="color: var(--cyan); margin-left: 6px;">100%</span></div>
+          <div class="row-group" style="width: auto; margin-bottom: 0; align-items: center;">
+            <input type="range" class="volume-slider mouse-sens-slider" min="20" max="250" value="100">
           </div>
         </div>
 
@@ -475,6 +489,12 @@
         <div class="row-group" style="width: auto; margin-bottom: 0;">
           <button class="mono-btn ctrl-btn active" data-mode="wasd">WASD ONLY</button>
           <button class="mono-btn ctrl-btn" data-mode="mouse">MOUSE ONLY</button>
+        </div>
+      </div>
+      <div class="control-toggle-box mouse-sens-box" style="display: none;">
+        <div class="control-toggle-label">MOUSE SENSITIVITY <span class="mouse-sens-label" style="color: var(--cyan); margin-left: 6px;">100%</span></div>
+        <div class="row-group" style="width: auto; margin-bottom: 0; align-items: center;">
+          <input type="range" class="volume-slider mouse-sens-slider" min="20" max="250" value="100">
         </div>
       </div>
       <div class="control-toggle-box" style="flex-direction: column; align-items: stretch; gap: 8px;">
@@ -926,6 +946,13 @@
     </div>
   </div>
 
+  <div class="control-toggle-box desktop-only-setting mouse-sens-box" style="display: none;">
+    <div class="control-toggle-label">MOUSE SENSITIVITY <span class="mouse-sens-label" style="color: var(--cyan); margin-left: 6px;">100%</span></div>
+    <div class="row-group" style="width: auto; margin-bottom: 0; align-items: center;">
+      <input type="range" class="volume-slider mouse-sens-slider" min="20" max="250" value="100">
+    </div>
+  </div>
+
   <div class="control-toggle-box" id="pause-joystick-box">
     <div class="control-toggle-label" style="margin-bottom: 8px;">MOBILE CONTROL SCHEME</div>
     <div class="row-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; margin-bottom: 0;">
@@ -933,6 +960,13 @@
       <button class="mono-btn joystick-btn" data-joystick="invisible">INVISIBLE ANALOG</button>
       <button class="mono-btn joystick-btn" data-joystick="dpad">D-PAD</button>
       <button class="mono-btn joystick-btn" data-joystick="gyro">GYRO</button>
+    </div>
+  </div>
+
+  <div class="control-toggle-box gyro-sens-box" style="display: none;">
+    <div class="control-toggle-label">GYRO SENSITIVITY <span class="gyro-sens-label" style="color: var(--cyan); margin-left: 6px;">100%</span></div>
+    <div class="row-group" style="width: auto; margin-bottom: 0; align-items: center;">
+      <input type="range" class="volume-slider gyro-sens-slider" min="20" max="250" value="100">
     </div>
   </div>
 

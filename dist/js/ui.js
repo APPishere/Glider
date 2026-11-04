@@ -648,6 +648,7 @@ restartHoldTimer = 0;
 restartPromptOpacity = 0;
 mouseLeftPressed = false;
 mouseRightPressed = false;
+for (const k in keys) keys[k] = false;
 
 stallMechanic.active = false;
   stallMechanic.recoveryWindowTimer = 0;
@@ -1553,7 +1554,7 @@ function finishRace() {
     if (activeCh && checkDailyChallengeCompletion(activeCh)) {
       const isPastDay = (typeof challengeActiveDayOffset !== 'undefined' && challengeActiveDayOffset > 0);
       const wasAlreadyCompleted = isDailyChallengeCompleted(activeCh.id, challengeActiveDateKey);
-      markDailyChallengeCompleted(activeCh.id, challengeActiveDateKey);
+      markDailyChallengeCompleted(activeCh.id, challengeActiveDateKey, isPastDay);
       challengeJustCompletedDateKey = challengeActiveDateKey;
       try { sessionStorage.setItem('glider_challenge_just_completed', challengeActiveDateKey); } catch (e) {}
 
@@ -2839,6 +2840,7 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
         localStorage.setItem('glider_control_scheme', controlScheme);
       } catch (e) {}
       document.querySelectorAll(`.ctrl-btn[data-mode="${mode}"]`).forEach(b => b.classList.add('active'));
+      if (typeof updateSensitivityVisibility === 'function') updateSensitivityVisibility();
     });
   });
 
@@ -2885,6 +2887,21 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
     });
   });
 
+  document.querySelectorAll('.mouse-sens-slider').forEach(slider => {
+    slider.addEventListener('input', (e) => {
+      updateMouseSensitivity(e.target.value / 100);
+    });
+  });
+
+  document.querySelectorAll('.gyro-sens-slider').forEach(slider => {
+    slider.addEventListener('input', (e) => {
+      updateGyroSensitivity(e.target.value / 100);
+    });
+  });
+
+  updateMouseSensitivity(mouseSensitivity);
+  updateGyroSensitivity(gyroSensitivity);
+  updateSensitivityVisibility();
   updateInvertButtons();
 
   document.querySelectorAll('.joystick-btn').forEach(btn => {
@@ -2901,12 +2918,12 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
         localStorage.setItem('glider_mobile_joystick', mobileJoystickMode);
       } catch (e) {}
       updateJoystickVisibility();
+      if (typeof updateSensitivityVisibility === 'function') updateSensitivityVisibility();
     });
   });
 
   updateJoystickVisibility();
 
-  // Speedometer Needle Selector
   const pointerBox = document.getElementById('settings-pointer-box');
   if (pointerBox && localStorage.getItem('glider_unlocked_pointer2') === 'true') {
     pointerBox.style.display = 'flex';
@@ -4420,9 +4437,14 @@ function updateRestartHold(dt) {
         restartNeedsRelease = true; 
         audio.playBeep(880, 'sine', 0.2);
         if (tutorialActive && typeof graduateTutorial === 'function') {
-          graduateTutorial();
-          return;
-        }
+  if (tutorialBeat >= 5) {
+    graduateTutorial();
+  }
+  restartHoldTimer = 0;
+  restartPromptOpacity = 0;
+  restartNeedsRelease = true;
+  return;
+}
         if (grandPrixState.active) startGrandPrixCup(); 
         else startCountdown();
         return;

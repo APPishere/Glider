@@ -130,24 +130,20 @@ buildParagliderMesh();
       const rollLeftCodes = (keybinds && keybinds.rollLeft) || defaultKeybinds.rollLeft;
       const rollRightCodes = (keybinds && keybinds.rollRight) || defaultKeybinds.rollRight;
       const now = performance.now();
-      if (!rollLeftCodes.includes(e.code) && !rollRightCodes.includes(e.code)) {
-        lastOtherKeyTime = now;
-      }
-      const hasOtherKeyHeld = Object.keys(keys).some(code => keys[code] && !rollLeftCodes.includes(code) && !rollRightCodes.includes(code));
-      const canRoll = !hasOtherKeyHeld && (now - lastOtherKeyTime >= 150);
+      const yawOrBrake = isActionPressed('yawLeft') || isActionPressed('yawRight') || player.airbrake;
       if (rollLeftCodes.includes(e.code)) {
-        if (canRoll && now - lastRollLeftTapTime < 350) {
+        if (!yawOrBrake && now - lastRollLeftTapTime < 350) {
           triggerBarrelRoll(invertRoll ? 1 : -1);
           lastRollLeftTapTime = 0;
         } else {
-          lastRollLeftTapTime = canRoll ? now : 0;
+          lastRollLeftTapTime = yawOrBrake ? 0 : now;
         }
       } else if (rollRightCodes.includes(e.code)) {
-        if (canRoll && now - lastRollRightTapTime < 350) {
+        if (!yawOrBrake && now - lastRollRightTapTime < 350) {
           triggerBarrelRoll(invertRoll ? -1 : 1);
           lastRollRightTapTime = 0;
         } else {
-          lastRollRightTapTime = canRoll ? now : 0;
+          lastRollRightTapTime = yawOrBrake ? 0 : now;
         }
       }
     }
@@ -314,12 +310,11 @@ buildParagliderMesh();
 
   window.addEventListener('keyup', (e) => {
     keys[e.code] = false;
-    const rollLeftCodes = (keybinds && keybinds.rollLeft) || defaultKeybinds.rollLeft;
-    const rollRightCodes = (keybinds && keybinds.rollRight) || defaultKeybinds.rollRight;
-    if (!rollLeftCodes.includes(e.code) && !rollRightCodes.includes(e.code)) {
-      lastOtherKeyTime = performance.now();
-    }
     if (!isActionPressed('airbrake') && !mobileAirbrake && !gpAirbrake) player.airbrake = false;
+  });
+
+  window.addEventListener('blur', () => {
+    for (const k in keys) keys[k] = false;
   });
 
   window.addEventListener('pointerdown', () => {
@@ -3613,17 +3608,23 @@ function buildLighthouse(x, z, scale = 1.0) {
   const baseR2 = 22 * scale;
 
   const lhBase = new THREE.Mesh(
-    new THREE.CylinderGeometry(baseR1, baseR2, baseH, 14),
+    new THREE.CylinderGeometry(baseR1, baseR2, baseH + 20 * scale, 14),
     new THREE.MeshStandardMaterial({ color: 0xeeece8, roughness: 0.4 })
   );
-  lhBase.position.y = baseH * 0.5;
+  lhBase.position.y = baseH * 0.5 - 10 * scale;
 
   const stripeH = 18 * scale;
-  const stripeR1 = THREE.MathUtils.lerp(baseR2, baseR1, 0.46);
-  const stripeR2 = THREE.MathUtils.lerp(baseR2, baseR1, 0.25);
+  const stripeR1 = THREE.MathUtils.lerp(baseR2, baseR1, 0.46) * 1.025;
+  const stripeR2 = THREE.MathUtils.lerp(baseR2, baseR1, 0.25) * 1.025;
   const stripe = new THREE.Mesh(
-    new THREE.CylinderGeometry(stripeR1, stripeR2, stripeH, 14),
-    new THREE.MeshStandardMaterial({ color: 0xdd2222, roughness: 0.4 })
+    new THREE.CylinderGeometry(stripeR1, stripeR2, stripeH, 14, 1, true),
+    new THREE.MeshStandardMaterial({
+      color: 0xdd2222,
+      roughness: 0.4,
+      polygonOffset: true,
+      polygonOffsetFactor: -1.0,
+      polygonOffsetUnits: -1.0
+    })
   );
   stripe.position.y = baseH * 0.35;
 
@@ -3632,7 +3633,7 @@ function buildLighthouse(x, z, scale = 1.0) {
     new THREE.CylinderGeometry(15 * scale, 15 * scale, deckH, 14),
     new THREE.MeshStandardMaterial({ color: 0xdd2222, roughness: 0.3 })
   );
-  lhTop.position.y = baseH + deckH * 0.5;
+  lhTop.position.y = baseH + deckH * 0.5 + 0.1 * scale;
 
   const lanternH = 14 * scale;
   const lantern = new THREE.Mesh(
@@ -6057,12 +6058,13 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
     if (isActionPressed('yawRight')) yawInput += 1.0;
     if (isActionPressed('airbrake')) player.airbrake = true;
   } else if (controlScheme === 'mouse') {
+    const mSens = (typeof mouseSensitivity !== 'undefined') ? mouseSensitivity : 1.0;
     if (Math.abs(mouseY) > 0.03 && (!gamepadConnected || Math.abs(gpPitch) <= 0.05)) {
-      pitchInput = THREE.MathUtils.clamp(mouseY * 0.9, -0.9, 0.9);
+      pitchInput = THREE.MathUtils.clamp(mouseY * 0.9 * mSens, -0.9, 0.9);
       hasPitchInput = true;
     }
     if (Math.abs(mouseX) > 0.03 && (!gamepadConnected || Math.abs(gpRoll) <= 0.05)) {
-      rollInput = THREE.MathUtils.clamp(mouseX * 0.85, -0.85, 0.85);
+      rollInput = THREE.MathUtils.clamp(mouseX * 0.85 * mSens, -0.85, 0.85);
       hasRollInput = true;
     }
     if (mouseLeftPressed || isActionPressed('yawLeft')) yawInput -= 1.0;

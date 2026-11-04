@@ -630,6 +630,10 @@ function tickTutorial(dt) {
       });
       tutorialBulletTime = true;
       tutorialBeat = 18;
+      barrelRoll.cooldownTimer = 0;
+      barrelRoll.active = false;
+      lastRollLeftTapTime = 0;
+      lastRollRightTapTime = 0;
       showTutorialBanner(isMob ? 'BIRDS AHEAD! DOUBLE-TAP LEFT OR RIGHT TO BARREL ROLL!' : 'BIRDS AHEAD! DOUBLE-TAP A OR D TO BARREL ROLL!');
     }
   } else if (tutorialBeat === 18) {
@@ -695,6 +699,16 @@ function startCanyonB() {
   tutorialBulletTime = false;
   sinkTrapTimer = 0;
   stallReactionTimer = 0;
+  barrelRoll.active = false;
+  barrelRoll.timer = 0;
+  barrelRoll.direction = 0;
+  barrelRoll.cooldownTimer = 0;
+  barrelRoll.immunityTimer = 0;
+  lastRollLeftTapTime = 0;
+  lastRollRightTapTime = 0;
+  if (typeof keys !== 'undefined') {
+    for (const k in keys) keys[k] = false;
+  }
   gameState = 'RUNUP';
   runupProgress = 0;
   countdownElapsed = 0;
@@ -852,15 +866,7 @@ if (typeof updateFlight === 'function') {
     let savedPitch = 0, savedRoll = 0, savedAirbrake = false, savedM1 = false, savedM2 = false;
 
     if (tutorialActive && tutorialBeat < 3) {
-      if (typeof keys !== 'undefined') {
-        savedQ = !!keys['KeyQ'];
-        savedE = !!keys['KeyE'];
-        keys['KeyQ'] = false;
-        keys['KeyE'] = false;
-      }
       if (typeof mobileYawLeft !== 'undefined') {
-        savedYawL = !!mobileYawLeft;
-        savedYawR = !!mobileYawRight;
         mobileYawLeft = false;
         mobileYawRight = false;
       }
@@ -885,16 +891,7 @@ if (typeof updateFlight === 'function') {
 
     _origUpdateFlight(dt);
 
-    // Restore yaw
     if (tutorialActive && tutorialBeat < 3) {
-      if (typeof keys !== 'undefined') {
-        if (savedQ) keys['KeyQ'] = true;
-        if (savedE) keys['KeyE'] = true;
-      }
-      if (typeof mobileYawLeft !== 'undefined') {
-        if (savedYawL) mobileYawLeft = true;
-        if (savedYawR) mobileYawRight = true;
-      }
       if (typeof player !== 'undefined') {
         player.rudderDeflection = 0;
       }
