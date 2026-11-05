@@ -127,24 +127,10 @@ buildParagliderMesh();
     keys[e.code] = true;
     if (e.repeat) return;
     if (gameState === 'RACING') {
-      const rollLeftCodes = (keybinds && keybinds.rollLeft) || defaultKeybinds.rollLeft;
-      const rollRightCodes = (keybinds && keybinds.rollRight) || defaultKeybinds.rollRight;
-      const now = performance.now();
-      const yawOrBrake = isActionPressed('yawLeft') || isActionPressed('yawRight') || player.airbrake;
-      if (rollLeftCodes.includes(e.code)) {
-        if (!yawOrBrake && now - lastRollLeftTapTime < 350) {
-          triggerBarrelRoll(invertRoll ? 1 : -1);
-          lastRollLeftTapTime = 0;
-        } else {
-          lastRollLeftTapTime = yawOrBrake ? 0 : now;
-        }
-      } else if (rollRightCodes.includes(e.code)) {
-        if (!yawOrBrake && now - lastRollRightTapTime < 350) {
-          triggerBarrelRoll(invertRoll ? -1 : 1);
-          lastRollRightTapTime = 0;
-        } else {
-          lastRollRightTapTime = yawOrBrake ? 0 : now;
-        }
+      const barrelRollCodes = (keybinds && keybinds.barrelRoll) || defaultKeybinds.barrelRoll || ['KeyF', 'KeyB'];
+      if (barrelRollCodes.includes(e.code)) {
+        const rollDir = player.roll >= 0 ? 1 : -1;
+        triggerBarrelRoll(invertRoll ? -rollDir : rollDir);
       }
     }
     if (gameState === 'GHOST_FLEET_CINEMATIC' || gameState === 'KRAMPUS_CINEMATIC') {
@@ -315,6 +301,18 @@ buildParagliderMesh();
 
   window.addEventListener('blur', () => {
     for (const k in keys) keys[k] = false;
+    if (gameState === 'RACING' || gameState === 'RUNUP') {
+      togglePauseMenu();
+    }
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      for (const k in keys) keys[k] = false;
+      if (gameState === 'RACING' || gameState === 'RUNUP') {
+        togglePauseMenu();
+      }
+    }
   });
 
   window.addEventListener('pointerdown', () => {
@@ -5688,7 +5686,25 @@ function updateAI(dt) {
       _toTarget.normalize();
     }
 
-    // Hazards: Lateral Shoves & Bird Flocks
+    if (activeSubtrack.sinks) {
+      activeSubtrack.sinks.forEach(sink => {
+        const toSinkX = ai.pos.x - sink.pos.x;
+        const toSinkZ = ai.pos.z - sink.pos.z;
+        const dist2D = Math.hypot(toSinkX, toSinkZ);
+        if (dist2D < sink.radius + 180 && ai.pos.y > sink.pos.y - 60 && ai.pos.y < sink.pos.y + 450) {
+          const awayDist = dist2D || 1;
+          const steerFactor = 1.0 - Math.min(1.0, dist2D / (sink.radius + 180));
+          _toTarget.x += (toSinkX / awayDist) * steerFactor * 1.5;
+          _toTarget.z += (toSinkZ / awayDist) * steerFactor * 1.5;
+          _toTarget.normalize();
+        }
+        if (dist2D < sink.radius && ai.pos.y > sink.pos.y - 50 && ai.pos.y < sink.pos.y + 400) {
+          ai.pos.y -= sink.strength * dt * 0.5;
+          ai.currentSpeed = Math.max(30, ai.currentSpeed - 20 * dt);
+        }
+      });
+    }
+
     lateralShoveSystems.forEach(sys => {
       if (sys.phase === 'on') {
         const shove = sys.shove;
@@ -5842,6 +5858,8 @@ function updateGhostDrone() {
     ghostDroneGroup.rotation.x = fA.pitch;
     ghostDroneGroup.rotation.z = fA.roll;
     update2DDroneMesh(ghostDroneGroup, camera);
+    const distToPlayer = player.pos.distanceTo(ghostDroneGroup.position);
+    ghostDroneGroup.visible = (distToPlayer > 28);
     return;
   }
 
@@ -5863,7 +5881,9 @@ function updateGhostDrone() {
   ghostDroneGroup.rotation.y = fA.yaw + dYaw * factor;
   ghostDroneGroup.rotation.x = THREE.MathUtils.lerp(fA.pitch, fB.pitch, factor);
   ghostDroneGroup.rotation.z = THREE.MathUtils.lerp(fA.roll, fB.roll, factor);
-update2DDroneMesh(ghostDroneGroup, camera);
+  update2DDroneMesh(ghostDroneGroup, camera);
+  const distToPlayer = player.pos.distanceTo(ghostDroneGroup.position);
+  ghostDroneGroup.visible = (distToPlayer > 28);
 }
 
 function updateFlight(dt) {
@@ -6084,7 +6104,7 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
   if (mobileYawRight) yawInput += 1.0;
   if (mobileAirbrake) player.airbrake = true;
 
-  if (challengeMod) {
+  if (challengeMod && !tutorialActive) {
     if (challengeMod.disableYaw) {
       yawInput = 0;
       player.rudderDeflection = 0;
@@ -6151,7 +6171,7 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
     rudderBoost.cooldownTimer -= dt;
   }
 
-const currentYawDir = (challengeMod && challengeMod.disableRudderBoost) ? 0 : (yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0));
+const currentYawDir = ((challengeMod && challengeMod.disableRudderBoost) && !tutorialActive) ? 0 : (yawInput > 0.25 ? 1 : (yawInput < -0.25 ? -1 : 0));
 
   if (currentYawDir !== 0) {
     if (!rudderBoost.charging) {
@@ -6513,6 +6533,11 @@ const currentYawDir = (challengeMod && challengeMod.disableRudderBoost) ? 0 : (y
     activeSubtrack.sinks.forEach((sink, sinkIdx) => {
       const dist2D = Math.hypot(player.pos.x - sink.pos.x, player.pos.z - sink.pos.z);
       if (dist2D < sink.radius && player.pos.y > sink.pos.y - 50 && player.pos.y < sink.pos.y + 400) {
+        if (barrelRoll.active || barrelRoll.immunityTimer > 0) {
+          challengeTracker.sinkEntries.add(sinkIdx);
+          challengeTracker.enteredSink = true;
+          return;
+        }
         inSink = true;
         challengeTracker.sinkEntries.add(sinkIdx);
         challengeTracker.enteredSink = true;

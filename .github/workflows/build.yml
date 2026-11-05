@@ -37,9 +37,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v4.4.4
-          releaseName: "Glider Patch 4.4.4"
-          releaseBody: "Nuh uh. This is a patch release for Glider 4.4.4. It includes bug fixes and improvements."
+          tagName: v4.4.5
+          releaseName: "Glider Patch 4.4.5"
+          releaseBody: "100% get this one because barrel roll is fixed"
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

@@ -1565,7 +1565,8 @@ button,
   }
 
 body:not(.dpad-mode) #mobile-btn-yaw-l,
-body:not(.dpad-mode) #mobile-btn-yaw-r {
+body:not(.dpad-mode) #mobile-btn-yaw-r,
+#mobile-btn-roll {
     width: 68px;
     height: 68px;
     background: rgba(255, 255, 255, 0.08) !important;
@@ -1596,7 +1597,8 @@ body:not(.dpad-mode) #mobile-btn-brake.rect-mode {
 }
 
 body:not(.dpad-mode) #mobile-btn-yaw-l::before,
-body:not(.dpad-mode) #mobile-btn-yaw-r::before {
+body:not(.dpad-mode) #mobile-btn-yaw-r::before,
+#mobile-btn-roll::before {
     content: attr(data-label);
     color: #ffffff;
     font-family: var(--font-stack);
@@ -1679,7 +1681,9 @@ body:not(.dpad-mode) #mobile-btn-yaw-l.active,
 body:not(.dpad-mode) #mobile-btn-yaw-r:active,
 body:not(.dpad-mode) #mobile-btn-yaw-r.active,
 body:not(.dpad-mode) #mobile-btn-brake:active,
-body:not(.dpad-mode) #mobile-btn-brake.active {
+body:not(.dpad-mode) #mobile-btn-brake.active,
+#mobile-btn-roll:active,
+#mobile-btn-roll.active {
     background: rgba(0, 240, 255, 0.25) !important;
     border-color: var(--cyan) !important;
     box-shadow: 0 0 22px rgba(0, 240, 255, 0.65), inset 0 0 14px rgba(0, 240, 255, 0.3) !important;

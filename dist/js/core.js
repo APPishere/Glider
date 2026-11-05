@@ -698,7 +698,7 @@ function calibrateGyro() {
 function updateGyroSteering() {
   if (!isMobileDevice() || mobileJoystickMode !== 'gyro') return;
   const isReverse = (screen.orientation && (screen.orientation.angle === 270 || screen.orientation.angle === -90)) || window.orientation === -90 || window.orientation === 270;
-  const sign = isReverse ? 1 : -1;
+  const sign = isReverse ? -1 : 1;
   let diffPitch = (gyroCurrentGamma - gyroCalGamma) * sign;
   let diffRoll = (gyroCurrentBeta - gyroCalBeta) * sign;
 
@@ -778,6 +778,7 @@ function applyMobileButtonPositions() {
   const yawL = document.getElementById('mobile-btn-yaw-l');
   const yawR = document.getElementById('mobile-btn-yaw-r');
   const brake = document.getElementById('mobile-btn-brake');
+  const roll = document.getElementById('mobile-btn-roll');
   const stick = document.getElementById('mobile-joystick');
   const dpad = document.getElementById('mobile-dpad');
   if (!yawL || !yawR || !brake) return;
@@ -814,6 +815,10 @@ function applyMobileButtonPositions() {
         brake.style.height = saved.brake.size + 'px';
       }
     }
+    if (roll && saved.roll && saved.roll.size > 20) {
+      roll.style.width = saved.roll.size + 'px';
+      roll.style.height = saved.roll.size + 'px';
+    }
     if (stick) {
       const stickSize = (saved.stick && saved.stick.size > 20) ? saved.stick.size : 114;
       stick.style.width = stickSize + 'px';
@@ -840,6 +845,18 @@ function applyMobileButtonPositions() {
       brake.style.top = clamp(saved.brake.yRatio * h, 10, h - (brake.offsetHeight || 84)) + 'px';
       brake.style.right = 'auto';
       brake.style.bottom = 'auto';
+
+      if (roll) {
+        if (saved.roll) {
+          roll.style.left = clamp(saved.roll.xRatio * w, 10, w - (roll.offsetWidth || 68)) + 'px';
+          roll.style.top = clamp(saved.roll.yRatio * h, 10, h - (roll.offsetHeight || 68)) + 'px';
+        } else {
+          roll.style.left = clamp(w - 180, 10, w - (roll.offsetWidth || 68)) + 'px';
+          roll.style.top = clamp(h - 158, 10, h - (roll.offsetHeight || 68)) + 'px';
+        }
+        roll.style.right = 'auto';
+        roll.style.bottom = 'auto';
+      }
 
       if (stick) {
         if (saved.stick && saved.stick.size > 20 && saved.stick.yRatio > 0.05) {
@@ -894,6 +911,13 @@ function applyMobileButtonPositions() {
     yawR.style.top = clamp(h - 158, 10, h - 68) + 'px';
     yawR.style.right = 'auto';
     yawR.style.bottom = 'auto';
+
+    if (roll) {
+      roll.style.left = clamp(w - 180, 10, w - 68) + 'px';
+      roll.style.top = clamp(h - 158, 10, h - 68) + 'px';
+      roll.style.right = 'auto';
+      roll.style.bottom = 'auto';
+    }
   } else {
     yawL.style.left = '24px';
     yawL.style.top = (h - 88) + 'px';
@@ -909,6 +933,13 @@ function applyMobileButtonPositions() {
     brake.style.top = (h - 108) + 'px';
     brake.style.right = 'auto';
     brake.style.bottom = 'auto';
+
+    if (roll) {
+      roll.style.left = (w - 180) + 'px';
+      roll.style.top = (h - 108) + 'px';
+      roll.style.right = 'auto';
+      roll.style.bottom = 'auto';
+    }
   }
 }
 
@@ -916,6 +947,7 @@ function saveMobileButtonPositions() {
   const yawL = document.getElementById('mobile-btn-yaw-l');
   const yawR = document.getElementById('mobile-btn-yaw-r');
   const brake = document.getElementById('mobile-btn-brake');
+  const roll = document.getElementById('mobile-btn-roll');
   const stick = document.getElementById('mobile-joystick');
   const dpad = document.getElementById('mobile-dpad');
   if (!yawL || !yawR || !brake) return;
@@ -939,6 +971,9 @@ function saveMobileButtonPositions() {
   if (brake && brake.offsetWidth > 20) {
     data.brake = { xRatio: brake.offsetLeft / w, yRatio: brake.offsetTop / h, size: brake.offsetWidth, width: brake.offsetWidth, height: brake.offsetHeight };
   }
+  if (roll && roll.offsetWidth > 20) {
+    data.roll = { xRatio: roll.offsetLeft / w, yRatio: roll.offsetTop / h, size: roll.offsetWidth };
+  }
   if (stick && stick.offsetWidth > 20 && stick.style.display !== 'none') {
     data.stick = { xRatio: stick.offsetLeft / w, yRatio: stick.offsetTop / h, size: stick.offsetWidth };
   }
@@ -958,11 +993,13 @@ function resetMobileButtonPositions() {
   const yawL = document.getElementById('mobile-btn-yaw-l');
   const yawR = document.getElementById('mobile-btn-yaw-r');
   const brake = document.getElementById('mobile-btn-brake');
+  const roll = document.getElementById('mobile-btn-roll');
   const stick = document.getElementById('mobile-joystick');
   const dpad = document.getElementById('mobile-dpad');
   if (yawL) { yawL.style.width = ''; yawL.style.height = ''; }
   if (yawR) { yawR.style.width = ''; yawR.style.height = ''; }
   if (brake) { brake.style.width = ''; brake.style.height = ''; }
+  if (roll) { roll.style.width = ''; roll.style.height = ''; }
   if (stick) { stick.style.width = ''; stick.style.height = ''; }
   if (dpad) { dpad.style.width = ''; dpad.style.height = ''; }
   applyMobileButtonPositions();
@@ -982,10 +1019,11 @@ function openMobileRepositionEditor() {
   const yawL = document.getElementById('mobile-btn-yaw-l');
   const yawR = document.getElementById('mobile-btn-yaw-r');
   const brake = document.getElementById('mobile-btn-brake');
+  const roll = document.getElementById('mobile-btn-roll');
   const stick = document.getElementById('mobile-joystick');
   const dpad = document.getElementById('mobile-dpad');
 
-  [yawL, yawR, brake].forEach(btn => {
+  [yawL, yawR, brake, roll].forEach(btn => {
     if (btn) {
       btn.style.display = 'flex';
       btn.classList.add('reposition-mode');
@@ -1014,10 +1052,11 @@ function closeMobileRepositionEditor(save) {
   const yawL = document.getElementById('mobile-btn-yaw-l');
   const yawR = document.getElementById('mobile-btn-yaw-r');
   const brake = document.getElementById('mobile-btn-brake');
+  const roll = document.getElementById('mobile-btn-roll');
   const stick = document.getElementById('mobile-joystick');
   const dpad = document.getElementById('mobile-dpad');
 
-  [yawL, yawR, brake, stick, dpad].forEach(btn => {
+  [yawL, yawR, brake, roll, stick, dpad].forEach(btn => {
     if (btn) {
       btn.classList.remove('reposition-mode');
     }
@@ -1147,8 +1186,6 @@ function setupJoystick() {
     stick.setPointerCapture(e.pointerId);
     const rect = stick.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
-    if (e.clientX < cx - 12) handleMobileRollTap(-1);
-    else if (e.clientX > cx + 12) handleMobileRollTap(1);
     handleMove(e);
   });
 
@@ -1213,8 +1250,6 @@ function setupDpad() {
     e.preventDefault();
     e.stopPropagation();
     const rect = dpad.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
     const dx = e.clientX - cx;
     const dy = e.clientY - cy;
     const dist = Math.hypot(dx, dy);
@@ -1243,10 +1278,6 @@ function setupDpad() {
     e.stopPropagation();
     pointerId = e.pointerId;
     dpad.setPointerCapture(e.pointerId);
-    const rect = dpad.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    if (e.clientX < cx - 12) handleMobileRollTap(-1);
-    else if (e.clientX > cx + 12) handleMobileRollTap(1);
     handlePointer(e);
   });
 
@@ -1269,6 +1300,7 @@ function setupMobileControls() {
   const yawL = document.getElementById('mobile-btn-yaw-l');
   const yawR = document.getElementById('mobile-btn-yaw-r');
   const brake = document.getElementById('mobile-btn-brake');
+  const roll = document.getElementById('mobile-btn-roll');
   const pause = document.getElementById('mobile-btn-pause');
   const stick = document.getElementById('mobile-joystick');
   const dpad = document.getElementById('mobile-dpad');
@@ -1277,12 +1309,14 @@ function setupMobileControls() {
   setupDraggableButton(yawL);
   setupDraggableButton(yawR);
   setupDraggableButton(brake);
+  if (roll) setupDraggableButton(roll);
   if (stick) setupDraggableButton(stick);
   if (dpad) setupDraggableButton(dpad);
 
   setupResizableButton(yawL);
   setupResizableButton(yawR);
   setupResizableButton(brake);
+  if (roll) setupResizableButton(roll);
   if (stick) setupResizableButton(stick);
   if (dpad) setupResizableButton(dpad);
 
@@ -1313,6 +1347,12 @@ function setupMobileControls() {
   attachAction(yawL, () => { mobileYawLeft = true; updateRudderVisuals(); }, () => { mobileYawLeft = false; updateRudderVisuals(); });
   attachAction(yawR, () => { mobileYawRight = true; updateRudderVisuals(); }, () => { mobileYawRight = false; updateRudderVisuals(); });
   attachAction(brake, () => { mobileAirbrake = true; player.airbrake = true; }, () => { mobileAirbrake = false; if (!isActionPressed('airbrake') && !gpAirbrake) player.airbrake = false; });
+  if (roll) {
+    attachAction(roll, () => {
+      const rollDir = mobileRollInput !== 0 ? (mobileRollInput > 0 ? 1 : -1) : (player.roll >= 0 ? 1 : -1);
+      triggerBarrelRoll(invertRoll ? -rollDir : rollDir);
+    }, () => {});
+  }
 
   if (pause) {
     pause.addEventListener('pointerdown', (e) => {
@@ -1404,8 +1444,6 @@ function setupMobileControls() {
         currX: t.clientX,
         currY: t.clientY
       });
-      if (t.clientX < window.innerWidth * 0.45) handleMobileRollTap(-1);
-      else if (t.clientX > window.innerWidth * 0.55) handleMobileRollTap(1);
     }
     updateSteeringFromTouches();
   }, { passive: false });
@@ -1453,6 +1491,7 @@ const defaultKeybinds = {
   rollRight: ['KeyD', 'ArrowRight'],
   yawLeft: ['KeyQ', 'Period'],
   yawRight: ['KeyE', 'Slash'],
+  barrelRoll: ['KeyF', 'KeyB'],
   airbrake: ['Space', 'KeyL']
 };
 let keybinds = null;
@@ -1501,6 +1540,7 @@ const ACTION_LABELS = {
   rollRight: 'BANK RIGHT',
   yawLeft: 'RUDDER YAW LEFT',
   yawRight: 'RUDDER YAW RIGHT',
+  barrelRoll: 'BARREL ROLL',
   airbrake: 'AIRBRAKE'
 };
 
@@ -2340,7 +2380,7 @@ const STAT_KEY_PREFIXES = [
   'glider_unlocked_piggy_bank', 'glider_unlocked_money_bag',
   'glider_timetrial_runs_count',
   'gp_stars_', 'gp_best_pos_', 'gp_best_pts_',  
-  'glider_achieve_apex',
+  'glider_achieve_apex', 'glider_achieve_tv', 'glider_unlocked_pointer2'
 ];
 
 const AphelionEncoder = (() => {

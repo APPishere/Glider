@@ -90,6 +90,11 @@ function drawHudCanvas() {
     while (relAngle > Math.PI) relAngle -= Math.PI * 2;
     while (relAngle < -Math.PI) relAngle += Math.PI * 2;
 
+    const isLighterMap = (selectedCourseId === 'canyon' || selectedCourseId === 'islands' || selectedCourseId === 'glacial') && !isHalloweenBossDuel;
+    const compassColor = isLighterMap ? '#000000' : '#ffffff';
+    const compassCircleColor = isLighterMap ? 'rgba(0, 0, 0, 0.45)' : 'rgba(255, 255, 255, 0.35)';
+    const compassTextColor = isLighterMap ? 'rgba(0, 0, 0, 0.95)' : 'rgba(255, 255, 255, 0.85)';
+
     const arrowX = w / 2;
     const arrowY = 115;
     const distMeters = Math.round(Math.hypot(dx, dz) * 0.3048);
@@ -97,7 +102,7 @@ function drawHudCanvas() {
     hudCtx.save();
     hudCtx.translate(arrowX, arrowY);
 
-    hudCtx.strokeStyle = 'rgba(0, 240, 255, 0.25)';
+    hudCtx.strokeStyle = compassCircleColor;
     hudCtx.lineWidth = 1.5;
     hudCtx.beginPath();
     hudCtx.arc(0, 0, 20, 0, Math.PI * 2);
@@ -122,7 +127,7 @@ function drawHudCanvas() {
 
     hudCtx.rotate(-relAngle);
 
-    hudCtx.fillStyle = '#00f0ff';
+    hudCtx.fillStyle = compassColor;
     hudCtx.beginPath();
     hudCtx.moveTo(0, -14);
     hudCtx.lineTo(7, 7);
@@ -133,7 +138,7 @@ function drawHudCanvas() {
 
     hudCtx.restore();
 
-    hudCtx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    hudCtx.fillStyle = compassTextColor;
     hudCtx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     hudCtx.textAlign = 'center';
     hudCtx.letterSpacing = '1.5px';
@@ -2327,6 +2332,7 @@ function setupUI() {
           ghosts[k.substring(6)] = ghostCache[k];
         }
       }
+      if (typeof updateDailyChallengeStreak === 'function') updateDailyChallengeStreak();
       const hw = !!localStorage.getItem('glider_unlocked_halloween');
       const sn = !!localStorage.getItem('glider_unlocked_santa');
       const kr = !!localStorage.getItem('glider_unlocked_krampus_ghost');
@@ -2435,6 +2441,11 @@ function setupUI() {
           }
           updatePBTags();
           updateMedalDisplay();
+          if (typeof updateDailyChallengeStreak === 'function') updateDailyChallengeStreak();
+          if (typeof renderDailyChallenge === 'function') renderDailyChallenge();
+          if (typeof renderGrandPrixCupList === 'function') renderGrandPrixCupList();
+          if (typeof renderShop === 'function') renderShop();
+          if (typeof refreshCourseCards === 'function') refreshCourseCards();
           status.innerText = 'SAVE RESTORED SUCCESSFULLY!';
           status.style.color = 'var(--gold)';
           audio.playFinishFanfare();
@@ -3184,11 +3195,9 @@ function renderDailyChallenge() {
     </div>
   `;
 
-  let cardsHtml = '';
-
-  rolling.forEach((item, index) => {
+  const buildCardHtml = (item, isMobileView) => {
     const ch = item.challenge;
-    if (!ch) return;
+    if (!ch) return '';
 
     const isDone = isDailyChallengeCompleted(ch.id, item.dateKey);
     const isActive = (challengeActive === ch.id && challengeActiveDateKey === item.dateKey);
@@ -3196,11 +3205,11 @@ function renderDailyChallenge() {
     let statusText = 'AVAILABLE';
     let statusColor = '#ffffff';
 
-    if (isDone) {
-      statusText = '★ COMPLETED';
+    if (isActive) {
+      statusText = isDone ? '★ ACTIVE' : 'ACTIVE';
       statusColor = '#ffffff';
-    } else if (isActive) {
-      statusText = 'ACTIVE';
+    } else if (isDone) {
+      statusText = '★ COMPLETED';
       statusColor = '#ffffff';
     } else if (item.dayOffset === 1) {
       statusText = 'GONE SOON';
@@ -3220,19 +3229,10 @@ function renderDailyChallenge() {
       diffColor = 'var(--red)';
     }
 
-    let btnLabel = (ch.config === 'TRACK' || ch.config === 'TRACK+MOD') ? 'LAUNCH' : 'ACCEPT';
-    let btnColor = 'var(--cyan)';
-    if (isDone) {
-      btnLabel = 'REPLAY';
-    } else if (isActive) {
-      btnLabel = 'CANCEL';
-      btnColor = 'var(--red)';
-    }
-
     let trackInfo = '';
     if (ch.courseId) {
       const cName = COURSES[ch.courseId] ? COURSES[ch.courseId].name : ch.courseId.toUpperCase();
-      trackInfo = `<div style="font-size: ${isMob ? '11px' : '9.5px'}; letter-spacing: 1.2px; color: var(--gold); text-transform: uppercase;">FORCED TRACK: ${cName} (${ch.subtrack || 'A'})</div>`;
+      trackInfo = `<div style="font-size: ${isMobileView ? '10px' : '9.5px'}; letter-spacing: 1.2px; color: var(--gold); text-transform: uppercase;">FORCED TRACK: ${cName} (${ch.subtrack || 'A'})</div>`;
     }
     let modInfo = '';
     if (ch.mod) {
@@ -3243,19 +3243,18 @@ function renderDailyChallenge() {
       if (ch.mod.hideHUD) modParts.push('HUD HIDDEN');
       if (ch.mod.hideThermalVisuals) modParts.push('THERMAL PARTICLES HIDDEN');
       if (ch.mod.disableRudderBoost) modParts.push('NO RUDDER BOOST');
-      modInfo = `<div style="font-size: ${isMob ? '11px' : '9.5px'}; letter-spacing: 1.2px; color: var(--red); text-transform: uppercase;">MODS: ${modParts.join(' • ')}</div>`;
+      modInfo = `<div style="font-size: ${isMobileView ? '10px' : '9.5px'}; letter-spacing: 1.2px; color: var(--red); text-transform: uppercase;">MODS: ${modParts.join(' • ')}</div>`;
     }
 
     const badgeColor = '#ffffff';
+    const cardPadding = isMobileView ? '12px 14px' : '15px 16px';
+    const gapSize = isMobileView ? '8px' : '8px';
+    const titleSize = isMobileView ? '13px' : '13px';
+    const descSize = isMobileView ? '10.5px' : '10.5px';
+    const btnPadding = isMobileView ? '6px 14px' : '6px 16px';
+    const btnFontSize = isMobileView ? '10px' : '10px';
 
-    const cardPadding = isMob ? '23px 20px' : '15px 16px';
-    const gapSize = isMob ? '14px' : '8px';
-    const titleSize = isMob ? '16px' : '13px';
-    const descSize = isMob ? '13px' : '10.5px';
-    const btnPadding = isMob ? '14px 28px' : '6px 16px';
-    const btnFontSize = isMob ? '13px' : '10px';
-
-    cardsHtml += `
+    return `
       <div class="control-toggle-box" style="flex-direction: column; align-items: stretch; gap: ${gapSize}; padding: ${cardPadding}; background: rgba(0, 0, 0, 0.75); border: 1.5px solid var(--mono-20); width: 100%;">
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -3274,55 +3273,75 @@ function renderDailyChallenge() {
         ${trackInfo}
         ${modInfo}
 
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-top: 1px solid var(--mono-20); padding-top: 12px; margin-top: 4px; width: 100%;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; border-top: 1px solid var(--mono-20); padding-top: 10px; margin-top: 4px; width: 100%;">
           <div style="display: flex; align-items: center; gap: 6px; white-space: nowrap;">
-            <span style="font-size: ${isMob ? '11px' : '9.5px'}; color: var(--mono-60); letter-spacing: 1.2px; font-weight: 700;">STATUS:</span>
-            <span style="font-size: ${isMob ? '12px' : '10px'}; font-weight: 800; letter-spacing: 1.2px; color: ${statusColor};">${statusText}</span>
+            <span style="font-size: ${isMobileView ? '10px' : '9.5px'}; color: var(--mono-60); letter-spacing: 1.2px; font-weight: 700;">STATUS:</span>
+            <span style="font-size: ${isMobileView ? '11px' : '10px'}; font-weight: 800; letter-spacing: 1.2px; color: ${statusColor};">${statusText}</span>
           </div>
-          <button class="mono-btn challenge-action-trigger" data-chid="${ch.id}" data-date="${item.dateKey}" data-offset="${item.dayOffset}" style="flex: none !important; width: auto !important; border-color: ${btnColor}; color: ${btnColor}; font-weight: 800; padding: ${btnPadding}; font-size: ${btnFontSize}; margin-left: auto;">
-            ${btnLabel}
-          </button>
+          <div style="display: flex; gap: 6px; align-items: center; margin-left: auto;">
+            ${isActive ? `<button class="mono-btn challenge-action-trigger" data-chid="${ch.id}" data-date="${item.dateKey}" data-offset="${item.dayOffset}" data-action="cancel" style="flex: none !important; width: auto !important; border-color: var(--red); color: var(--red); font-weight: 800; padding: ${btnPadding}; font-size: ${btnFontSize};">CANCEL</button>` : ''}
+            ${(!isActive || isDone) ? `<button class="mono-btn challenge-action-trigger" data-chid="${ch.id}" data-date="${item.dateKey}" data-offset="${item.dayOffset}" data-action="${isDone ? 'replay' : 'accept'}" style="flex: none !important; width: auto !important; border-color: var(--cyan); color: var(--cyan); font-weight: 800; padding: ${btnPadding}; font-size: ${btnFontSize};">${isDone ? 'REPLAY' : ((ch.config === 'TRACK' || ch.config === 'TRACK+MOD') ? 'LAUNCH' : 'ACCEPT')}</button>` : ''}
+          </div>
         </div>
       </div>
     `;
-
-    if (index === 0) {
-      cardsHtml += streakBannerHtml;
-    } else if (index === 1) {
-      cardsHtml += expireTimerHtml;
-    }
-  });
-
-  cardsHtml += infoSubtitleHtml;
+  };
 
   const desktopWrap = document.getElementById('dash-challenge-card-wrap');
   if (desktopWrap) {
+    let desktopHtml = '';
+    rolling.forEach((item, index) => {
+      desktopHtml += buildCardHtml(item, false);
+      if (index === 0) desktopHtml += streakBannerHtml;
+      else if (index === 1) desktopHtml += expireTimerHtml;
+    });
+    desktopHtml += infoSubtitleHtml;
     desktopWrap.style.maxHeight = '68vh';
     desktopWrap.style.overflowY = 'auto';
-    desktopWrap.innerHTML = cardsHtml;
+    desktopWrap.innerHTML = desktopHtml;
     desktopWrap.querySelectorAll('.challenge-action-trigger').forEach(btn => {
       const chId = parseInt(btn.getAttribute('data-chid'), 10);
       const dateKey = btn.getAttribute('data-date');
       const dayOffset = parseInt(btn.getAttribute('data-offset'), 10);
+      const action = btn.getAttribute('data-action');
       const ch = DAILY_CHALLENGES.find(c => c.id === chId);
       if (ch) {
-        btn.onclick = () => handleChallengeAction(ch, false, dateKey, dayOffset);
+        btn.onclick = () => handleChallengeAction(ch, false, dateKey, dayOffset, action);
       }
     });
   }
 
   const mobileWrap = document.getElementById('mobile-challenge-card-wrap');
   if (mobileWrap) {
-    mobileWrap.style.maxHeight = '68vh';
-    mobileWrap.style.overflowY = 'auto';
-    mobileWrap.innerHTML = cardsHtml;
+    const todayCard = rolling[0] ? buildCardHtml(rolling[0], true) : '';
+    const yesterdayCard = rolling[1] ? buildCardHtml(rolling[1], true) : '';
+    const twoDaysAgoCard = rolling[2] ? buildCardHtml(rolling[2], true) : '';
+
+    const mobileHtml = `
+      <div style="display: flex; gap: 12px; width: 100%; align-items: stretch; justify-content: space-between;">
+        <div style="flex: 1 1 50%; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
+          ${todayCard}
+          ${streakBannerHtml}
+        </div>
+        <div style="flex: 1 1 50%; min-width: 0; display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow-y: auto; padding-right: 2px;">
+          ${expireTimerHtml}
+          ${yesterdayCard}
+          ${twoDaysAgoCard}
+          ${infoSubtitleHtml}
+        </div>
+      </div>
+    `;
+    mobileWrap.style.maxHeight = '72vh';
+    mobileWrap.style.overflowY = 'visible';
+    mobileWrap.innerHTML = mobileHtml;
     mobileWrap.querySelectorAll('.challenge-action-trigger').forEach(btn => {
       const chId = parseInt(btn.getAttribute('data-chid'), 10);
       const dateKey = btn.getAttribute('data-date');
       const dayOffset = parseInt(btn.getAttribute('data-offset'), 10);
+      const action = btn.getAttribute('data-action');
       const ch = DAILY_CHALLENGES.find(c => c.id === chId);
       if (ch) {
-        btn.onclick = () => handleChallengeAction(ch, true, dateKey, dayOffset);
+        btn.onclick = () => handleChallengeAction(ch, true, dateKey, dayOffset, action);
       }
     });
   }
@@ -3332,10 +3351,10 @@ function renderDailyChallenge() {
   }
 }
 
-function handleChallengeAction(ch, isMobile, dateKey, dayOffset = 0) {
+function handleChallengeAction(ch, isMobile, dateKey, dayOffset = 0, action = '') {
   audio.init();
 
-  if (challengeActive === ch.id && challengeActiveDateKey === dateKey) {
+  if (action === 'cancel' || (action !== 'replay' && challengeActive === ch.id && challengeActiveDateKey === dateKey)) {
     challengeActive = null;
     challengeMod = null;
     challengeActiveDateKey = null;

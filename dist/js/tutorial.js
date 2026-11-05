@@ -70,6 +70,7 @@ function hasExistingPB() {
 
 function checkTutorialTrigger() {
   if (tutorialActive) return false;
+  if (challengeActive) return false;
   if (hasExistingPB()) {
     try { localStorage.setItem('glider_tutorial_complete', 'true'); } catch (e) {}
     return false;
@@ -184,6 +185,10 @@ function cleanupTutorialUI() {
 }
 
 function startTutorial(force = false) {
+  challengeActive = null;
+  challengeMod = null;
+  challengeActiveDateKey = null;
+  challengeActiveDayOffset = 0;
   tutorialActive = true;
   tutorialForced = force;
   tutorialBulletTime = false;
@@ -256,29 +261,36 @@ function showBeat1Spotlight() {
   }
 
   if (isMob) {
+    const mobDesc = (mobileJoystickMode === 'gyro') ? 'TILT DEVICE TO STEER' : ((mobileJoystickMode === 'dpad') ? 'USE D-PAD TO STEER' : 'DRAG JOYSTICK TO STEER');
     card.innerHTML = `
       <div class="tutorial-card-title">FLIGHT CONTROLS</div>
       <div style="font-size: 11px; letter-spacing: 1.5px; color: var(--mono-90); text-transform: uppercase;">
-        DRAG JOYSTICK OR TILT TO STEER
+        ${mobDesc}
       </div>
       <div class="tutorial-card-prompt">TOUCH TO BEGIN</div>
     `;
   } else {
+    const topKey = typeof formatKeyName === 'function' ? formatKeyName(((keybinds && keybinds.pitchDown) || defaultKeybinds.pitchDown || [])[0]) : 'W';
+    const bottomKey = typeof formatKeyName === 'function' ? formatKeyName(((keybinds && keybinds.pitchUp) || defaultKeybinds.pitchUp || [])[0]) : 'S';
+    const leftKey = typeof formatKeyName === 'function' ? formatKeyName(((keybinds && keybinds.rollLeft) || defaultKeybinds.rollLeft || [])[0]) : 'A';
+    const rightKey = typeof formatKeyName === 'function' ? formatKeyName(((keybinds && keybinds.rollRight) || defaultKeybinds.rollRight || [])[0]) : 'D';
+    const topActionDesc = invertPitch ? 'PITCH DOWN (DIVE)' : 'PITCH UP (CLIMB)';
+    const bottomActionDesc = invertPitch ? 'BANK LEFT / CLIMB / BANK RIGHT' : 'BANK LEFT / DIVE / BANK RIGHT';
     card.innerHTML = `
       <div class="tutorial-card-title">FLIGHT CONTROLS</div>
       <div class="tutorial-key-grid">
         <div class="tutorial-key-row">
-          <div class="tutorial-key-cap">W</div>
+          <div class="tutorial-key-cap">${topKey}</div>
         </div>
-        <div class="tutorial-key-desc">PITCH DOWN (DIVE)</div>
+        <div class="tutorial-key-desc">${topActionDesc}</div>
         <div class="tutorial-key-row" style="margin-top: 6px;">
-          <div class="tutorial-key-cap">A</div>
-          <div class="tutorial-key-cap">S</div>
-          <div class="tutorial-key-cap">D</div>
+          <div class="tutorial-key-cap">${leftKey}</div>
+          <div class="tutorial-key-cap">${bottomKey}</div>
+          <div class="tutorial-key-cap">${rightKey}</div>
         </div>
-        <div class="tutorial-key-desc">BANK LEFT / CLIMB / BANK RIGHT</div>
+        <div class="tutorial-key-desc">${bottomActionDesc}</div>
       </div>
-      <div class="tutorial-card-prompt">PRESS W, A, S, OR D TO BEGIN</div>
+      <div class="tutorial-card-prompt">PRESS ${topKey}, ${leftKey}, ${bottomKey}, OR ${rightKey} TO BEGIN</div>
     `;
   }
   card.style.display = 'flex';
@@ -336,7 +348,7 @@ function tickTutorial(dt) {
   if (tutorialBeat === 2) {
     if (player.nextGateIdx >= 2) {
       tutorialBeat = 2.5;
-      tutorialDelayTimer = 2.0;
+      tutorialDelayTimer = 3.0;
       showTutorialBanner('GATE 1 CLEARED!');
     }
   } else if (tutorialBeat === 2.5) {
@@ -381,9 +393,8 @@ function tickTutorial(dt) {
       }
 
       tutorialBeat = 3.5;
-      tutorialDelayTimer = 1.0; 
+      tutorialDelayTimer = 2.5;
     } else {
-      // Initial state
       showTutorialBanner(isMob ? 'HOLD YAW BUTTONS TO CHARGE' : 'HOLD Q OR E TO CHARGE');
     }
   } else if (tutorialBeat === 3.5) {
@@ -414,7 +425,7 @@ function tickTutorial(dt) {
  } else if (tutorialBeat === 4.5) {
     if (player.nextGateIdx >= 3) {
       tutorialBeat = 4.8;
-      tutorialDelayTimer = 1.6;
+      tutorialDelayTimer = 3.0;
       showTutorialBanner('GATE 2 CLEARED!');
       if (typeof audio !== 'undefined' && audio.playRecoveryBoost) audio.playRecoveryBoost();
     }
@@ -444,9 +455,15 @@ function tickTutorial(dt) {
     }
   } else if (tutorialBeat === 11) {
     if (player.nextGateIdx >= 2) {
+      tutorialBeat = 11.5;
+      tutorialDelayTimer = 2.5;
+      showTutorialBanner('GATE 1 CLEARED! HEADING TO THERMAL...');
+    }
+  } else if (tutorialBeat === 11.5) {
+    tutorialDelayTimer -= dt;
+    if (tutorialDelayTimer <= 0) {
       tutorialBeat = 12;
-
-      showTutorialBanner('BLUE THERMAL: RIDE UPDRAFTS FOR SPEED / alt!!');
+      showTutorialBanner('BLUE THERMAL: RIDE UPDRAFTS FOR SPEED & ALTITUDE');
     }
   } else if (tutorialBeat === 12) {
     const dTh = Math.hypot(player.pos.x - (-3600), player.pos.z - (-4200));
@@ -456,7 +473,7 @@ function tickTutorial(dt) {
     }
     if (player.nextGateIdx >= 3) {
       tutorialBeat = 13;
-      tutorialDelayTimer = 2.0;
+      tutorialDelayTimer = 3.5;
       showTutorialBanner('GREAT! NOW FOLLOW THE ARROW TO GATE 3');
     }
   } else if (tutorialBeat === 13) {
@@ -469,76 +486,39 @@ function tickTutorial(dt) {
       showTutorialBanner('FOLLOW THE ARROW TO GATE 4');
     }
   } else if (tutorialBeat === 14) {
-    const dxSink = -3200 - player.pos.x;
-    const dzSink = -8400 - player.pos.z;
-    const distSink = Math.hypot(dxSink, dzSink);
-    if (distSink > 260) {
-      const toSinkYaw = Math.atan2(-dxSink, -dzSink);
-      let diffY = toSinkYaw - player.yaw;
-      while (diffY > Math.PI) diffY -= Math.PI * 2;
-      while (diffY < -Math.PI) diffY += Math.PI * 2;
-      if (Math.abs(diffY) > 0.12) {
-        player.yaw += diffY * 3.0 * dt;
-        player.targetRoll = THREE.MathUtils.clamp(-diffY * 2.0, -0.5, 0.5);
+    const passedBypass = player.pos.z <= -8450 || (player.pos.x > -2800 && player.pos.z <= -8300);
+    const targetX = passedBypass ? -2200 : -3800;
+    const targetZ = passedBypass ? -9600 : -8400;
+    const targetY = passedBypass ? 590 : 620;
+
+    const dx = targetX - player.pos.x;
+    const dz = targetZ - player.pos.z;
+    const toTargetYaw = Math.atan2(-dx, -dz);
+    let diffY = toTargetYaw - player.yaw;
+    while (diffY > Math.PI) diffY -= Math.PI * 2;
+    while (diffY < -Math.PI) diffY += Math.PI * 2;
+
+    if (Math.abs(diffY) > 0.08) {
+      player.yaw += diffY * 3.0 * dt;
+      player.targetRoll = THREE.MathUtils.clamp(-diffY * 2.5, -0.6, 0.6);
+    }
+    player.targetPitch = THREE.MathUtils.clamp((targetY - player.pos.y) * 0.005, -0.2, 0.2);
+
+    if (!passedBypass) {
+      showTutorialBanner('SINK AHEAD! AUTOPILOT STEERING AROUND TO AVOID...');
+    } else {
+      showTutorialBanner('SINK AVOIDED! PROCEED TO GATE 4');
+      if (player.nextGateIdx >= 5) {
+        stallCheckpoint = {
+          x: player.pos.x,
+          y: player.pos.y,
+          z: player.pos.z,
+          yaw: player.yaw,
+          speed: 85
+        };
+        tutorialBeat = 15.5;
+        tutorialDelayTimer = 4.0;
       }
-    }
-    if (distSink < 320 && player.pos.y > 450 && player.pos.y < 950) {
-      tutorialBeat = 14.5;
-      sinkTrapTimer = 0;
-      const b = document.getElementById('tutorial-prompt-banner');
-      if (b) {
-        b.style.color = '#ff4444';
-        b.style.borderColor = '#ff4444';
-        b.style.boxShadow = '0 0 24px rgba(255, 68, 68, 0.8)';
-      }
-      showTutorialBanner('Sink drill: Avoid these!');
-    }
-  } else if (tutorialBeat === 14.5) {
-    screenShake = Math.max(screenShake, 1.5);
-    player.verticalVelocity = Math.min(player.verticalVelocity - 45 * dt, -55);
-    player.pos.y -= 80 * dt;
-    player.flightPathPitch = THREE.MathUtils.lerp(player.flightPathPitch, -0.35, 4.0 * dt);
-    const hG = getTerrainHeight(player.pos.x, player.pos.z, selectedCourseId);
-    if (player.pos.y < hG + 35) {
-      player.pos.y = hG + 35;
-      player.verticalVelocity = 0;
-    }
-    sinkTrapTimer += dt;
-    if (sinkTrapTimer >= 2.0) {
-      player.pos.y += 150;
-      const dx4 = -2200 - player.pos.x;
-      const dz4 = -9600 - player.pos.z;
-      const dist4 = Math.hypot(dx4, dz4) || 1;
-      player.pos.x += (dx4 / dist4) * 360;
-      player.pos.z += (dz4 / dist4) * 360;
-      player.yaw = Math.atan2(-dx4, -dz4);
-      player.pitch = 0;
-      player.flightPathPitch = 0;
-      player.roll = 0;
-      player.verticalVelocity = 35;
-      player.speed = Math.max(player.speed, 105);
-      const b = document.getElementById('tutorial-prompt-banner');
-      if (b) {
-        b.style.color = '';
-        b.style.borderColor = '';
-        b.style.boxShadow = '';
-      }
-      if (typeof audio !== 'undefined' && audio.playRecoveryBoost) audio.playRecoveryBoost();
-      screenShake = 0.4;
-      showTutorialBanner('[Tutorial] Auto Rescue! PROCEED TO GATE 4');
-      tutorialBeat = 15;
-    }
-  } else if (tutorialBeat === 15) {
-    if (player.nextGateIdx >= 5) {
-      stallCheckpoint = {
-        x: player.pos.x,
-        y: player.pos.y,
-        z: player.pos.z,
-        yaw: player.yaw,
-        speed: 85
-      };
-      tutorialBeat = 15.5; 
-      tutorialDelayTimer = 1.2; 
     }
   } else if (tutorialBeat === 15.5) {
     tutorialDelayTimer -= dt;
@@ -562,14 +542,16 @@ function tickTutorial(dt) {
     if (player.speed <= 24) {
       tutorialBeat = 16.5;
       tutorialBulletTime = true;
-      stallReactionTimer = 1.5;
-      showTutorialBanner(isMob ? 'STALL! PITCH DOWN TO DIVE! (DRAG JOYSTICK UP)' : 'STALL! PITCH DOWN TO DIVE! (PRESS W)');
+      stallReactionTimer = 4.0;
+      const diveAction = invertPitch ? 'pitchDown' : 'pitchUp';
+      const diveCode = ((keybinds && keybinds[diveAction]) || defaultKeybinds[diveAction] || [])[0];
+      const diveKeyName = typeof formatKeyName === 'function' ? formatKeyName(diveCode) : 'S';
+      const mobDiveText = (mobileJoystickMode === 'gyro') ? 'TILT FORWARD TO DIVE' : (invertPitch ? 'DRAG JOYSTICK UP' : 'DRAG JOYSTICK DOWN');
+      showTutorialBanner(isMob ? `STALL! PITCH DOWN TO DIVE! (${mobDiveText})` : `STALL! PITCH DOWN TO DIVE! (PRESS ${diveKeyName})`);
     }
   } else if (tutorialBeat === 16.5) {
     stallReactionTimer -= (dt / 0.10);
-    const pitchedDownDesktop = (typeof keys !== 'undefined' && (keys['KeyW'] || keys['ArrowUp'])) || (typeof isActionPressed === 'function' && isActionPressed('pitchDown'));
-    const pitchedDownMobile = (typeof mobilePitchInput !== 'undefined' && mobilePitchInput < -0.2);
-    const isDiving = pitchedDownDesktop || pitchedDownMobile || (typeof player !== 'undefined' && (player.targetPitch < -0.15 || player.pitch < 0.1));
+    const isDiving = (typeof player !== 'undefined' && (player.targetPitch < -0.15 || player.pitch < -0.1));
     if (isDiving) {
       tutorialBulletTime = false;
       triggerTutorialFlash('rgba(0, 240, 255, 0.7)', 450);
@@ -583,7 +565,7 @@ function tickTutorial(dt) {
       if (typeof audio !== 'undefined' && audio.playRecoveryBoost) audio.playRecoveryBoost();
       showTutorialBanner('PERFECT DIVE RECOVERY! SPEED BOOST!');
       tutorialBeat = 17;
-      tutorialDelayTimer = 2.5;
+      tutorialDelayTimer = 4.0;
     } else if (stallReactionTimer <= 0) {
       triggerTutorialFlash('#000000', 400);
       player.pos.set(stallCheckpoint.x, stallCheckpoint.y, stallCheckpoint.z);
@@ -607,6 +589,13 @@ function tickTutorial(dt) {
       showTutorialBanner('FLY THROUGH GATE 5');
     }
     if (player.nextGateIdx >= 6) {
+      tutorialBeat = 17.5;
+      tutorialDelayTimer = 3.5;
+      showTutorialBanner('GATE 5 CLEARED! WATCH FOR HAZARDS...');
+    }
+  } else if (tutorialBeat === 17.5) {
+    tutorialDelayTimer -= dt;
+    if (tutorialDelayTimer <= 0) {
       const fwd = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw)).normalize();
       const right = new THREE.Vector3(-fwd.z, 0, fwd.x).normalize();
       const flockStart = player.pos.clone().addScaledVector(fwd, 520);
@@ -634,26 +623,28 @@ function tickTutorial(dt) {
       barrelRoll.active = false;
       lastRollLeftTapTime = 0;
       lastRollRightTapTime = 0;
-      showTutorialBanner(isMob ? 'BIRDS AHEAD! DOUBLE-TAP LEFT OR RIGHT TO BARREL ROLL!' : 'BIRDS AHEAD! DOUBLE-TAP A OR D TO BARREL ROLL!');
+      const bRollCode = ((keybinds && keybinds.barrelRoll) || defaultKeybinds.barrelRoll || [])[0];
+      const bRollKeyName = typeof formatKeyName === 'function' ? formatKeyName(bRollCode) : 'F';
+      showTutorialBanner(isMob ? 'BIRDS AHEAD! PRESS F TO BARREL ROLL!' : `BIRDS AHEAD! PRESS ${bRollKeyName} TO BARREL ROLL!`);
     }
   } else if (tutorialBeat === 18) {
     if (barrelRoll.active || barrelRoll.immunityTimer > 0) {
       tutorialBulletTime = false;
       tutorialBeat = 18.5;
-      tutorialDelayTimer = 2.5;
-      showTutorialBanner('BARREL ROLL! IMMUNE TO BIRD STRIKES!');
+      tutorialDelayTimer = 4.0;
+      showTutorialBanner('BARREL ROLL! IMMUNE TO BIRD STRIKES AND SINKS!');
       if (typeof audio !== 'undefined' && audio.playRecoveryBoost) audio.playRecoveryBoost();
     } else if (player.nextGateIdx >= 7) {
       tutorialBulletTime = false;
       tutorialBeat = 19;
-      tutorialDelayTimer = 3.0;
+      tutorialDelayTimer = 4.0;
       showTutorialBanner('FLY THROUGH THE REMAINING GATES TO FINISH!');
     }
   } else if (tutorialBeat === 18.5) {
     tutorialDelayTimer -= dt;
     if (tutorialDelayTimer <= 0) {
       tutorialBeat = 19;
-      tutorialDelayTimer = 3.0;
+      tutorialDelayTimer = 4.0;
       showTutorialBanner('FLY THROUGH THE REMAINING GATES TO FINISH!');
     }
   } else if (tutorialBeat === 19) {
