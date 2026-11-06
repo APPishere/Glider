@@ -486,39 +486,44 @@ function tickTutorial(dt) {
       showTutorialBanner('FOLLOW THE ARROW TO GATE 4');
     }
   } else if (tutorialBeat === 14) {
-    const passedBypass = player.pos.z <= -8450 || (player.pos.x > -2800 && player.pos.z <= -8300);
-    const targetX = passedBypass ? -2200 : -3800;
-    const targetZ = passedBypass ? -9600 : -8400;
-    const targetY = passedBypass ? 590 : 620;
+    const toSinkX = -3200 - player.pos.x;
+    const toSinkZ = -8400 - player.pos.z;
+    const distSink = Math.hypot(toSinkX, toSinkZ);
+    const fwdX = -Math.sin(player.yaw);
+    const fwdZ = -Math.cos(player.yaw);
+    const headingDot = (fwdX * toSinkX + fwdZ * toSinkZ) / Math.max(distSink, 1);
+    const closeToSink = distSink < 650 && player.pos.z > -8500;
+    const headingTowardSink = headingDot > 0.35;
 
-    const dx = targetX - player.pos.x;
-    const dz = targetZ - player.pos.z;
-    const toTargetYaw = Math.atan2(-dx, -dz);
-    let diffY = toTargetYaw - player.yaw;
-    while (diffY > Math.PI) diffY -= Math.PI * 2;
-    while (diffY < -Math.PI) diffY += Math.PI * 2;
-
-    if (Math.abs(diffY) > 0.08) {
-      player.yaw += diffY * 3.0 * dt;
-      player.targetRoll = THREE.MathUtils.clamp(-diffY * 2.5, -0.6, 0.6);
-    }
-    player.targetPitch = THREE.MathUtils.clamp((targetY - player.pos.y) * 0.005, -0.2, 0.2);
-
-    if (!passedBypass) {
-      showTutorialBanner('SINK AHEAD! AUTOPILOT STEERING AROUND TO AVOID...');
-    } else {
-      showTutorialBanner('SINK AVOIDED! PROCEED TO GATE 4');
-      if (player.nextGateIdx >= 5) {
-        stallCheckpoint = {
-          x: player.pos.x,
-          y: player.pos.y,
-          z: player.pos.z,
-          yaw: player.yaw,
-          speed: 85
-        };
-        tutorialBeat = 15.5;
-        tutorialDelayTimer = 4.0;
+    if (closeToSink && headingTowardSink) {
+      const dx = -3800 - player.pos.x;
+      const dz = -8400 - player.pos.z;
+      const toTargetYaw = Math.atan2(-dx, -dz);
+      let diffY = toTargetYaw - player.yaw;
+      while (diffY > Math.PI) diffY -= Math.PI * 2;
+      while (diffY < -Math.PI) diffY += Math.PI * 2;
+      if (Math.abs(diffY) > 0.08) {
+        player.yaw += diffY * 3.0 * dt;
+        player.targetRoll = THREE.MathUtils.clamp(-diffY * 2.5, -0.6, 0.6);
       }
+      player.targetPitch = THREE.MathUtils.clamp((620 - player.pos.y) * 0.005, -0.2, 0.2);
+      showTutorialBanner('SINK AHEAD! AUTOPILOT STEERING AROUND TO AVOID...');
+    } else if (player.pos.z <= -8450 || (player.pos.x > -2800 && player.pos.z <= -8300)) {
+      showTutorialBanner('SINK AVOIDED! PROCEED TO GATE 4');
+    } else {
+      showTutorialBanner('FOLLOW THE ARROW TO GATE 4');
+    }
+
+    if (player.nextGateIdx >= 5) {
+      stallCheckpoint = {
+        x: player.pos.x,
+        y: player.pos.y,
+        z: player.pos.z,
+        yaw: player.yaw,
+        speed: 85
+      };
+      tutorialBeat = 15.5;
+      tutorialDelayTimer = 4.0;
     }
   } else if (tutorialBeat === 15.5) {
     tutorialDelayTimer -= dt;

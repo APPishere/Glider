@@ -2161,14 +2161,30 @@ body.dpad-mode #mobile-btn-brake.active img {
     position: absolute;
     top: 14px;
     right: 14px;
-    flex-direction: row;
-    align-items: baseline;
-    gap: 4px;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
     font-family: 'Courier New', Courier, monospace;
     font-weight: 900;
     z-index: 15;
     pointer-events: none;
     text-shadow: 0 0 10px rgba(0, 0, 0, 0.9);
+  }
+
+  #mobile-speed-digits {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  #mobile-speed-delta {
+    display: none;
+    font-size: 11px;
+    letter-spacing: 1px;
+    line-height: 1;
+    font-weight: 800;
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.95);
   }
 
   #mobile-speed-val {

@@ -1755,6 +1755,8 @@ function onShopTvClick() {
 
     const ptrBox = document.getElementById('settings-pointer-box');
     if (ptrBox) ptrBox.style.display = 'flex';
+    const dashPtrBox = document.getElementById('dash-pointer-box');
+    if (dashPtrBox) dashPtrBox.style.display = 'flex';
 
     const shopScreen = document.getElementById('screen-shop');
     if (shopScreen && !shopScreen.classList.contains('hidden')) {
@@ -5686,21 +5688,37 @@ function updateAI(dt) {
       _toTarget.normalize();
     }
 
+    let inSink = false;
     if (activeSubtrack.sinks) {
       activeSubtrack.sinks.forEach(sink => {
-        const toSinkX = ai.pos.x - sink.pos.x;
-        const toSinkZ = ai.pos.z - sink.pos.z;
+        const toSinkX = sink.pos.x - ai.pos.x;
+        const toSinkZ = sink.pos.z - ai.pos.z;
         const dist2D = Math.hypot(toSinkX, toSinkZ);
-        if (dist2D < sink.radius + 180 && ai.pos.y > sink.pos.y - 60 && ai.pos.y < sink.pos.y + 450) {
-          const awayDist = dist2D || 1;
-          const steerFactor = 1.0 - Math.min(1.0, dist2D / (sink.radius + 180));
-          _toTarget.x += (toSinkX / awayDist) * steerFactor * 1.5;
-          _toTarget.z += (toSinkZ / awayDist) * steerFactor * 1.5;
-          _toTarget.normalize();
+        const fwdX = -Math.sin(ai.yaw);
+        const fwdZ = -Math.cos(ai.yaw);
+        const headingDot = (fwdX * toSinkX + fwdZ * toSinkZ) / Math.max(dist2D, 1);
+
+        if (dist2D < sink.radius + 650 && ai.pos.y > sink.pos.y - 80 && ai.pos.y < sink.pos.y + 500) {
+          if (headingDot > 0.15 || dist2D < sink.radius + 250) {
+            const awayX = ai.pos.x - sink.pos.x;
+            const awayZ = ai.pos.z - sink.pos.z;
+            const awayDist = Math.hypot(awayX, awayZ) || 1;
+            const steerFactor = Math.pow(1.0 - Math.min(1.0, (dist2D - Math.min(dist2D, sink.radius * 0.5)) / (sink.radius + 650)), 1.2);
+            _toTarget.x += (awayX / awayDist) * steerFactor * 3.2;
+            _toTarget.z += (awayZ / awayDist) * steerFactor * 3.2;
+            _toTarget.normalize();
+          }
         }
         if (dist2D < sink.radius && ai.pos.y > sink.pos.y - 50 && ai.pos.y < sink.pos.y + 400) {
-          ai.pos.y -= sink.strength * dt * 0.5;
-          ai.currentSpeed = Math.max(30, ai.currentSpeed - 20 * dt);
+          if (!ai.barrelRoll || ai.barrelRoll.immunityTimer <= 0) {
+            inSink = true;
+            const sinkMult = weather.isStormy2X ? 2.0 : 1.0;
+            const effStrength = sink.strength * sinkMult;
+            ai.pos.y -= effStrength * 0.9 * dt * 2.2;
+            ai.currentSpeed -= effStrength * 1.2 * dt;
+            ai.currentSpeed = Math.max(25, ai.currentSpeed);
+            ai.pitch -= 0.35 * dt;
+          }
         }
       });
     }
@@ -5724,42 +5742,64 @@ function updateAI(dt) {
       }
     });
 
+    if (!ai.barrelRoll) {
+      ai.barrelRoll = { active: false, timer: 0, duration: 1.5, direction: 1, cooldownTimer: 0, immunityTimer: 0 };
+    }
+    if (ai.barrelRoll.cooldownTimer > 0) ai.barrelRoll.cooldownTimer -= dt;
+    if (ai.barrelRoll.immunityTimer > 0) ai.barrelRoll.immunityTimer -= dt;
+
     activeBirdFlocks.forEach(flock => {
       flock.subClusters.forEach(cluster => {
         const cPos = cluster.worldPos;
         const distToBird = ai.pos.distanceTo(cPos);
         if (distToBird < 380) {
           const yDiff = ai.pos.y - cPos.y;
-          if (Math.abs(yDiff) < 65) {
-            if (yDiff < 0) _toTarget.y -= 0.65;
-            else _toTarget.y += 0.65;
+          if (Math.abs(yDiff) < 75) {
+            if (yDiff < 0) _toTarget.y -= 0.75;
+            else _toTarget.y += 0.75;
             const awayX = ai.pos.x - cPos.x;
             const awayZ = ai.pos.z - cPos.z;
             const distH = Math.hypot(awayX, awayZ) || 1;
-            _toTarget.x += (awayX / distH) * 0.75;
-            _toTarget.z += (awayZ / distH) * 0.75;
+            _toTarget.x += (awayX / distH) * 0.9;
+            _toTarget.z += (awayZ / distH) * 0.9;
             _toTarget.normalize();
+
+            if (!ai.barrelRoll.active && ai.barrelRoll.cooldownTimer <= 0 && distToBird < 250) {
+              ai.barrelRoll.active = true;
+              ai.barrelRoll.timer = 0;
+              ai.barrelRoll.direction = Math.random() > 0.5 ? 1 : -1;
+              ai.barrelRoll.duration = 1.4;
+              ai.barrelRoll.immunityTimer = 1.7;
+              ai.barrelRoll.cooldownTimer = 4.0;
+            }
           }
         }
-        if (distToBird < cluster.radius + 6.0) {
-          ai.currentSpeed = Math.max(30, ai.currentSpeed - 42 * dt);
-          ai.roll += (Math.random() - 0.5) * 0.6;
-          ai.pitch += 0.2 * dt;
+        if (distToBird < cluster.radius + 12.0) {
+          if (ai.barrelRoll.immunityTimer <= 0) {
+            ai.birdStrikeDragTimer = Math.min((ai.birdStrikeDragTimer || 0) + 1.8, 3.6);
+            ai.currentSpeed = Math.max(20, ai.currentSpeed - 35.0);
+            ai.roll += (Math.random() > 0.5 ? 1.0 : -1.0);
+            ai.pitch += 0.35;
+          }
         }
       });
     });
+
+    if (ai.birdStrikeDragTimer > 0) {
+      ai.birdStrikeDragTimer -= dt;
+      ai.currentSpeed = Math.max(18, ai.currentSpeed - 44.0 * dt);
+      ai.roll += (Math.random() - 0.5) * 1.5 * dt;
+    }
 
     activeSubtrack.thermals.forEach(th => {
       const dist2D = Math.hypot(ai.pos.x - th.pos.x, ai.pos.z - th.pos.z);
       if (dist2D < th.radius && ai.pos.y > th.pos.y - 60 && ai.pos.y < th.pos.y + 850) {
         ai.pos.y += th.boost * rainThermalBonus * dt;
-        // Scale thermal exit speed reasonably off baseSpeed
         const thermalBoostSpeed = ai.baseSpeed + 12;
         ai.currentSpeed = Math.max(ai.currentSpeed, thermalBoostSpeed);
       }
     });
 
-    // Surges
     ai.surgeTimer = (ai.surgeTimer || 0) + dt;
     if (ai.surgeTimer > 7.0 + idx * 2.0) {
       ai.surgeTimer = 0;
@@ -5779,6 +5819,7 @@ function updateAI(dt) {
         ai.aiDraftTimer = Math.max(0, ai.aiDraftTimer - dt * 1.5);
       }
     }
+
     if (ai.isImpossible) {
       ai.currentSpeed = 175;
     } else if (ai.personality.type !== 'bully') {
@@ -5791,11 +5832,13 @@ function updateAI(dt) {
         if (ai.currentSpeed > currentDiveCap) ai.currentSpeed = currentDiveCap;
       } else {
         if (ai.currentSpeed > ai.baseSpeed) {
-          ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, ai.baseSpeed, 2.0 * dt);
+          ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, ai.baseSpeed, 2.5 * dt);
         }
-        if (_toTarget.y > 0.10) {
-          ai.currentSpeed -= _toTarget.y * 16.0 * dt;
-          ai.currentSpeed = Math.max(ai.currentSpeed, ai.baseSpeed * 0.75);
+        if (_toTarget.y > 0.04) {
+          ai.currentSpeed -= _toTarget.y * 36.0 * dt;
+          ai.currentSpeed = Math.max(ai.currentSpeed, ai.baseSpeed * 0.45);
+        } else {
+          ai.currentSpeed = THREE.MathUtils.lerp(ai.currentSpeed, ai.baseSpeed * 0.88, 0.4 * dt);
         }
       }
     }
@@ -5804,7 +5847,6 @@ function updateAI(dt) {
       ai.currentSpeed = Math.max(ai.currentSpeed, ai.baseSpeed + 15);
     }
 
-    // Physics Integration
     _tempVec1.copy(_toTarget).multiplyScalar(ai.currentSpeed);
     ai.vel.lerp(_tempVec1, 3.2 * dt * ai.personality.cornerAggression);
     ai.pos.addScaledVector(ai.vel, dt * 2.2);
@@ -5816,7 +5858,28 @@ function updateAI(dt) {
     while (yawDelta < -Math.PI) yawDelta += Math.PI * 2;
     yawDelta = THREE.MathUtils.clamp(yawDelta, -0.25, 0.25);
 
-    ai.roll = THREE.MathUtils.lerp(ai.roll, -yawDelta * 7.0, 6.0 * dt);
+    if (!ai.isImpossible) {
+      const turnDrag = (Math.abs(ai.roll) * 12.0 + Math.abs(yawDelta) * 16.0) * dt;
+      ai.currentSpeed = Math.max(22, ai.currentSpeed - turnDrag);
+    }
+
+    if (ai.barrelRoll && ai.barrelRoll.active) {
+      ai.barrelRoll.timer += dt;
+      const p = Math.min(1.0, ai.barrelRoll.timer / ai.barrelRoll.duration);
+      ai.roll = -ai.barrelRoll.direction * p * Math.PI * 2;
+      const rightX = Math.cos(ai.yaw);
+      const rightZ = -Math.sin(ai.yaw);
+      const latSpeed = 140 * Math.sin(p * Math.PI);
+      ai.pos.x += rightX * ai.barrelRoll.direction * latSpeed * dt;
+      ai.pos.z += rightZ * ai.barrelRoll.direction * latSpeed * dt;
+      if (ai.barrelRoll.timer >= ai.barrelRoll.duration) {
+        ai.barrelRoll.active = false;
+        ai.roll = 0;
+      }
+    } else {
+      ai.roll = THREE.MathUtils.lerp(ai.roll, -yawDelta * 7.0, 6.0 * dt);
+    }
+
     ai.pitch = THREE.MathUtils.lerp(ai.pitch, ai.vel.y * 0.025, 5.0 * dt);
     ai.yaw += yawDelta * 4.5 * dt;
 
@@ -6080,7 +6143,7 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
   } else if (controlScheme === 'mouse') {
     const mSens = (typeof mouseSensitivity !== 'undefined') ? mouseSensitivity : 1.0;
     if (Math.abs(mouseY) > 0.03 && (!gamepadConnected || Math.abs(gpPitch) <= 0.05)) {
-      pitchInput = THREE.MathUtils.clamp(mouseY * 0.9 * mSens, -0.9, 0.9);
+      pitchInput = THREE.MathUtils.clamp(-mouseY * 0.9 * mSens, -0.9, 0.9);
       hasPitchInput = true;
     }
     if (Math.abs(mouseX) > 0.03 && (!gamepadConnected || Math.abs(gpRoll) <= 0.05)) {
@@ -6311,7 +6374,7 @@ const currentYawDir = ((challengeMod && challengeMod.disableRudderBoost) && !tut
   const turbZoneHeight = 150;
   if (altitudeAGL < turbZoneHeight && altitudeAGL > 0) {
     const turbFactor = 1.0 - (altitudeAGL / turbZoneHeight);
-    const dragPenalty = turbFactor * 12.0 * turbMult;
+    const dragPenalty = turbFactor * 3.5 * turbMult;
     player.speed -= dragPenalty * dt;
 
     if (turbFactor > 0.3) {

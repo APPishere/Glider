@@ -627,6 +627,15 @@ function startCountdown() {
   const banner = document.getElementById('race-finish-banner');
   if (banner) banner.style.display = 'none';
   if (paragliderWingGroup) paragliderWingGroup.visible = true;
+  barrelRoll.active = false;
+  barrelRoll.timer = 0;
+  barrelRoll.direction = 0;
+  barrelRoll.cooldownTimer = 0;
+  barrelRoll.immunityTimer = 0;
+  lastRollLeftTapTime = 0;
+  lastRollRightTapTime = 0;
+  camera.rotation.set(0, 0, 0);
+  camSmoothRoll = 0;
   updateCameraView(0, 0);
 
 currentGhostRun = [];
@@ -1747,13 +1756,15 @@ if (isKrampusBossDuel) {
     winMedalEl.style.color = '#ff4444';
   } else if (challengeActive && isDailyChallengeCompleted(challengeActive, challengeActiveDateKey)) {
     const activeCh = DAILY_CHALLENGES.find(c => c.id === challengeActive);
-    winTitleEl.innerText = "CHALLENGE COMPLETED";
-    winStatsEl.innerText = `FINAL TIME: ${timeStr}`;
-    winMedalEl.innerText = `★ ${activeCh ? activeCh.name.toUpperCase() : 'DAILY CHALLENGE'} CLEARED`;
+    const pbSuffix = (gameMode === 'timetrial' && isNewPB) ? ' (NEW PB!)' : '';
+    winTitleEl.innerText = (gameMode === 'timetrial' && isNewPB) ? 'NEW PERSONAL BEST!' : 'CHALLENGE COMPLETED';
+    winStatsEl.innerText = `FINAL TIME: ${timeStr}${pbSuffix}`;
+    winMedalEl.innerHTML = `★ ${activeCh ? activeCh.name.toUpperCase() : 'DAILY CHALLENGE'} CLEARED<br><span style="font-size: 13px; color: var(--gold);">${medalEarned}</span>`;
     winMedalEl.style.color = 'var(--gold)';
   } else {
-    winTitleEl.innerText = gameMode === 'timetrial' ? 'TIME TRIAL COMPLETED' : `POSITION ${player.rank} / 5`;
-    winStatsEl.innerText = `FINAL TIME: ${timeStr}`;
+    const pbSuffix = (gameMode === 'timetrial' && isNewPB) ? ' (NEW PB!)' : '';
+    winTitleEl.innerText = (gameMode === 'timetrial' && isNewPB) ? 'NEW PERSONAL BEST!' : (gameMode === 'timetrial' ? 'TIME TRIAL COMPLETED' : `POSITION ${player.rank} / 5`);
+    winStatsEl.innerText = `FINAL TIME: ${timeStr}${pbSuffix}`;
     winMedalEl.innerText = medalEarned;
     winMedalEl.style.color = 'var(--gold)';
   }
@@ -1764,6 +1775,15 @@ if (isKrampusBossDuel) {
 function endRace(reason) {
   challengeTracker.crashed = true;
   gameState = 'FINISHED';
+  barrelRoll.active = false;
+  barrelRoll.timer = 0;
+  barrelRoll.direction = 0;
+  barrelRoll.cooldownTimer = 0;
+  barrelRoll.immunityTimer = 0;
+  player.roll = 0;
+  player.targetRoll = 0;
+  camera.rotation.z = 0;
+  camSmoothRoll = 0;
   audio.stopAllAudio();
   if (ghostDeltaTimeout) {
     clearTimeout(ghostDeltaTimeout);
@@ -2936,8 +2956,10 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
   updateJoystickVisibility();
 
   const pointerBox = document.getElementById('settings-pointer-box');
-  if (pointerBox && localStorage.getItem('glider_unlocked_pointer2') === 'true') {
-    pointerBox.style.display = 'flex';
+  const dashPointerBox = document.getElementById('dash-pointer-box');
+  if (localStorage.getItem('glider_unlocked_pointer2') === 'true') {
+    if (pointerBox) pointerBox.style.display = 'flex';
+    if (dashPointerBox) dashPointerBox.style.display = 'flex';
   }
   const curPointer = localStorage.getItem('glider_speedo_pointer') || 'default';
   document.querySelectorAll('.pointer-btn').forEach(btn => {
@@ -3479,6 +3501,10 @@ function setDashboardCategory(cat) {
     updateCellarDoorVisibility();
     playMenuTheme('shop');
   } else if (cat === 'settings') {
+    const dashPtrBox = document.getElementById('dash-pointer-box');
+    if (dashPtrBox && localStorage.getItem('glider_unlocked_pointer2') === 'true') {
+      dashPtrBox.style.display = 'flex';
+    }
     renderKeybindList();
     playMenuTheme('menu');
   }
@@ -3961,6 +3987,32 @@ function updateHUD() {
       mobileSpdVal.style.color = 'var(--gold)';
     } else {
       mobileSpdVal.style.color = '#ffffff';
+    }
+  }
+
+  const mobileDeltaEl = document.getElementById('mobile-speed-delta');
+  if (mobileDeltaEl) {
+    if (gameMode === 'timetrial' && isMobileDevice()) {
+      if (ghostDroneGroup && savedGhostData && savedGhostData.length > 2) {
+        _tempVec1.subVectors(player.pos, ghostDroneGroup.position);
+        const dotAhead = _tempVec1.dot(_playerForward);
+        const gSec = dotAhead / Math.max(player.speed, 45);
+        const fA = savedGhostData[ghostFrameIdx] || savedGhostData[0];
+        const fB = savedGhostData[ghostFrameIdx + 1] || fA;
+        const gDist = Math.hypot(fB.x - fA.x, fB.y - fA.y, fB.z - fA.z);
+        const gDt = Math.max(0.001, fB.t - fA.t);
+        const ghostSpd = (gDist / gDt) / 2.2;
+        const spdDiff = Math.round(player.speed - ghostSpd);
+        const spdSign = spdDiff >= 0 ? '+' : '';
+        const tSign = gSec >= 0 ? '+' : '';
+        mobileDeltaEl.style.display = 'block';
+        mobileDeltaEl.style.color = gSec >= 0 ? 'var(--cyan)' : 'var(--red)';
+        mobileDeltaEl.innerText = `${tSign}${gSec.toFixed(1)}s (${spdSign}${spdDiff} KT)`;
+      } else {
+        mobileDeltaEl.style.display = 'none';
+      }
+    } else {
+      mobileDeltaEl.style.display = 'none';
     }
   }
 

@@ -1250,6 +1250,8 @@ function setupDpad() {
     e.preventDefault();
     e.stopPropagation();
     const rect = dpad.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
     const dx = e.clientX - cx;
     const dy = e.clientY - cy;
     const dist = Math.hypot(dx, dy);
