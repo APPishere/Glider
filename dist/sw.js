@@ -1,4 +1,4 @@
-const CACHE_NAME = 'glider-cache-v28';
+const CACHE_NAME = 'glider-cache-v30';
 
 function isHalloweenSeason() {
   const md = (new Date().getMonth() + 1) * 100 + new Date().getDate();
@@ -10,7 +10,6 @@ function isChristmasSeason() {
 }
 
 const ASSETS = [
-  // CORE very important files no check these files bad bad
   './',
   './index.html',
   './style.css',
@@ -21,9 +20,9 @@ const ASSETS = [
   './js/game.js',
   './js/ui.js',
   './js/tutorial.js',
+  './js/multiplayer.js',
   'https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js',
-
-  // Audio Files
+  'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js',
   './startup.mp3',
   './intro64.mp3',
   './impossible_mode_unlock.mp3',
@@ -38,13 +37,16 @@ const ASSETS = [
   './interact 2.mp3',
   './interact 3.mp3',
   './interact 4.mp3',
-
-  // Cursors
+  './jingle64.mp3',
+  './jingle64-2.mp3',
+  './jingle64-3.mp3',
+  './jingle64-4.mp3',
+  './jingle64-5.mp3',
+  './jingle64-6.mp3',
+  './jingle64-8.mp3',
   './glidercurser.png',
   './glidercurser_select.png',
   './Keycurser.png',
-
-  // Mobile Controls 
   './rudderleft.png',
   './rudderRight.png',
   './rudderleftclick.png',
@@ -59,8 +61,6 @@ const ASSETS = [
   './dpadupleft.png',
   './Dpadup.png',
   './dpadupright.png',
-
-  // Menu Images
   './gliderfontthing.png',
   './aphelionlogo.png',
   './singletrack.png',
@@ -81,8 +81,10 @@ const ASSETS = [
   './aethercup.png',
   './odysseycup.png',
   './aphelioncup.png',
-
-  // In Game Assets
+  './topleftstats.png',
+  './bottomhud.png',
+  './theme2minimap.png',
+  './stuntsbutton.png',
   './finishbanner.png',
   './finish.png',
   './lessthan1stbanner.png',
@@ -107,8 +109,8 @@ const ASSETS = [
   './unlockedmessage.png',
   './gratestgliderunlockimage.png',
   './aphelionapex.png',
-
-  // TV / Jukebox / Shop
+  './Grandprixtrophy.png',
+  './Tvturnedoff.gif',
   './jukebox.png',
   './musicdiscdefault.png',
   './musicdisc64.png',
@@ -118,8 +120,32 @@ const ASSETS = [
   './skulltv.png',
   './suspiciousfellaloop.gif',
   './what_a_concept.gif',
-
-  // Halloween Assets
+  './gliderdefaultbanner.png',
+  './blockBanner.png',
+  './pigbanner.png',
+  './moonbanner.png',
+  './fishbanner.png',
+  './akane.png',
+  './aphelionapexname.png',
+  './devtoolsonly.png',
+  './nopfpequiped.png',
+  './boatPFP.png',
+  './gliderPFPrga.png',
+  './emptypfp.png',
+  './krakenPFP.png',
+  './wavesPFP.png',
+  './gliderinair.png',
+  './susguyPFP.png',
+  './MeatyCrismson.png',
+  './mobilePortPFP.png',
+  './deterious mind.png',
+  './bigblueheart.png',
+  './akanePFP.png',
+  './TriStar.png',
+  './artistpfp1.png',
+  './artistpfp2.png',
+  './aphelionapexlogo.png',
+  './thatsallfools.png',
   './halloweenbar.png',
   './halloweenminimap.png',
   './pumpkin.png',
@@ -128,8 +154,6 @@ const ASSETS = [
   './halloweenfence.png',
   './halloweenfence2.png',
   './filter.png',
-
-  // Credits
   './gamedirector.png',
   './theapp_herename.png',
   './leadprogramming.png',
@@ -151,14 +175,12 @@ const ASSETS = [
   './rip_n00bname.png',
   './foxbutbettername.png',
   './specialthankseveryone.png',
-
-  // Christmas Assets
   './present.png',
   './gliderbirdbackground.png',
   './FlappyGlider.png',
   './chimneytopclosed.png',
   './brickwallforflappyglider.png',
-  './chimneytop.png',
+  './chimneytop.png'
 ];
 
 self.addEventListener('install', (e) => {

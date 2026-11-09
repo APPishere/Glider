@@ -364,6 +364,15 @@ const DAILY_CHALLENGES = [
     config: "MOD",
     mod: { hideThermalVisuals: true, disableRudderBoost: true },
     difficulty: "HARD"
+  },
+    {
+    id: 32,
+    name: "Insanity",
+    category: "constraint",
+    desc: "Finish a race with no Pitch Up, no Q/E Rudder, and complete a Barrel Roll.",
+    config: "MOD",
+    mod: { disablePitchUp: true, disableYaw: true },
+    difficulty: "HARD"
   }
 ];
 
@@ -515,7 +524,7 @@ function checkDailyChallengeCompletion(ch) {
     case 3:
       return selectedCourseId === 'volcano' && selectedSubtrack === 'C' && volcanoEvent.exploded === true && !challengeTracker.crashed;
     case 4:
-      return selectedCourseId === 'canyon' && challengeTracker.maxY <= 937 && !challengeTracker.crashed;
+      return selectedCourseId === 'canyon' && challengeTracker.maxY <= 1347 && !challengeTracker.crashed;
     case 5:
       return challengeTracker.stoppedNearApollo === true;
     case 6:
@@ -557,7 +566,7 @@ function checkDailyChallengeCompletion(ch) {
     case 24:
       return challengeTracker.totalAirbrakeTime >= 8 && !challengeTracker.crashed;
     case 25:
-      return selectedCourseId === 'islands' && selectedSubtrack === 'B' && !challengeTracker.usedPitchUp && !challengeTracker.crashed;
+      return selectedCourseId === 'islands' && selectedSubtrack === 'B' && !challengeTracker.crashed;
     case 26:
       return !challengeTracker.crashed;
     case 27:
@@ -570,6 +579,8 @@ function checkDailyChallengeCompletion(ch) {
       return challengeTracker.stoppedInFjord === true;
     case 31:
       return !challengeTracker.usedBoost && !challengeTracker.crashed;
+    case 32:
+      return challengeTracker.barrelRollCount >= 1 && !challengeTracker.usedYaw && !challengeTracker.crashed;
     default:
       return false;
   }
@@ -1411,19 +1422,15 @@ function setupMobileControls() {
   function updateSteeringFromTouches() {
     if (mobileJoystickMode === 'gyro' || mobileJoystickMode === 'dpad') return;
     if (activeSteeringTouches.size === 0) {
-      if (mobileJoystickMode === 'invisible' || !stick || stick.style.display === 'none') {
-        mobilePitchInput = 0;
-        mobileRollInput = 0;
-      }
+      mobilePitchInput = 0;
+      mobileRollInput = 0;
       return;
     }
     let latest = null;
     activeSteeringTouches.forEach(t => { latest = t; });
     if (!latest) {
-      if (mobileJoystickMode === 'invisible' || !stick || stick.style.display === 'none') {
-        mobilePitchInput = 0;
-        mobileRollInput = 0;
-      }
+      mobilePitchInput = 0;
+      mobileRollInput = 0;
       return;
     }
     const dx = latest.currX - latest.startX;
@@ -1621,7 +1628,8 @@ function updateCellarDoorVisibility() {
 
 function isFlightState() {
   return gameState === 'RACING' || gameState === 'RUNUP' || gameState === 'FINISHING' ||
-    gameState === 'CREDITS' || gameState === 'GHOST_FLEET_CINEMATIC' || gameState === 'KRAMPUS_CINEMATIC';
+    gameState === 'CREDITS' || gameState === 'GHOST_FLEET_CINEMATIC' || gameState === 'KRAMPUS_CINEMATIC' ||
+    gameState === 'MP_CINEMATIC' || gameState === 'GP_FINALE';
 }
 
 function setupBannerBubble(bannerId, bubbleId, getHintText, isRetired) {
@@ -1749,6 +1757,9 @@ function updateHalloweenThemeVisibility() {
   }
   if (mmContainer) {
     mmContainer.classList.toggle('halloween-theme', HALLOWEEN_EVENT_ACTIVE || isHalloweenBossDuel);
+  }
+  if (typeof updateHudTheme === 'function') {
+    updateHudTheme();
   }
 
   if (banner) {
@@ -1939,6 +1950,7 @@ function finishKrampusCinematic() {
 
 function createTree(x, y, z, scale, trunkColor = 0x5d4037, leafColor = 0x2e7d32) {
   const group = new THREE.Group();
+  group.name = 'tree';
   
   const trunkGeom = new THREE.CylinderGeometry(0.25 * scale, 0.4 * scale, 1.0 * scale, 6);
   const trunkMat = new THREE.MeshLambertMaterial({ color: trunkColor });
@@ -2162,6 +2174,7 @@ function handleGamepad() {
 
 function createBigPinkTree(x, y, z, scale = 1.0) {
   const group = new THREE.Group();
+  group.name = 'tree';
   const trunkColor = 0x8d6e63;
   const leafColor = 0xf8b0c0;
 
@@ -2192,6 +2205,7 @@ group.position.set(x, y, z);
 
 function createSnowyPineTree(x, y, z, scale = 14) {
   const group = new THREE.Group();
+  group.name = 'tree';
   
   const trunkGeom = new THREE.CylinderGeometry(0.25 * scale, 0.4 * scale, 1.2 * scale, 6);
   const trunkMat = new THREE.MeshLambertMaterial({ color: 0x4a3728 });
@@ -2379,10 +2393,11 @@ const STAT_KEY_PREFIXES = [
   'glider_dist_', 'glider_speed_', 'ghost_runs_', 'ghost_dist_',
   'glider_unlock_speedofsound_drone', 'glider_challenge_',
   'glider_catchup_count', 'glider_hard_dailies_count',
-  'glider_unlocked_piggy_bank', 'glider_unlocked_money_bag',
+  'glider_unlocked_piggy_bank', 'glider_unlocked_money_bag', 'glider_unlocked_theme2',
   'glider_timetrial_runs_count',
   'gp_stars_', 'gp_best_pos_', 'gp_best_pts_',  
-  'glider_achieve_apex', 'glider_achieve_tv', 'glider_unlocked_pointer2'
+  'glider_achieve_apex', 'glider_achieve_tv', 'glider_hud_theme',
+  'glider_achieve_devtools', 'glider_profile_'
 ];
 
 const AphelionEncoder = (() => {
@@ -2413,6 +2428,7 @@ const AphelionEncoder = (() => {
     const kr = saveObj.krampusUnlocked ? 1 : 0;
     const xm = saveObj.xm || 0;
     const stats = saveObj.stats || {};
+    const prof = saveObj.profile || null; 
     const packedGhosts = {};
     for (const track in ghosts) {
       if (Array.isArray(ghosts[track])) {
@@ -2427,7 +2443,7 @@ const AphelionEncoder = (() => {
         ]);
       }
     }
-    const jsonStr = JSON.stringify({ p: pbs, g: packedGhosts, hw, xm, sn, kr, s: stats });
+    const jsonStr = JSON.stringify({ p: pbs, g: packedGhosts, hw, xm, sn, kr, s: stats, prof });
     if (typeof TextEncoder !== 'undefined') {
       return new TextEncoder().encode(jsonStr);
     }
@@ -2451,6 +2467,7 @@ const AphelionEncoder = (() => {
     const krampusUnlocked = (parsed.kr === 1);
     const xm = parsed.xm || 0;
     const stats = parsed.s || {};
+    const profile = parsed.prof || null;
     if (parsed.g) {
       for (const track in parsed.g) {
         ghosts[track] = parsed.g[track].map(f => ({
@@ -2459,7 +2476,7 @@ const AphelionEncoder = (() => {
         }));
       }
     }
-    return { pbs, ghosts, halloweenUnlocked, santaUnlocked, krampusUnlocked, xm, stats };
+    return { pbs, ghosts, halloweenUnlocked, santaUnlocked, krampusUnlocked, xm, stats, profile };
   }
 
   function lzwCompress(bytes) {
@@ -3057,6 +3074,16 @@ const INTERACT_SFX = [
   'interact 4.mp3'
 ];
 
+const INTERACT_SFX_64 = [
+  'jingle64.mp3',
+  'jingle64-2.mp3',
+  'jingle64-3.mp3',
+  'jingle64-4.mp3',
+  'jingle64-5.mp3',
+  'jingle64-6.mp3',
+  'jingle64-8.mp3'
+];
+
 let splashDismissed = false;
 
 function playMenuTheme(context = currentAudioContext) {
@@ -3219,6 +3246,9 @@ if (!['canyon', 'islands', 'coastal', 'volcano', 'glacial', 'moon'].includes(sel
 let selectedSubtrack = 'A';
 let gameMode = localStorage.getItem('glider_game_mode') || 'race';
 let selectedDifficulty = localStorage.getItem('glider_difficulty') || 'medium';
+if (selectedDifficulty === 'impossible' && !impossibleDifficultyUnlocked) {
+  selectedDifficulty = 'medium';
+}
 let controlScheme = localStorage.getItem('glider_control_scheme') || 'wasd';
 let invertPitch = localStorage.getItem('glider_invert_pitch') === 'true';
 let invertRoll = localStorage.getItem('glider_invert_roll') === 'true';
@@ -4080,7 +4110,6 @@ function triggerDevToolsUnlock() {
   impossibleDifficultyUnlocked = true;
   showUnlockedMessage();
   
-  // Play the custom unlock sound
   const devUnlockSfx = new Audio('impossible_mode_unlock.mp3');
   devUnlockSfx.volume = sfxVolume;
   devUnlockSfx.play().catch(() => {});
@@ -4091,6 +4120,10 @@ function triggerDevToolsUnlock() {
   
   if (impBtn) impBtn.classList.remove('hidden');
   if (impGpBtn) impGpBtn.classList.remove('hidden');
+  const impDashBtn = document.getElementById('btn-dash-diff-impossible');
+  if (impDashBtn) impDashBtn.classList.remove('hidden');
+  const impGpDtBtn = document.getElementById('btn-gp-diff-impossible-dt');
+  if (impGpDtBtn) impGpDtBtn.classList.remove('hidden');
 
   const mmContainer = document.getElementById('minimap-container');
   if (mmContainer) mmContainer.style.pointerEvents = 'auto';
@@ -4391,6 +4424,25 @@ function isHalloweenGliderEquipped() {
 function isHalloweenThemeActive() {
   return HALLOWEEN_EVENT_ACTIVE || isHalloweenBossDuel || isHalloweenGliderEquipped();
 }
+
+const HUD_THEMES = [
+  {
+    id: 'default',
+    name: 'Default HUD',
+    colorName: 'Default',
+    previewColor: '#00f0ff',
+    reqText: 'Standard HUD interface.',
+    checkUnlocked: () => true
+  },
+  {
+    id: 'theme2',
+    name: 'Theme 2',
+    colorName: 'Drawn',
+    previewColor: '#f1c40f',
+    reqText: 'Click "Buy: 100" to unlock!',
+    checkUnlocked: () => !!localStorage.getItem('glider_unlocked_theme2')
+  }
+];
 
 const GLIDER_SKINS = [
   {
@@ -4830,6 +4882,7 @@ let pausedState = 'RACING';
 let inspectedType = 'glider';
 let inspectedGliderId = 'default';
 let inspectedGhostId = 'ghost_default';
+let inspectedThemeId = 'default';
 
 const _tempVec1 = new THREE.Vector3();
 const _tempVec2 = new THREE.Vector3();
