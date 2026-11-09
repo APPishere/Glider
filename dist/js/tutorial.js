@@ -70,6 +70,7 @@ function hasExistingPB() {
 
 function checkTutorialTrigger() {
   if (tutorialActive) return false;
+  if (typeof multiplayerActive !== 'undefined' && multiplayerActive) return false;
   if (challengeActive) return false;
   if (hasExistingPB()) {
     try { localStorage.setItem('glider_tutorial_complete', 'true'); } catch (e) {}
@@ -525,6 +526,7 @@ function tickTutorial(dt) {
       tutorialBeat = 15.5;
       tutorialDelayTimer = 4.0;
     }
+    //a
   } else if (tutorialBeat === 15.5) {
     tutorialDelayTimer -= dt;
     if (tutorialDelayTimer <= 0) {

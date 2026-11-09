@@ -22,15 +22,15 @@ function drawHudCanvas() {
     const intensity = (player.speed - 75) / 105;
     hudCtx.strokeStyle = `rgba(255, 255, 255, ${Math.min(intensity * 0.5, 0.45)})`;
     hudCtx.lineWidth = 1.5;
+    hudCtx.beginPath();
     for (let i = 0; i < 18; i++) {
       const angle = (i / 18) * Math.PI * 2;
       const r1 = Math.min(w, h) * 0.30;
       const r2 = r1 + intensity * 85;
-      hudCtx.beginPath();
       hudCtx.moveTo(w / 2 + Math.cos(angle) * r1, h / 2 + Math.sin(angle) * r1);
       hudCtx.lineTo(w / 2 + Math.cos(angle) * r2, h / 2 + Math.sin(angle) * r2);
-      hudCtx.stroke();
     }
+    hudCtx.stroke();
   }
 
   if (playerDraftTimer > 0 && (gameMode === 'race' || devWarpTimer > 0)) {
@@ -41,6 +41,7 @@ function drawHudCanvas() {
     hudCtx.lineWidth = isBoosted ? 2.5 : 1.5;
 
     const t = performance.now() * 0.003;
+    hudCtx.beginPath();
     for (let i = 0; i < 14; i++) {
       const angle = (i / 14) * Math.PI * 2 + Math.sin(t + i) * 0.2;
       const progress = ((t * 4.0 + i / 14) % 1.0);
@@ -48,11 +49,10 @@ function drawHudCanvas() {
       const r2 = r1 + (60 + intensity * 120);
       const cx = w / 2;
       const cy = h / 2;
-      hudCtx.beginPath();
       hudCtx.moveTo(cx + Math.cos(angle) * r1, cy + Math.sin(angle) * r1);
       hudCtx.lineTo(cx + Math.cos(angle) * r2, cy + Math.sin(angle) * r2);
-      hudCtx.stroke();
     }
+    hudCtx.stroke();
     hudCtx.restore();
   }
 
@@ -61,6 +61,7 @@ function drawHudCanvas() {
     hudCtx.lineWidth = weather.isStormy2X ? 2.0 : 1.5;
 
     const slant = (weather.windVector.x * 0.6) - (player.roll * 15);
+    hudCtx.beginPath();
     rainParticles.forEach(p => {
       p.y += p.speed * (1.0 + (player.speed / 60));
       p.x += slant * 0.5;
@@ -71,16 +72,16 @@ function drawHudCanvas() {
       if (p.x < 0) p.x += w;
       if (p.x > w) p.x -= w;
 
-      hudCtx.beginPath();
       hudCtx.moveTo(p.x, p.y);
       hudCtx.lineTo(p.x + slant, p.y + p.len);
-      hudCtx.stroke();
     });
+    hudCtx.stroke();
   }
 
   const course = COURSES[selectedCourseId];
   const activeSubtrack = course.subtracks[selectedSubtrack];
-  if (course && gateMeshes[player.nextGateIdx] && (!challengeMod || !challengeMod.hideHUD)) {
+  const activeMods = (typeof multiplayerActive !== 'undefined' && multiplayerActive && typeof mpModifiers !== 'undefined' && mpModifiers && Object.values(mpModifiers).some(Boolean)) ? mpModifiers : challengeMod;
+  if (course && gateMeshes[player.nextGateIdx] && (!activeMods || !activeMods.hideHUD)) {
     const targetWp = activeSubtrack.waypoints[player.nextGateIdx];
     const dx = targetWp.x - player.pos.x;
     const dz = targetWp.z - player.pos.z;
@@ -149,7 +150,7 @@ function drawHudCanvas() {
       drawCustomSpeedometer(hudCtx, w - 370, h - 175, player.speed, rudderBoost);
     }
 
-  if (restartPromptOpacity > 0.005) {
+  if (restartPromptOpacity > 0.005 && !multiplayerActive) {
     const rx = w / 2;
     const isHw = (HALLOWEEN_EVENT_ACTIVE || isHalloweenBossDuel);
     const ry = isHw ? (h - 138) : (h - 122);
@@ -205,11 +206,17 @@ function drawHudCanvas() {
     hudCtx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
     hudCtx.fillRect(0, 0, w, h);
   }
+
+  if (typeof multiplayerActive !== 'undefined' && multiplayerActive && typeof drawMultiplayerNametags === 'function') {
+    drawMultiplayerNametags(hudCtx, w, h);
+  }
 }
 
 function drawCustomSpeedometer(ctx, x, y, speed, rBoost) {
   ctx.save();
-  ctx.translate(x, y);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.translate(Math.round(x), Math.round(y));
 
   const scale = 0.50;
   ctx.scale(scale, scale);
@@ -286,9 +293,9 @@ function drawCustomSpeedometer(ctx, x, y, speed, rBoost) {
   const speedRatio = clampedSpeed / 180;
   const needleAngle = startAngle + speedRatio * totalSweep;
 
-  const equippedPointer = localStorage.getItem('glider_speedo_pointer') || 'default';
+  const currentHudTheme = localStorage.getItem('glider_hud_theme') || 'default';
 
-  if (equippedPointer === 'pointer2' && speedometerPointer2Img && speedometerPointer2Img.complete && speedometerPointer2Img.naturalWidth > 0) {
+  if (currentHudTheme === 'theme2' && speedometerPointer2Img && speedometerPointer2Img.complete && speedometerPointer2Img.naturalWidth > 0) {
     ctx.save();
     ctx.translate(pivotX, pivotY);
     ctx.rotate(needleAngle - 0.344);
@@ -345,7 +352,8 @@ let lastMinimapDrawTime = 0;
 function drawMinimap() {
   if (!minimapCtx) return;
   const mmEl = document.getElementById('minimap-container');
-  if (challengeMod && challengeMod.hideHUD) {
+  const activeMods = (typeof multiplayerActive !== 'undefined' && multiplayerActive && typeof mpModifiers !== 'undefined' && mpModifiers && Object.values(mpModifiers).some(Boolean)) ? mpModifiers : challengeMod;
+  if (activeMods && activeMods.hideHUD) {
     if (mmEl) mmEl.style.display = 'none';
     return;
   }
@@ -507,7 +515,9 @@ const isPointToPoint = (selectedSubtrack === 'C' && (selectedCourseId === 'volca
     }
   });
 
-  if (gameMode === 'race') {
+  if (typeof multiplayerActive !== 'undefined' && multiplayerActive && typeof drawMultiplayerMinimap === 'function') {
+    drawMultiplayerMinimap(minimapCtx, toMapX, toMapY);
+  } else if (gameMode === 'race') {
     aiGliders.forEach(ai => {
       const ax = toMapX(ai.pos.x);
       const ay = toMapY(ai.pos.z);
@@ -584,8 +594,44 @@ const isPointToPoint = (selectedSubtrack === 'C' && (selectedCourseId === 'volca
 
 function startCountdown() {
   if (typeof checkTutorialTrigger === 'function' && checkTutorialTrigger()) return;
+  tutorialActive = false;
+  if (typeof cleanupTutorialUI === 'function') cleanupTutorialUI();
   audio.init();
+  const ov = document.getElementById('gp-finale-overlay');
+  if (ov) ov.style.display = 'none';
   resetChallengeTracker();
+  if (typeof multiplayerActive !== 'undefined' && multiplayerActive) {
+    if (typeof cancelActiveDailyChallenge === 'function') cancelActiveDailyChallenge();
+    challengeActive = null;
+    challengeActiveDateKey = null;
+    challengeActiveDayOffset = 0;
+    if (typeof mpModifiers !== 'undefined' && mpModifiers && Object.values(mpModifiers).some(Boolean)) {
+      challengeMod = Object.assign({}, mpModifiers);
+    }
+  }
+  mpIsRecoveringCrash = false;
+  mpCrashRecoveryTimer = 0;
+  if (typeof mpIsDedicatedServer !== 'undefined' && mpIsDedicatedServer) {
+    mpIsSpectating = true;
+    devFreeCam = true;
+    gameState = 'RACING';
+    const course = COURSES[selectedCourseId];
+    if (course) {
+      const sub = course.subtracks[selectedSubtrack] || course.subtracks['A'];
+      const cp = sub.cliffPos || course.cliffPos;
+      const cf = sub.cliffForward || course.cliffForward;
+      devFreeCamPos.set(cp.x, cp.y + 60, cp.z);
+      devFreeCamYaw = Math.atan2(-cf.x, -cf.z);
+      devFreeCamPitch = 0;
+    }
+    if (paragliderWingGroup) paragliderWingGroup.visible = false;
+    const countBox = document.getElementById('countdown-box');
+    if (countBox) countBox.style.display = 'none';
+    const hudOverlay = document.getElementById('hud-overlay');
+    if (hudOverlay) hudOverlay.style.display = 'block';
+    showScreen(null);
+    return;
+  }
   if (screen.orientation && screen.orientation.lock) {
     screen.orientation.lock('landscape').catch(() => {});
   }
@@ -599,7 +645,9 @@ function startCountdown() {
   }
   showScreen(null);
   stopMenuTheme(true);
-  buildCourse(selectedCourseId);
+  if (!multiplayerActive || !environmentGroup.children.some(c => c.name === 'terrain')) {
+    buildCourse(selectedCourseId);
+  }
 
   const course = COURSES[selectedCourseId];
   const activeSubtrack = course.subtracks[selectedSubtrack];
@@ -607,6 +655,12 @@ function startCountdown() {
   cliffForwardDir.copy(activeSubtrack.cliffForward || course.cliffForward);
 
   const runwayBasePos = _tempVec1.copy(cliffLaunchPos).sub(_tempVec2.copy(cliffForwardDir).multiplyScalar(220));
+
+  if (typeof multiplayerActive !== 'undefined' && multiplayerActive && typeof getMultiplayerSlotOffset === 'function') {
+    const slotOff = getMultiplayerSlotOffset();
+    const cRight = new THREE.Vector3(-cliffForwardDir.z, 0, cliffForwardDir.x).normalize();
+    runwayBasePos.addScaledVector(cRight, slotOff);
+  }
 
   player.pos.copy(runwayBasePos);
   player.pitch = 0;
@@ -791,6 +845,13 @@ if (runupProgress >= 1.0) {
     player.flightPathPitch = 0;
     raceStartTime = performance.now();
     gameState = 'RACING';
+    if (typeof mpIsDedicatedServer !== 'undefined' && mpIsDedicatedServer) {
+      devFreeCam = true;
+      devFreeCamPos.set(cliffLaunchPos.x, cliffLaunchPos.y + 60, cliffLaunchPos.z);
+      devFreeCamYaw = Math.atan2(-cliffForwardDir.x, -cliffForwardDir.z);
+      devFreeCamPitch = 0;
+      if (paragliderWingGroup) paragliderWingGroup.visible = false;
+    }
     document.getElementById('countdown-box').style.display = 'none';
     updateJoystickVisibility();
     const hwDecor = document.getElementById('halloween-decor-wrap');
@@ -808,13 +869,19 @@ if (runupProgress >= 1.0) {
   updateCameraView(0, 0);
   updateShadowMesh(playerShadowMesh, player.pos.x, player.pos.y, player.pos.z, player.yaw, selectedCourseId);
   audio.updateWind(player.speed, false);
-  updateAI(dt);
+  if (typeof multiplayerActive !== 'undefined' && multiplayerActive && typeof updateMultiplayerFlight === 'function') {
+    updateMultiplayerFlight(dt);
+  } else {
+    updateAI(dt);
+  }
 }
 
 
-function getPlayerGliderColor() {
-  const skinId = getEquippedSkinId();
-  switch (skinId) {
+function getPlayerGliderColor(skinId) {
+  const id = skinId || (typeof getEquippedSkinId === 'function' ? getEquippedSkinId() : 'default');
+  const skin = (typeof GLIDER_SKINS !== 'undefined') ? GLIDER_SKINS.find(s => s.id === id) : null;
+  if (skin && skin.previewColor) return skin.previewColor;
+  switch (id) {
     case 'glider_santa':
       return '#c41220';
     case 'glider_halloween':
@@ -923,92 +990,37 @@ function initGrandPrixTrophy3D() {
   gpTrophyScene.add(gpConfettiSystem);
 }
 
+function getGrandPrixEarnedStars() {
+  if (!grandPrixState.active || !grandPrixState.racers[0]) return 0;
+  const playerRacer = grandPrixState.racers[0];
+  const isAce = playerRacer.finishes.length > 0 && playerRacer.finishes.every(f => f === 1);
+  if (isAce) {
+    if (grandPrixState.difficulty === 'hard' || grandPrixState.difficulty === 'impossible') return 3;
+    if (grandPrixState.difficulty === 'medium') return 2;
+    if (grandPrixState.difficulty === 'easy') return 1;
+  }
+  return 0;
+}
+
 function updateGrandPrixTrophyModel(rank) {
   if (!gpTrophyScene) initGrandPrixTrophy3D();
-  if (!gpTrophyScene) return;
+  const earnedStars = getGrandPrixEarnedStars();
+  const trophyImg = document.getElementById('gp-summary-trophy-img');
+  const starsDisp = document.getElementById('gp-summary-stars-display');
 
-  if (gpTrophyGroup) {
-    gpTrophyScene.remove(gpTrophyGroup);
-    gpTrophyGroup = null;
+  if (trophyImg) {
+    trophyImg.style.display = (earnedStars === 3) ? 'block' : 'none';
   }
-
-  gpTrophyGroup = new THREE.Group();
-
-  let mat;
-  if (rank === 1) {
-    mat = new THREE.MeshStandardMaterial({ color: 0xffcc00, emissive: 0x443000, metalness: 0.95, roughness: 0.12 });
-  } else if (rank === 2) {
-    mat = new THREE.MeshStandardMaterial({ color: 0xdce2ea, emissive: 0x161c22, metalness: 0.96, roughness: 0.10 });
-  } else if (rank === 3) {
-    mat = new THREE.MeshStandardMaterial({ color: 0xcd7f32, emissive: 0x2e1406, metalness: 0.88, roughness: 0.20 });
-  } else {
-    mat = new THREE.MeshStandardMaterial({ color: 0x767e87, emissive: 0x101316, metalness: 0.78, roughness: 0.32 });
+  if (starsDisp) {
+    let html = '';
+    for (let s = 1; s <= 3; s++) {
+      const isFilled = s <= earnedStars;
+      const char = isFilled ? '★' : '☆';
+      const col = isFilled ? 'var(--gold)' : 'var(--mono-20)';
+      html += `<span style="color: ${col}; text-shadow: ${isFilled ? '0 0 10px var(--gold)' : 'none'};">${char}</span>`;
+    }
+    starsDisp.innerHTML = html;
   }
-
-  const baseMat = new THREE.MeshStandardMaterial({ color: 0x181210, roughness: 0.55, metalness: 0.35 });
-
-  // Marble tiered base
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.5, 0.9, 16), baseMat);
-  base.position.y = -2.1;
-  gpTrophyGroup.add(base);
-
-  const baseTier2 = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.9, 0.45, 16), mat);
-  baseTier2.position.y = -1.48;
-  gpTrophyGroup.add(baseTier2);
-
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.40, 0.62, 1.7, 14), mat);
-  stem.position.y = -0.45;
-  gpTrophyGroup.add(stem);
-
-  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.18, 8, 20), mat);
-  collar.rotation.x = Math.PI / 2;
-  collar.position.y = -0.45;
-  gpTrophyGroup.add(collar);
-
-  // Chalice cup bowl
-  const bowl = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 0.85, 2.4, 20, 1, false), mat);
-  bowl.position.y = 1.35;
-  gpTrophyGroup.add(bowl);
-
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.18, 8, 24), mat);
-  rim.rotation.x = Math.PI / 2;
-  rim.position.y = 2.55;
-  gpTrophyGroup.add(rim);
-
-  [-1, 1].forEach(side => {
-    const handle = new THREE.Mesh(
-      new THREE.TorusGeometry(0.95, 0.16, 10, 22, Math.PI),
-      mat
-    );
-    handle.position.set(side * 2.65, 1.35, 0);
-    handle.rotation.z = -side * Math.PI / 2;
-    gpTrophyGroup.add(handle);
-  });
-
-  const medallionMat = new THREE.MeshStandardMaterial({
-    color: 0xffe066,
-    emissive: 0x6b3a00,
-    emissiveIntensity: 0.55,
-    metalness: 0.95,
-    roughness: 0.15
-  });
-
-  const medallion = new THREE.Mesh(
-    new THREE.SphereGeometry(0.38, 20, 20),
-    medallionMat
-  );
-  medallion.position.set(0, 1.55, 1.55);
-  medallion.scale.set(1.0, 1.0, 0.5); 
-  gpTrophyGroup.add(medallion);
-
-  const medallionRing = new THREE.Mesh(
-    new THREE.TorusGeometry(0.5, 0.07, 8, 20),
-    medallionMat
-  );
-  medallionRing.position.set(0, 1.55, 1.53);
-  gpTrophyGroup.add(medallionRing);
-
-  gpTrophyScene.add(gpTrophyGroup);
 }
 
 
@@ -1111,6 +1123,9 @@ const ALL_STANDARD_TRACKS = [
 let selectedSelectTab = 'single'; // 'single' | 'gp'
 let selectedGpCupId = 'sunrise';
 let selectedGpDifficulty = localStorage.getItem('glider_gp_difficulty') || 'medium';
+if (selectedGpDifficulty === 'impossible' && !impossibleDifficultyUnlocked) {
+  selectedGpDifficulty = 'medium';
+}
 let shuffleTracksCache = null;
 
 const grandPrixState = {
@@ -1282,6 +1297,8 @@ function openGrandPrixPreview() {
 
 function startGrandPrixCup() {
   audio.init();
+  const ov = document.getElementById('gp-finale-overlay');
+  if (ov) ov.style.display = 'none';
   grandPrixState.active = true;
   grandPrixState.currentRaceIndex = 0;
 
@@ -1346,7 +1363,7 @@ function handleGrandPrixRaceFinish(playerPos, playerTime, isDnf) {
 
   const isLastRace = (grandPrixState.currentRaceIndex >= grandPrixState.races.length - 1);
   if (isLastRace) {
-    showGrandPrixSummary();
+    startGrandPrixFinaleAnimation();
   } else {
     showGrandPrixInterstitial(results.find(r => r.racerIdx === 0));
   }
@@ -1410,6 +1427,134 @@ function showGrandPrixInterstitial(playerResult) {
   };
 
   showScreen('screen-gp-interstitial');
+}
+let gpFinaleActive = false;
+let gpFinaleTimer = 0;
+let gpFinalePhase = 0;
+
+function startGrandPrixFinaleAnimation() {
+  gpFinaleActive = true;
+  gpFinaleTimer = 0;
+  gpFinalePhase = 0;
+  gameState = 'GP_FINALE';
+
+  const overlay = document.getElementById('gp-finale-overlay');
+  const s1 = document.getElementById('gp-star-1');
+  const s2 = document.getElementById('gp-star-2');
+  const s3 = document.getElementById('gp-star-3');
+  const trophy = document.getElementById('gp-finale-trophy');
+
+  const earnedStars = getGrandPrixEarnedStars();
+
+  if (s1) {
+    s1.innerText = (earnedStars >= 1) ? '★' : '☆';
+    s1.style.color = (earnedStars >= 1) ? 'var(--gold)' : 'rgba(255, 255, 255, 0.25)';
+    s1.style.textShadow = (earnedStars >= 1) ? '0 0 20px rgba(241, 196, 15, 0.9), 0 2px 6px rgba(0,0,0,0.9)' : '0 2px 4px rgba(0,0,0,0.9)';
+    s1.style.transform = 'translateY(-100vh)';
+    s1.style.opacity = '0';
+  }
+  if (s2) {
+    s2.innerText = (earnedStars >= 2) ? '★' : '☆';
+    s2.style.color = (earnedStars >= 2) ? 'var(--gold)' : 'rgba(255, 255, 255, 0.25)';
+    s2.style.textShadow = (earnedStars >= 2) ? '0 0 22px rgba(241, 196, 15, 0.9), 0 2px 6px rgba(0,0,0,0.9)' : '0 2px 4px rgba(0,0,0,0.9)';
+    s2.style.transform = 'translateY(100vh)';
+    s2.style.opacity = '0';
+  }
+  if (s3) {
+    s3.innerText = (earnedStars >= 3) ? '★' : '☆';
+    s3.style.color = (earnedStars >= 3) ? 'var(--gold)' : 'rgba(255, 255, 255, 0.25)';
+    s3.style.textShadow = (earnedStars >= 3) ? '0 0 20px rgba(241, 196, 15, 0.9), 0 2px 6px rgba(0,0,0,0.9)' : '0 2px 4px rgba(0,0,0,0.9)';
+    s3.style.transform = 'translateY(-100vh)';
+    s3.style.opacity = '0';
+  }
+  if (trophy) {
+    trophy.style.display = 'none';
+    trophy.style.opacity = '0';
+    trophy.style.transform = 'scale(0.85)';
+  }
+  if (overlay) {
+    overlay.style.display = 'flex';
+  }
+}
+
+function updateGrandPrixFinale(dt) {
+  if (!gpFinaleActive) return;
+  gpFinaleTimer += dt;
+
+  const s1 = document.getElementById('gp-star-1');
+  const s2 = document.getElementById('gp-star-2');
+  const s3 = document.getElementById('gp-star-3');
+  const trophy = document.getElementById('gp-finale-trophy');
+  const earnedStars = getGrandPrixEarnedStars();
+
+  if (gpFinaleTimer >= 0.2 && gpFinalePhase === 0) {
+    gpFinalePhase = 1;
+    if (s1) {
+      s1.style.transform = 'translateY(0)';
+      s1.style.opacity = '1';
+    }
+    audio.playBeep(440, 'triangle', 0.15, 0.25);
+  }
+  if (gpFinaleTimer >= 0.7 && gpFinalePhase === 1) {
+    gpFinalePhase = 2;
+    if (s2) {
+      s2.style.transform = 'translateY(0)';
+      s2.style.opacity = '1';
+    }
+    audio.playBeep(554.37, 'triangle', 0.15, 0.25);
+  }
+  if (gpFinaleTimer >= 1.2 && gpFinalePhase === 2) {
+    gpFinalePhase = 3;
+    if (s3) {
+      s3.style.transform = 'translateY(0)';
+      s3.style.opacity = '1';
+    }
+    audio.playBeep(659.25, 'triangle', 0.18, 0.28);
+  }
+
+  if (earnedStars === 3) {
+    if (gpFinaleTimer >= 1.7 && gpFinalePhase === 3) {
+      gpFinalePhase = 4;
+      if (trophy) {
+        trophy.style.display = 'block';
+        void trophy.offsetWidth;
+        trophy.style.opacity = '1';
+        trophy.style.transform = 'scale(1)';
+      }
+      audio.playFinishFanfare();
+    }
+    if (gpFinaleTimer >= 3.2) {
+      finishGrandPrixFinaleAnimation();
+    }
+  } else {
+    if (gpFinaleTimer >= 2.2) {
+      finishGrandPrixFinaleAnimation();
+    }
+  }
+}
+
+function finishGrandPrixFinaleAnimation() {
+  if (!gpFinaleActive) return;
+  gpFinaleActive = false;
+  gameState = 'FINISHED';
+
+  const s1 = document.getElementById('gp-star-1');
+  const s2 = document.getElementById('gp-star-2');
+  const s3 = document.getElementById('gp-star-3');
+  const trophy = document.getElementById('gp-finale-trophy');
+  const earnedStars = getGrandPrixEarnedStars();
+
+  if (s1) { s1.style.transform = 'translateY(0)'; s1.style.opacity = '1'; }
+  if (s2) { s2.style.transform = 'translateY(0)'; s2.style.opacity = '1'; }
+  if (s3) { s3.style.transform = 'translateY(0)'; s3.style.opacity = '1'; }
+
+  if (trophy && earnedStars === 3) {
+    trophy.style.display = 'block';
+    trophy.style.opacity = '1';
+    trophy.style.transform = 'scale(1)';
+  }
+
+  showGrandPrixSummary();
 }
 
 function showGrandPrixSummary() {
@@ -1517,11 +1662,15 @@ function showGrandPrixSummary() {
 
   document.getElementById('btn-gp-retry').onclick = () => {
     audio.init();
+    const ov = document.getElementById('gp-finale-overlay');
+    if (ov) ov.style.display = 'none';
     openGrandPrixPreview();
   };
 
   document.getElementById('btn-gp-next-cup').onclick = () => {
     audio.init();
+    const ov = document.getElementById('gp-finale-overlay');
+    if (ov) ov.style.display = 'none';
     const curIdx = GRAND_PRIX_CUPS.findIndex(c => c.id === grandPrixState.cupId);
     if (curIdx >= 0) {
       const nextCup = GRAND_PRIX_CUPS[(curIdx + 1) % GRAND_PRIX_CUPS.length];
@@ -1534,6 +1683,8 @@ function showGrandPrixSummary() {
 
   document.getElementById('btn-gp-select').onclick = () => {
     audio.init();
+    const ov = document.getElementById('gp-finale-overlay');
+    if (ov) ov.style.display = 'none';
     grandPrixState.active = false;
     renderGrandPrixCupList();
     showScreen('screen-select');
@@ -1635,6 +1786,10 @@ if (isKrampusBossDuel) {
   }
   }
 
+  if (typeof multiplayerActive !== 'undefined' && multiplayerActive && typeof onMultiplayerFinished === 'function') {
+    onMultiplayerFinished();
+  }
+
   if (grandPrixState.active) {
     handleGrandPrixRaceFinish(player.rank, raceElapsedTime, false);
     return;
@@ -1661,11 +1816,11 @@ if (isKrampusBossDuel) {
   const isNewPB = raceElapsedTime < currentPB;
 
   if (!impossibleDifficultyUnlocked) {
-    if (gameMode === 'timetrial') {
+    if (gameMode === 'timetrial' || !!challengeActive) {
       let ttRuns = parseInt(localStorage.getItem('glider_timetrial_runs_count') || '0', 10);
       try { localStorage.setItem('glider_timetrial_runs_count', String(ttRuns + 1)); } catch (e) {}
     }
-    if (gameMode === 'timetrial' && isNewPB) {
+    if ((gameMode === 'timetrial' || !!challengeActive) && isNewPB) {
       try {
         localStorage.setItem(pbKey, raceElapsedTime.toFixed(2));
       } catch (e) {}
@@ -1749,21 +1904,22 @@ if (isKrampusBossDuel) {
   const winStatsEl = document.getElementById('win-stats');
   const winMedalEl = document.getElementById('win-medal');
 
+  const isTtOrCh = (gameMode === 'timetrial' || !!challengeActive);
   if (impossibleDifficultyUnlocked) {
-    winTitleEl.innerText = gameMode === 'timetrial' ? 'Cheating Is ILLEGAL' : `POSITION ${player.rank} / 5`;
+    winTitleEl.innerText = isTtOrCh ? 'Cheating Is ILLEGAL' : `POSITION ${player.rank} / 5`;
     winStatsEl.innerText = `FINAL TIME: ${timeStr}`;
     winMedalEl.innerText = 'Dev Tools = Invalid Run';
     winMedalEl.style.color = '#ff4444';
   } else if (challengeActive && isDailyChallengeCompleted(challengeActive, challengeActiveDateKey)) {
     const activeCh = DAILY_CHALLENGES.find(c => c.id === challengeActive);
-    const pbSuffix = (gameMode === 'timetrial' && isNewPB) ? ' (NEW PB!)' : '';
-    winTitleEl.innerText = (gameMode === 'timetrial' && isNewPB) ? 'NEW PERSONAL BEST!' : 'CHALLENGE COMPLETED';
+    const pbSuffix = isNewPB ? ' (NEW PB!)' : '';
+    winTitleEl.innerText = isNewPB ? 'NEW PERSONAL BEST!' : 'CHALLENGE COMPLETED';
     winStatsEl.innerText = `FINAL TIME: ${timeStr}${pbSuffix}`;
     winMedalEl.innerHTML = `★ ${activeCh ? activeCh.name.toUpperCase() : 'DAILY CHALLENGE'} CLEARED<br><span style="font-size: 13px; color: var(--gold);">${medalEarned}</span>`;
     winMedalEl.style.color = 'var(--gold)';
   } else {
-    const pbSuffix = (gameMode === 'timetrial' && isNewPB) ? ' (NEW PB!)' : '';
-    winTitleEl.innerText = (gameMode === 'timetrial' && isNewPB) ? 'NEW PERSONAL BEST!' : (gameMode === 'timetrial' ? 'TIME TRIAL COMPLETED' : `POSITION ${player.rank} / 5`);
+    const pbSuffix = isNewPB ? ' (NEW PB!)' : '';
+    winTitleEl.innerText = isNewPB ? 'NEW PERSONAL BEST!' : (isTtOrCh ? 'TIME TRIAL COMPLETED' : `POSITION ${player.rank} / 5`);
     winStatsEl.innerText = `FINAL TIME: ${timeStr}${pbSuffix}`;
     winMedalEl.innerText = medalEarned;
     winMedalEl.style.color = 'var(--gold)';
@@ -1816,6 +1972,10 @@ function endRace(reason) {
   if (isKrampusBossDuel) {
     isKrampusBossDuel = false;
     krampusRetryPending = true; 
+  }
+
+  if (typeof multiplayerActive !== 'undefined' && multiplayerActive && typeof onMultiplayerCrashed === 'function') {
+    onMultiplayerCrashed();
   }
 
   if (grandPrixState.active) {
@@ -1877,6 +2037,7 @@ function startKrampusBossRace(skipCinematic = false) {
 }
 
 function handleRetryClick() {
+  if (typeof multiplayerActive !== 'undefined' && multiplayerActive) return;
   if (tutorialActive) {
     if (typeof restartTutorialFromSpotlight === 'function') {
       restartTutorialFromSpotlight();
@@ -2362,8 +2523,9 @@ function setupUI() {
         const k = localStorage.key(i);
         if (k && STAT_KEY_PREFIXES.some(p => k.startsWith(p))) stats[k] = localStorage.getItem(k);
       }
+      const profile = getLocalProfile();
       try {
-        const code = AphelionEncoder.encode({ pbs, ghosts, halloweenUnlocked: hw, santaUnlocked: sn, krampusUnlocked: kr, xm, stats });
+        const code = AphelionEncoder.encode({ pbs, ghosts, halloweenUnlocked: hw, santaUnlocked: sn, krampusUnlocked: kr, xm, stats,profile });
         textarea.value = code;
         status.innerText = 'SAVE CODE GENERATED';
         status.style.color = 'var(--cyan)';
@@ -2459,6 +2621,16 @@ function setupUI() {
               }
             }
           }
+
+          if (data.profile) {
+            saveLocalProfile(
+              data.profile.name, 
+              data.profile.pfp, 
+              data.profile.banner, 
+              data.profile.pfpColor
+            );
+          }
+
           updatePBTags();
           updateMedalDisplay();
           if (typeof updateDailyChallengeStreak === 'function') updateDailyChallengeStreak();
@@ -2646,6 +2818,19 @@ function setupUI() {
     });
   }
 
+  const btnStartMulti = document.getElementById('btn-start-multiplayer');
+  if (btnStartMulti) {
+    btnStartMulti.addEventListener('click', () => {
+      audio.init();
+      if (typeof cancelActiveDailyChallenge === 'function') cancelActiveDailyChallenge();
+      challengeActive = null;
+      challengeMod = null;
+      challengeActiveDateKey = null;
+      challengeActiveDayOffset = 0;
+      showScreen('screen-multiplayer');
+    });
+  }
+
   const btnStartSingle = document.getElementById('btn-start-single');
   if (btnStartSingle) {
     btnStartSingle.addEventListener('click', () => {
@@ -2675,7 +2860,13 @@ function setupUI() {
     showScreen('screen-start');
   });
 
-  document.getElementById('btn-shop-back').addEventListener('click', () => showScreen('screen-select'));
+  document.getElementById('btn-shop-back').addEventListener('click', () => {
+    if (typeof multiplayerActive !== 'undefined' && multiplayerActive) {
+      showScreen('screen-multiplayer');
+    } else {
+      showScreen(isMobileDevice() ? 'screen-start-mobile' : 'screen-start');
+    }
+  });
 
   const btnCloseShopPreview = document.getElementById('btn-close-shop-preview');
   if (btnCloseShopPreview) {
@@ -2793,7 +2984,11 @@ refreshChristmasBubble = setupBannerBubble(
   }
 
 document.getElementById('btn-dispatch-back').addEventListener('click', () => {
-    showScreen('screen-select');
+    if (typeof multiplayerActive !== 'undefined' && multiplayerActive) {
+      showScreen('screen-multiplayer');
+    } else {
+      showScreen('screen-select');
+    }
   });
 
   document.getElementById('btn-launch-flight').addEventListener('click', () => {
@@ -2955,27 +3150,7 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
 
   updateJoystickVisibility();
 
-  const pointerBox = document.getElementById('settings-pointer-box');
-  const dashPointerBox = document.getElementById('dash-pointer-box');
-  if (localStorage.getItem('glider_unlocked_pointer2') === 'true') {
-    if (pointerBox) pointerBox.style.display = 'flex';
-    if (dashPointerBox) dashPointerBox.style.display = 'flex';
-  }
-  const curPointer = localStorage.getItem('glider_speedo_pointer') || 'default';
-  document.querySelectorAll('.pointer-btn').forEach(btn => {
-    if (btn.getAttribute('data-pointer') === curPointer) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-    btn.addEventListener('click', () => {
-      audio.init();
-      const pMode = btn.getAttribute('data-pointer');
-      localStorage.setItem('glider_speedo_pointer', pMode);
-      document.querySelectorAll('.pointer-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    });
-  });
+  updateHudTheme();
 
   document.getElementById('btn-settings-toggle').addEventListener('click', () => {
     audio.init();
@@ -3009,13 +3184,24 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
     if (isKrampusBossDuel) {
       isKrampusBossDuel = false;
     }
+    if (typeof multiplayerActive !== 'undefined' && multiplayerActive) {
+      if (typeof leaveMultiplayerRoom === 'function') {
+        leaveMultiplayerRoom();
+      }
+      showScreen(isMobileDevice() ? 'screen-start-mobile' : 'screen-start');
+      return;
+    }
     if (grandPrixState.active) {
       grandPrixState.active = false;
       setSelectTab('gp');
       showScreen('screen-select');
     } else {
-      refreshDispatchModal();
-      showScreen('screen-dispatch');
+      const inPause = btn.closest('#screen-pause');
+      if (inPause) {
+        showScreen(isMobileDevice() ? 'screen-start-mobile' : 'screen-start');
+      } else {
+        showScreen('screen-select');
+      }
     }
   }));
 
@@ -3394,6 +3580,7 @@ function handleChallengeAction(ch, isMobile, dateKey, dayOffset = 0, action = ''
   if (ch.config === 'TRACK' || ch.config === 'TRACK+MOD') {
     selectedCourseId = ch.courseId || 'canyon';
     selectedSubtrack = ch.subtrack || 'A';
+    gameMode = 'timetrial';
     if (mobileJoystickMode === 'gyro') {
       requestGyroPermission();
     }
@@ -3417,11 +3604,47 @@ function handleChallengeAction(ch, isMobile, dateKey, dayOffset = 0, action = ''
 
 let currentDashboardCat = null;
 
+function updateProfileCardVisibility() {
+  const card = document.getElementById('profile-card-desktop');
+  if (!card) return;
+  
+  if (!splashDismissed) {
+    card.style.display = 'none';
+    return;
+  }
+
+  if (typeof tutorialActive !== 'undefined' && tutorialActive) {
+    card.style.display = 'none';
+    return;
+  }
+
+  if (typeof isFlightState === 'function' && isFlightState()) {
+    card.style.display = 'none';
+    return;
+  }
+
+  const isMobile = (typeof isMobileDevice === 'function' && isMobileDevice()) || window.innerWidth <= 950 || window.innerHeight <= 600;
+  if (isMobile) {
+    card.style.display = 'none';
+    return;
+  }
+
+
+  const shopScreen = document.getElementById('screen-shop');
+  if (shopScreen && shopScreen.style.display !== 'none' && !shopScreen.classList.contains('hidden')) {
+    card.style.display = 'none';
+    return;
+  }
+
+  // Show it everywhere else!
+  card.style.display = 'flex';
+}
+
 function openDashboardRight(panelId) {
   const colRight = document.getElementById('dash-col-right');
   if (!colRight) return;
 
-  const categories = ['single', 'gp', 'challenge', 'shop', 'settings'];
+  const categories = ['single', 'gp', 'multiplayer', 'challenge', 'shop', 'settings'];
   categories.forEach(c => {
     const rightP = document.getElementById(`dash-right-${c}`);
     if (rightP) rightP.classList.toggle('hidden', c !== panelId);
@@ -3432,6 +3655,7 @@ function openDashboardRight(panelId) {
   colRight.classList.remove('dash-sliding');
   void colRight.offsetWidth;
   colRight.classList.add('dash-sliding');
+  updateProfileCardVisibility();
 }
 
 function closeDashboardRight() {
@@ -3439,11 +3663,12 @@ function closeDashboardRight() {
   if (!colRight) return;
   colRight.style.display = 'none';
   colRight.classList.add('hidden');
-  const categories = ['single', 'gp', 'challenge', 'shop', 'settings'];
+  const categories = ['single', 'gp', 'multiplayer', 'challenge', 'shop', 'settings'];
   categories.forEach(c => {
     const rightP = document.getElementById(`dash-right-${c}`);
     if (rightP) rightP.classList.add('hidden');
   });
+  updateProfileCardVisibility();
 }
 
 function setDashboardCategory(cat) {
@@ -3461,7 +3686,7 @@ function setDashboardCategory(cat) {
       colMid.style.display = 'none';
       colMid.classList.add('hidden');
     }
-    const categories = ['single', 'gp', 'challenge', 'shop', 'settings'];
+    const categories = ['single', 'gp', 'multiplayer', 'challenge', 'shop', 'settings'];
     categories.forEach(c => {
       const midP = document.getElementById(`dash-mid-${c}`);
       if (midP) midP.classList.add('hidden');
@@ -3478,7 +3703,7 @@ function setDashboardCategory(cat) {
     colMid.classList.add('dash-sliding');
   }
 
-  const categories = ['single', 'gp', 'challenge', 'shop', 'settings'];
+  const categories = ['single', 'gp', 'multiplayer', 'challenge', 'shop', 'settings'];
   categories.forEach(c => {
     const midP = document.getElementById(`dash-mid-${c}`);
     if (midP) midP.classList.toggle('hidden', c !== cat);
@@ -3493,6 +3718,12 @@ function setDashboardCategory(cat) {
     renderGrandPrixCupList();
     refreshDashboardGp();
     playMenuTheme('menu');
+  } else if (cat === 'multiplayer') {
+    if (typeof renderMultiplayerLobby === 'function') renderMultiplayerLobby();
+    if (multiplayerActive && mpRoomCode) {
+      openDashboardRight('multiplayer');
+    }
+    playMenuTheme('menu');
   } else if (cat === 'challenge') {
     renderDailyChallenge();
     playMenuTheme('menu');
@@ -3501,10 +3732,6 @@ function setDashboardCategory(cat) {
     updateCellarDoorVisibility();
     playMenuTheme('shop');
   } else if (cat === 'settings') {
-    const dashPtrBox = document.getElementById('dash-pointer-box');
-    if (dashPtrBox && localStorage.getItem('glider_unlocked_pointer2') === 'true') {
-      dashPtrBox.style.display = 'flex';
-    }
     renderKeybindList();
     playMenuTheme('menu');
   }
@@ -3550,6 +3777,9 @@ function refreshDashboardSingle() {
   const impDiffBtn = document.getElementById('btn-dash-diff-impossible');
   if (impDiffBtn) {
     impDiffBtn.classList.toggle('hidden', !impossibleDifficultyUnlocked);
+    if (!impossibleDifficultyUnlocked && selectedDifficulty === 'impossible') {
+      selectedDifficulty = 'medium';
+    }
   }
 
   document.querySelectorAll('#dash-col-right .mode-btn').forEach(b => {
@@ -3747,6 +3977,69 @@ document.querySelectorAll('.dash-nav-btn').forEach(btn => {
   }
 }
 
+const startMessages = [
+  'PITCH / BANK / YAW FLIGHT SYSTEM<br>PRESS W + ctrl /cmd for free golden time trial ghost!',
+  'Wait... you were expecting a tutorial? <br>Aphelion Code of Conduct says: "Git Gud."',
+  'Did you know Aphelion has their own AI? <br>And now this 3D game?',
+  'Dev Count: 1... <br>and that artist "Konekofire"',
+  'Thermals go up. Sinks go down.<br>And either way you will find a way to get stuck in the sinks!',
+  'Warning: Stalling may result in a boost.<br>Or a crater. Good luck!',
+  'Wait what theres mouse controls? since when?!',
+  'Waitttt if aphelion is coding this then who turned off the stove?!',
+  'Did you know: Every thermal in this game was placed by hand?<br> yeah i came down and placed it was kinda fun',
+  'What you crashed? <br> must have been the wind!',
+  '8 ball isnt this game the best? <br>"[8 Ball] hmmm i was going to say no, but I am a kind ai and so i say no"',
+  'Who ever made this game should get paid more <br> what? stop looking at me i dont money either!',
+  'Did you know? sink wells exist in real life <br> if this game was named real life',
+  'You think sink wells are bad? <br> We almost added bird stikes.. oh wait we did',
+  'How much does the red glider cost? <br> uh $2 i mean 100k yeah we went a little high end',
+  'The Greatest Glider To Ever Live <br> sheesh thats so long anyways i was going to say its not actually 24k gold its actually 26k gold',
+  'This game runs better than a print command! <br> Share it with everyone! no one is gonna say it doesnt work',
+  'Aim DOWN to build momentum <br> aim too far down and you might get turbulence',
+  'Now with Controller support!',
+  'belive it or not this game has playtesters!',
+  'Z fighting? where? <br> no no no you dont see z fighting nuh uh',
+  'V2.5.1: Added 1 Thermal',
+  '©2026 Aphelion Team',
+  'Bondo Reems <br> is happy to announce hes trying to get addicted to alchohol',
+  'Very funny joke: I told my glider to aim down in the storm for speed. <br>It aimed down too hard and found a sink well instead of a thermal.',
+  "Super Funny joke: I told my glider to ride the volcano's thermals <br> Now it's a 'lava' glider… and not in the cool way.",
+  'Dont go pressing random keybinds like: <br> cmd/ctrl + W or cmd/ctrl + T or alt + shift+ D especially not that one',
+  'i rate those 2 funny jokes a solid 6.25/10!',
+  'Did you know: this game alone is just about 23k lines <br> as of making this message, but it will hit 25k soon stay tuned!',
+  'Hey you better NOT get that greatest glider to ever live! <br> it costs TREE(3) EACH to make and that can get expensive yk',
+  'Our state of the art anti theft and anti robbery Aphelion Encoder™ <br> will not allow cheators from editing their save files!',
+  'Watch out! playing this game might cause you to get <br> BUTTERFINGERS',
+  'Check out Butterfingers by team Aphelion! <br> available right in your kitchen! (and on your computer)',
+  "NASA said we're good to use the Moon.<br>They did NOT say we couldn't keep it.",
+  'Warning: If lost on the moon <br> FLY BACK',
+  'Ice spikes in glacial are inspired by: <br> Hyper Karts Blizzard Circuit!',
+  'Holy cow, this project is a lot of lines.<br>At least 3 of them work. I think.',
+  'I heard the craters on the Moon<br>were caused by meteors.',
+  'Bet you cant get 17/16 stars in grand prix <br> guess what? i just did.',
+  "Tip: The ground is not a valid flight path.",
+  'Sheesh that TV always seems to be on.',
+  "Due to recent events, this game will be renamed to America.",
+  "Glider? An APP? (no not me) <br> yes, this game is an app, and it is free!",
+  "Now FULLY supports mobile!",
+  "Mu-mu-multiplayer?!?!? oh no.",
+  "Did you know? The moon is actually a glider! <br> It just doesn't have a thermal to fly in.",
+  "This game is ANNOYING when copilot is telling you how to code <br> yeah thats what i thought.",
+  'buy piggy bank now and save BIG on your next purchases!',
+  'I heard the hardest daily challenge <br> looks at you in the eyes with disapointment.',
+  'Dont have friends? <br> play multiplayer and make some!',
+  'The best glider is the one YOU have equiped! <br> except aphelion apex and greatest glider to ever live are better',
+  'Shoutout to rip_n00b/ fox_but_better/ Doge_notDetected for being the only playtesters who actually did their job.<br>The rest of them just crashed into the canyon.',
+  'I forgot what i was gonna say',
+];
+
+function getRandomStartMessage() {
+  if (typeof startMessages !== 'undefined' && startMessages.length > 0) {
+    return startMessages[Math.floor(Math.random() * startMessages.length)];
+  }
+  return 'PITCH / BANK / YAW FLIGHT SYSTEM';
+}
+
 function showScreen(screenId) {
   const isMobile = isMobileDevice() || window.innerWidth <= 950 || window.innerHeight <= 600;
   if (screenId === 'screen-start' || screenId === 'screen-start-mobile') {
@@ -3759,7 +4052,7 @@ function showScreen(screenId) {
     clearShopTvTimer();
   }
 
-  const screens = ['screen-start', 'screen-select', 'screen-start-mobile', 'screen-select-mobile', 'screen-shop', 'screen-dispatch', 'screen-pause', 'screen-win', 'screen-lose', 'screen-gp-preview', 'screen-gp-interstitial', 'screen-gp-summary'];
+  const screens = ['screen-start', 'screen-select', 'screen-start-mobile', 'screen-select-mobile', 'screen-shop', 'screen-dispatch', 'screen-pause', 'screen-win', 'screen-lose', 'screen-gp-preview', 'screen-gp-interstitial', 'screen-gp-summary', 'screen-multiplayer'];
   screens.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
@@ -3770,7 +4063,7 @@ function showScreen(screenId) {
 
   const dashEl = document.getElementById('desktop-dashboard');
   if (dashEl) {
-    if (splashDismissed && !isMobile && screenId && ['screen-start', 'screen-select', 'screen-dispatch', 'screen-shop', 'screen-gp-preview'].includes(screenId)) {
+    if (splashDismissed && !isMobile && screenId && ['screen-start', 'screen-select', 'screen-dispatch', 'screen-shop', 'screen-gp-preview', 'screen-multiplayer'].includes(screenId)) {
       dashEl.style.display = 'flex';
       if (screenId === 'screen-shop') {
         if (currentDashboardCat !== 'shop') setDashboardCategory('shop');
@@ -3778,6 +4071,9 @@ function showScreen(screenId) {
       } else if (screenId === 'screen-gp-preview') {
         if (currentDashboardCat !== 'gp') setDashboardCategory('gp');
         openDashboardRight('gp');
+      } else if (screenId === 'screen-multiplayer') {
+        if (currentDashboardCat !== 'multiplayer') setDashboardCategory('multiplayer');
+        openDashboardRight('multiplayer');
       } else if (screenId === 'screen-start') {
         setDashboardCategory(null);
       } else if (currentDashboardCat !== null) {
@@ -3791,6 +4087,10 @@ function showScreen(screenId) {
   }
 
   if (!splashDismissed) {
+    const sToggleBtn = document.getElementById('btn-settings-toggle');
+    if (sToggleBtn) sToggleBtn.style.display = 'none';
+    const jbW = document.getElementById('jukebox-widget');
+    if (jbW) jbW.style.display = 'none';
     if (isMobile && (screenId === 'screen-start' || screenId === 'screen-start-mobile')) {
       const mobileStartEl = document.getElementById('screen-start-mobile');
       if (mobileStartEl) {
@@ -3846,53 +4146,6 @@ function showScreen(screenId) {
     }
 
     if (screenId === 'screen-start' || screenId === 'screen-start-mobile') {
-      const startMessages = [
-        'PITCH / BANK / YAW FLIGHT SYSTEM<br>PRESS W + ctrl /cmd for free golden time trial ghost!',
-        'Wait... you were expecting a tutorial? <br>Aphelion Code of Conduct says: "Git Gud."',
-        'Did you know Aphelion has their own AI? <br>And now this 3D game?',
-        'Dev Count: 1... <br>and that artist "Konekofire"',
-        'Thermals go up. Sinks go down.<br>And either way you will find a way to get stuck in the sinks!',
-        'Warning: Stalling may result in a boost.<br>Or a crater. Good luck!',
-        'Wait what theres mouse controls? since when?!',
-        'Waitttt if aphelion is coding this then who turned off the stove?!',
-        'Did you know: Every thermal in this game was placed by hand?<br> yeah i came down and placed it was kinda fun',
-        'What you crashed? <br> must have been the wind!',
-        '8 ball isnt this game the best? <br>"[8 Ball] hmmm i was going to say no, but I am a kind ai and so i say no"',
-        'Who ever made this game should get paid more <br> what? stop looking at me i dont money either!',
-        'Did you know? sink wells exist in real life <br> if this game was named real life',
-        'You think sink wells are bad? <br> We almost added bird stikes.. oh wait we did',
-        'How much does the red glider cost? <br> uh $2 i mean 100k yeah we went a little high end',
-        'The Greatest Glider To Ever Live <br> sheesh thats so long anyways i was going to say its not actually 24k gold its actually 26k gold',
-        'This game runs better than a print command! <br> Share it with everyone! no one is gonna say it doesnt work',
-        'Aim DOWN to build momentum <br> aim too far down and you might get turbulence',
-        'Now with Controller support!',
-        'belive it or not this game has playtesters!',
-        'Z fighting? where? <br> no no no you dont see z fighting nuh uh',
-        'V2.5.1: Added 1 Thermal',
-        '©2026 Aphelion Team',
-        'Bondo Reems <br> is happy to announce hes trying to get addicted to alchohol',
-        'Very funny joke: I told my glider to aim down in the storm for speed. <br>It aimed down too hard and found a sink well instead of a thermal.',
-        "Super Funny joke: I told my glider to ride the volcano's thermals <br> Now it's a 'lava' glider… and not in the cool way.",
-        'Dont go pressing random keybinds like: <br> cmd/ctrl + W or cmd/ctrl + T or alt + shift+ D especially not that one',
-        'i rate those 2 funny jokes a solid 6.25/10!',
-        'Did you know: this game alone is just about 23k lines <br> as of making this message, but it will hit 25k soon stay tuned!',
-        'Hey you better NOT get that greatest glider to ever live! <br> it costs TREE(3) EACH to make and that can get expensive yk',
-        'Our state of the art anti theft and anti robbery Aphelion Encoder™ <br> will not allow cheators from editing their save files!',
-        'Watch out! playing this game might cause you to get <br> BUTTERFINGERS',
-        'Check out Butterfingers by team Aphelion! <br> available right in your kitchen! (and on your computer)',
-        "NASA said we're good to use the Moon.<br>They did NOT say we couldn't keep it.",
-        'Warning: If lost on the moon <br> FLY BACK',
-        'Ice spikes in glacial are inspired by: <br> Hyper Karts Blizzard Circuit!',
-        'Holy cow, this project is a lot of lines.<br>At least 3 of them work. I think.',
-        'I heard the craters on the Moon<br>were caused by meteors.',
-        'Bet you cant get 17/16 stars in grand prix <br> guess what? i just did.',
-        "Tip: The ground is not a valid flight path.",
-        'Sheesh that TV always seems to be on.',
-        "Due to recent events, this game will be renamed to America.",
-        "Glider? An APP?",
-        "Now FULLY supports mobile!",
-      ];
-
       const randomIndex = Math.floor(Math.random() * startMessages.length);
       const instrEl = document.querySelector('#screen-start .instructions');
       const instrElMobile = document.querySelector('#screen-start-mobile .instructions');
@@ -3934,6 +4187,34 @@ function showScreen(screenId) {
   try {
     refreshCourseCards();
   } catch (e) {}
+
+  if (screenId !== 'screen-gp-summary') {
+    const ov = document.getElementById('gp-finale-overlay');
+    if (ov) ov.style.display = 'none';
+  }
+  if (typeof updateHudTheme === 'function') {
+    updateHudTheme();
+  }
+
+  updateProfileCardVisibility();
+}
+
+function updateHudTheme() {
+  const curTheme = localStorage.getItem('glider_hud_theme') || 'default';
+  const isTheme2 = (curTheme === 'theme2');
+  const hudStatsBar = document.querySelector('.hud-stats');
+  const mmContainer = document.getElementById('minimap-container');
+  const wBadge = document.getElementById('weather-badge');
+
+  if (hudStatsBar) {
+    hudStatsBar.classList.toggle('theme-2', isTheme2 && !(HALLOWEEN_EVENT_ACTIVE || isHalloweenBossDuel));
+  }
+  if (mmContainer) {
+    mmContainer.classList.toggle('theme-2', isTheme2 && !(HALLOWEEN_EVENT_ACTIVE || isHalloweenBossDuel));
+  }
+  if (wBadge) {
+    wBadge.classList.toggle('theme-2', isTheme2);
+  }
 }
 
 function refreshCourseCards() {
@@ -3991,36 +4272,30 @@ function updateHUD() {
   }
 
   const mobileDeltaEl = document.getElementById('mobile-speed-delta');
-  if (mobileDeltaEl) {
-    if (gameMode === 'timetrial' && isMobileDevice()) {
-      if (ghostDroneGroup && savedGhostData && savedGhostData.length > 2) {
-        _tempVec1.subVectors(player.pos, ghostDroneGroup.position);
-        const dotAhead = _tempVec1.dot(_playerForward);
-        const gSec = dotAhead / Math.max(player.speed, 45);
-        const fA = savedGhostData[ghostFrameIdx] || savedGhostData[0];
-        const fB = savedGhostData[ghostFrameIdx + 1] || fA;
-        const gDist = Math.hypot(fB.x - fA.x, fB.y - fA.y, fB.z - fA.z);
-        const gDt = Math.max(0.001, fB.t - fA.t);
-        const ghostSpd = (gDist / gDt) / 2.2;
-        const spdDiff = Math.round(player.speed - ghostSpd);
-        const spdSign = spdDiff >= 0 ? '+' : '';
-        const tSign = gSec >= 0 ? '+' : '';
-        mobileDeltaEl.style.display = 'block';
-        mobileDeltaEl.style.color = gSec >= 0 ? 'var(--cyan)' : 'var(--red)';
-        mobileDeltaEl.innerText = `${tSign}${gSec.toFixed(1)}s (${spdSign}${spdDiff} KT)`;
-      } else {
-        mobileDeltaEl.style.display = 'none';
-      }
-    } else {
-      mobileDeltaEl.style.display = 'none';
-    }
+  if (mobileDeltaEl && !ghostDeltaTimeout) {
+    mobileDeltaEl.style.display = 'none';
   }
 
   const posLabel = document.getElementById('hud-pos-label');
   const posVal = document.getElementById('hud-pos');
   const deltaElem = document.getElementById('hud-delta');
 
-if (gameMode === 'race') {
+if (typeof multiplayerActive !== 'undefined' && multiplayerActive) {
+    if (typeof updateServerPlayersButton === 'function') updateServerPlayersButton();
+    if ((typeof mpIsSpectating !== 'undefined' && mpIsSpectating) || (typeof mpIsDedicatedServer !== 'undefined' && mpIsDedicatedServer)) {
+      posLabel.innerText = 'MODE';
+      posVal.innerText = 'SPECTATING';
+      if (deltaElem) deltaElem.innerText = '';
+      return;
+    }
+    const totalRacers = Object.values(mpPlayers).filter(p => !p.isDedicatedServer && p.slot >= 0 && !p.isSpectator).length || 5;
+    posLabel.innerText = 'POS';
+    posVal.innerText = `${player.rank}/${totalRacers}`;
+    if (deltaElem) deltaElem.innerText = '';
+    return;
+  }
+
+  if (gameMode === 'race') {
     posLabel.innerText = 'POS';
     posVal.innerText = `${player.rank}/${(isKrampusBossDuel || isHalloweenBossDuel) ? 2 : 5}`;
 
@@ -4500,6 +4775,11 @@ function updateRestartHold(dt) {
 
   if ((gameState === 'RACING' || gameState === 'RUNUP') && !devFreeCam) {
     if (keys['KeyR'] && !restartNeedsRelease) {
+      if (typeof multiplayerActive !== 'undefined' && multiplayerActive) {
+        restartHoldTimer = 0;
+        restartPromptOpacity = 0;
+        return;
+      }
       restartHoldTimer += dt;
       restartPromptOpacity = Math.min(1.0, restartPromptOpacity + dt * 6.0);
       if (restartHoldTimer >= 2.0) {
@@ -4536,7 +4816,8 @@ function animate() {
   document.body.classList.toggle('in-flight',
     gameState === 'RUNUP' || gameState === 'RACING' ||
     gameState === 'FINISHING' || gameState === 'CREDITS' ||
-    gameState === 'GHOST_FLEET_CINEMATIC' || gameState === 'KRAMPUS_CINEMATIC');
+    gameState === 'GHOST_FLEET_CINEMATIC' || gameState === 'KRAMPUS_CINEMATIC' ||
+    gameState === 'MP_CINEMATIC' || gameState === 'MP_LOADING' || gameState === 'GP_FINALE');
 
   const now = performance.now();
   let dt = Math.min((now - lastTime) / 1000, 0.1);
@@ -4574,6 +4855,13 @@ function animate() {
     updateGhostFleetCinematic(dt);
   } else if (gameState === 'KRAMPUS_CINEMATIC') {
     updateKrampusCinematic(dt);
+  } else if (gameState === 'MP_CINEMATIC') {
+    if (typeof updateMultiplayerCinematic === 'function') updateMultiplayerCinematic(dt);
+  } else if (gameState === 'MP_LOADING') {
+    if (volcanoEruptionSystem) updateVolcanoEruption(dt);
+  } else if (gameState === 'GP_FINALE') {
+    updateGrandPrixFinale(dt);
+    updateFlight(dt);
   } else if (gameState === 'CREDITS') {
     updateCredits(dt);
   } else if (gameState === 'RUNUP') {
@@ -4594,10 +4882,6 @@ function animate() {
 
   const gpSummaryScreen = document.getElementById('screen-gp-summary');
   if (gpSummaryScreen && !gpSummaryScreen.classList.contains('hidden') && gpTrophyScene) {
-    if (gpTrophyGroup) {
-      gpTrophyGroup.rotation.y += 0.018;
-      gpTrophyGroup.position.y = Math.sin(now * 0.003) * 0.22;
-    }
     if (gpConfettiSystem && gpConfettiVels.length > 0) {
       const pos = gpConfettiSystem.geometry.attributes.position.array;
       const tSec = now * 0.001;
@@ -4744,6 +5028,9 @@ function initSplashIntro() {
   const prompt = document.getElementById('splash-prompt');
   if (!splash || !logo) return;
 
+  const sToggleBtn = document.getElementById('btn-settings-toggle');
+  if (sToggleBtn) sToggleBtn.style.display = 'none';
+
   buildSplashGhostMesh();
 
   const savedDisc = localStorage.getItem('glider_soundtrack_disc') || 'default';
@@ -4775,9 +5062,11 @@ function initSplashIntro() {
     bgStartup.pause();
     bgStartup.currentTime = 0;
 
-const randomSound = INTERACT_SFX[Math.floor(Math.random() * INTERACT_SFX.length)];
+const is64 = (localStorage.getItem('glider_soundtrack_disc') === 'g64');
+    const sfxList = (is64 && typeof INTERACT_SFX_64 !== 'undefined') ? INTERACT_SFX_64 : INTERACT_SFX;
+    const randomSound = sfxList[Math.floor(Math.random() * sfxList.length)];
     const sfx = new Audio(randomSound);
-      sfx.volume = sfxVolume;
+    sfx.volume = sfxVolume;
     sfx.play().catch(() => {});
 
     prompt.style.opacity = '0';

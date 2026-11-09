@@ -37,9 +37,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v4.4.5
-          releaseName: "Glider Patch 4.4.5"
-          releaseBody: "100% get this one because barrel roll is fixed"
+          tagName: v4.5.0
+          releaseName: "Glider Patch 4.5.0"
+          releaseBody: "MULTIPLAYER!!!!"
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

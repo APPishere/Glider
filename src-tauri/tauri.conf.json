@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Glider",
-  "version": "4.4.5",
+  "version": "4.5.0",
   "identifier": "com.aphelion.glider",
 "build": {
     "frontendDist": "../dist",
@@ -14,6 +14,9 @@
         "title": "Glider",
         "width": 800,
         "height": 600,
+        "minWidth": 640,
+        "minHeight": 480,
+        "center": true,
         "resizable": true,
         "fullscreen": false
       }
@@ -32,6 +35,23 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+   "macOS": {
+      "dmg": {
+        "background": "./icons/dmg-background.png",
+        "windowSize": {
+          "width": 660,
+          "height": 400
+        },
+        "appPosition": {
+          "x": 180,
+          "y": 190
+        },
+        "applicationFolderPosition": {
+          "x": 480,
+          "y": 190
+        }
+      }
+    },
     "android": {
       "debugApplicationIdSuffix": ".debug"
     }
