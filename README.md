@@ -1,3 +1,7 @@
+<div align="center">
+  <img width="453" height="177" alt="gliderfontthing" src="https://github.com/user-attachments/assets/dfe82996-3b19-42b3-a2bf-2e0eb21f0af7" />
+</div>
+
 # Glider
 A Free to play browser/ app game.
 
@@ -26,7 +30,7 @@ Keyboard (WASD Mode + Mouse):
 
 > Spacebar – Airbrake Deploy drag to shed speed instantly – use it to avoid overshooting gates.
 
-> Esc – Pause / Resume Halt the action and tweak your settings and here you can change between inverse and inverse inverse.
+> Esc – Pause / Resume stop the action and tweak your settings and here you can change between normal and inverse.
 
 > Move Mouse – Pitch / Roll  left/right and up /down of screen + also left click for Q, right click for E
 
@@ -34,7 +38,6 @@ Keyboard (WASD Mode + Mouse):
 
 > Barrel roll: double tap A / D
 
-> Esc – Pause / Resume
 
 >Hold R (restarts)  
 
@@ -81,7 +84,7 @@ macOS Gatekeeper blocks un signed apps by default (I dont have money). To fix th
    
 2. Open Terminal and run:
 
-   xattr -cr /Applications/Glider.app
+   `xattr -cr /Applications/Glider.app`
 
 Open the app as normal!
 
@@ -89,13 +92,13 @@ Open the app as normal!
 
   1. Click More info on the SmartScreen popup.
 
-  2.Click Run anyway.
+  2. Click Run anyway.
 
 
 
 ## How to Install for Offline Mobile Play 
 
-*Glider* supports **Offline Play** by using Service Worker. You can install it directly to your phone's Home Screen without downloading it!
+*Glider* supports **Offline Play** by using Service Worker. You can install it directly to your phones Home Screen `without downloading it!`
 
 ### iOS (iPhone / iPad)
 
@@ -105,7 +108,7 @@ Open the app as normal!
    * [Play on Cloudflare](https://glider.pages.dev/)  - Im on the free plan, so if possible, use GitHub Pages
    * [Play on GitHub Pages](https://appishere.github.io/Glider/) - **(recommended)**
 1. click 3 dots in bottom right
-2. Tap the **Share** button (the square icon with an arrow pointing up) 
+2. Tap the **Share** button (the square icon with an arrow pointing up)
 4. Scroll down the share menu and tap **Add to Home Screen**. (You may have to click View More)
 5. Tap **Add** in the top right corner.
 6. *Glider* will now appear on your home screen as a standalone app!
@@ -128,10 +131,12 @@ Open the app as normal!
 
 
 
-## Known Issues
-- **Mobile UI is still WIP.** Basically finished! just have to make sure everything on mobile side is good - 97% done
+## Known Issues / things to look out for
+- **Mobile UI is still WIP.** Basically finished! just have to make sure everything on mobile side is good - 98% done
 - **Heavy Front Loading On Mobile Devices / All devices really but specifically on slower internet for service workers causes the devices to be locked at the logo screen for quite a while**
-- **PC UI is still WIP** UI elementes are almost done im just testing a couple of small things. - 96% done
-- **Multiplayer** WIP... (Possibly soon)
+- **PC UI is still WIP** UI elementes are almost done im just testing a couple of small things. - 98% done
+- **Multiplayer** WIP... (Soon. 50? % there)
+- **New Gamemode** (Patch 6)
+- **Staff Ghosts** (Patch 6)
 
 
