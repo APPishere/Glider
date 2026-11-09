@@ -16,7 +16,11 @@ The skies are waiting but the ground is closer than it seems.
 - → [Play On Itch!](https://app-here.itch.io/glider)  
 - → [Play On Cloudflare!](https://glider.pages.dev/)  - supports Sw.js  (back up)
 - → [Play On Gamejolt!](https://gamejolt.com/games/Glider/1097745)
-- → [Play On Netlify!](https://glidergame.netlify.app/) - not recommended, very limited tokens since im on free but serves as a back up. (i also might forget to upd this) 
+- → [Play On Netlify!](https://glidergame.netlify.app/) - not recommended, very limited tokens since im on free but serves as a back up. (i also might forget to upd this)
+
+
+<img width="1510" height="751" alt="Screenshot 2026-09-05 at 10 28 53 PM" src="https://github.com/user-attachments/assets/0070f890-e7ce-42bd-8d8e-f0ef61a8f2f8" />
+
 
 ## CONTROLS:
 
@@ -75,6 +79,8 @@ Controller:
 > https://www.instagram.com/konekoxart/
 
 
+<img width="1510" height="733" alt="Screenshot 2026-09-21 at 10 40 18 PM" src="https://github.com/user-attachments/assets/e551efcc-e60b-4926-9bc3-c0cea9d1c1b3" />
+
 
 ## Installation Troubleshooting:
 
@@ -95,6 +101,8 @@ Open the app as normal!
   2. Click Run anyway.
 
 
+
+<img width="1511" height="757" alt="Screenshot 2026-10-23 at 7 03 43 AM" src="https://github.com/user-attachments/assets/721f9a53-80a7-405a-8458-1cd35a8ed5e8" />
 
 ## How to Install for Offline Mobile Play 
 
@@ -129,7 +137,7 @@ Open the app as normal!
 
 >OxygenOS Users (OnePlus): If the icon doesn't appear on your home screen, go to Settings > Home screen & Lock screen > Home screen settings and make sure "Add new apps to Home screen" is turned ON.
 
-
+<img width="1511" height="757" alt="Screenshot 2026-10-23 at 7 04 03 AM" src="https://github.com/user-attachments/assets/719e764d-12b7-4319-a614-240086d639b0" />
 
 ## Known Issues / things to look out for
 - **Mobile UI is still WIP.** Basically finished! just have to make sure everything on mobile side is good - 98% done
