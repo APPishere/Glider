@@ -135,7 +135,7 @@ Open the app as normal!
 - **Mobile UI is still WIP.** Basically finished! just have to make sure everything on mobile side is good - 98% done
 - **Heavy Front Loading On Mobile Devices / All devices really but specifically on slower internet for service workers causes the devices to be locked at the logo screen for quite a while**
 - **PC UI is still WIP** UI elementes are almost done im just testing a couple of small things. - 98% done
-- **Multiplayer** WIP... (Soon. 50? % there)
+- **Multiplayer** WIP... (Soon. 30? % there)
 - **New Gamemode** (Patch 6)
 - **Staff Ghosts** (Patch 6)
 
