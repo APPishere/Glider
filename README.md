@@ -135,16 +135,16 @@ Open the app as normal!
 4. Tap **Install** / **Add** when prompted.
 5. The game app icon will appear in your App Drawer and on your Home Screen!
 
->OxygenOS Users (OnePlus): If the icon doesn't appear on your home screen, go to Settings > Home screen & Lock screen > Home screen settings and make sure "Add new apps to Home screen" is turned ON.
+>OxygenOS Users (OnePlus): If the icon doesn't appear on your home screen, go to Settings > Home screen & Lock screen > Home screen settings and make sure "Add new apps to Home screen" is turned ON Or try again until it lets you download.
 
 <img width="1511" height="757" alt="Screenshot 2026-10-23 at 7 04 03 AM" src="https://github.com/user-attachments/assets/719e764d-12b7-4319-a614-240086d639b0" />
 
 ## Known Issues / things to look out for
 - **Mobile UI is still WIP.** Basically finished! just have to make sure everything on mobile side is good - 98% done
 - **Heavy Front Loading On Mobile Devices / All devices really but specifically on slower internet for service workers causes the devices to be locked at the logo screen for quite a while**
-- **PC UI is still WIP** UI elementes are almost done im just testing a couple of small things. - 98% done
-- **Multiplayer** WIP... (Soon. 30? % there)
+- **Multiplayer** WIP... (Soon. 70%! there)
 - **New Gamemode** (Patch 6)
 - **Staff Ghosts** (Patch 6)
+- **3rd Person** (Patch 6)
 
 
