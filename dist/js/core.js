@@ -345,16 +345,16 @@ const DAILY_CHALLENGES = [
     config: "FREE",
     difficulty: "MEDIUM"
   },
-  {
+    {
     id: 30,
-    name: "Homeward",
-    category: "combo",
-    desc: "Land in the fjord and come to a complete stop. No rudder boost, no thermals.",
+    name: "Cold Brakes",
+    category: "constraint",
+    desc: "Finish Glacial A without using rudder boosts or airbrakes.",
     config: "TRACK+MOD",
     courseId: "glacial",
     subtrack: "A",
-    mod: { disableRudderBoost: true },
-    difficulty: "HARD"
+    mod: { disableRudderBoost: true, disableAirbrake: true },
+    difficulty: "MEDIUM"
   },
   {
     id: 31,
@@ -576,7 +576,7 @@ function checkDailyChallengeCompletion(ch) {
     case 29:
       return challengeTracker.maxConsecutiveLowAltTime >= 5 && !challengeTracker.crashed;
     case 30:
-      return challengeTracker.stoppedInFjord === true;
+      return selectedCourseId === 'glacial' && selectedSubtrack === 'A' && !challengeTracker.usedAirbrake && !challengeTracker.crashed;
     case 31:
       return !challengeTracker.usedBoost && !challengeTracker.crashed;
     case 32:
@@ -777,6 +777,12 @@ function updateJoystickVisibility() {
     }
   }
 
+  const tactical = document.getElementById('mobile-btn-tactical');
+  if (tactical) {
+    const showTactical = isRepositionMode || (typeof multiplayerActive !== 'undefined' && multiplayerActive && (gameState === 'RACING' || gameState === 'RUNUP' || (typeof mpIsSpectating !== 'undefined' && mpIsSpectating)));
+    tactical.style.display = showTactical ? 'flex' : 'none';
+  }
+
   if (brake) {
     brake.classList.add('rect-mode');
   }
@@ -792,6 +798,7 @@ function applyMobileButtonPositions() {
   const roll = document.getElementById('mobile-btn-roll');
   const stick = document.getElementById('mobile-joystick');
   const dpad = document.getElementById('mobile-dpad');
+  const tactical = document.getElementById('mobile-btn-tactical');
   if (!yawL || !yawR || !brake) return;
 
   const isVisibleMode = (mobileJoystickMode === 'analog' || mobileJoystickMode === 'visible' || mobileJoystickMode === 'dpad');
@@ -830,6 +837,10 @@ function applyMobileButtonPositions() {
       roll.style.width = saved.roll.size + 'px';
       roll.style.height = saved.roll.size + 'px';
     }
+    if (tactical && saved.tactical && saved.tactical.size > 20) {
+      tactical.style.width = saved.tactical.size + 'px';
+      tactical.style.height = saved.tactical.size + 'px';
+    }
     if (stick) {
       const stickSize = (saved.stick && saved.stick.size > 20) ? saved.stick.size : 114;
       stick.style.width = stickSize + 'px';
@@ -852,21 +863,33 @@ function applyMobileButtonPositions() {
       yawR.style.right = 'auto';
       yawR.style.bottom = 'auto';
 
-      brake.style.left = clamp(saved.brake.xRatio * w, 10, w - (brake.offsetWidth || 84)) + 'px';
-      brake.style.top = clamp(saved.brake.yRatio * h, 10, h - (brake.offsetHeight || 84)) + 'px';
+      brake.style.left = clamp(saved.brake.xRatio * w, 10, w - (brake.offsetWidth || 124)) + 'px';
+      brake.style.top = clamp(saved.brake.yRatio * h, 10, h - (brake.offsetHeight || 48)) + 'px';
       brake.style.right = 'auto';
       brake.style.bottom = 'auto';
 
       if (roll) {
         if (saved.roll) {
-          roll.style.left = clamp(saved.roll.xRatio * w, 10, w - (roll.offsetWidth || 68)) + 'px';
-          roll.style.top = clamp(saved.roll.yRatio * h, 10, h - (roll.offsetHeight || 68)) + 'px';
+          roll.style.left = clamp(saved.roll.xRatio * w, 10, w - (roll.offsetWidth || 70)) + 'px';
+          roll.style.top = clamp(saved.roll.yRatio * h, 10, h - (roll.offsetHeight || 70)) + 'px';
         } else {
-          roll.style.left = clamp(w - 180, 10, w - (roll.offsetWidth || 68)) + 'px';
-          roll.style.top = clamp(h - 158, 10, h - (roll.offsetHeight || 68)) + 'px';
+          roll.style.left = clamp(w - 92, 10, w - 82) + 'px';
+          roll.style.top = clamp(h - 190, 10, h - 176) + 'px';
         }
         roll.style.right = 'auto';
         roll.style.bottom = 'auto';
+      }
+
+      if (tactical) {
+        if (saved.tactical) {
+          tactical.style.left = clamp(saved.tactical.xRatio * w, 10, w - (tactical.offsetWidth || 48)) + 'px';
+          tactical.style.top = clamp(saved.tactical.yRatio * h, 10, h - (tactical.offsetHeight || 48)) + 'px';
+        } else {
+          tactical.style.left = clamp(w - 74, 10, w - 60) + 'px';
+          tactical.style.top = clamp(145, 10, h - 220) + 'px';
+        }
+        tactical.style.right = 'auto';
+        tactical.style.bottom = 'auto';
       }
 
       if (stick) {
@@ -874,8 +897,8 @@ function applyMobileButtonPositions() {
           stick.style.left = clamp(saved.stick.xRatio * w, 10, w - (stick.offsetWidth || 114)) + 'px';
           stick.style.top = clamp(saved.stick.yRatio * h, 10, h - (stick.offsetHeight || 114)) + 'px';
         } else {
-          stick.style.left = '24px';
-          stick.style.top = clamp(h - 138, 10, h - (stick.offsetHeight || 114)) + 'px';
+          stick.style.left = '22px';
+          stick.style.top = clamp(h - 138, 10, h - 124) + 'px';
         }
         stick.style.right = 'auto';
         stick.style.bottom = 'auto';
@@ -885,8 +908,8 @@ function applyMobileButtonPositions() {
           dpad.style.left = clamp(saved.dpad.xRatio * w, 10, w - (dpad.offsetWidth || 130)) + 'px';
           dpad.style.top = clamp(saved.dpad.yRatio * h, 10, h - (dpad.offsetHeight || 130)) + 'px';
         } else {
-          dpad.style.left = '24px';
-          dpad.style.top = clamp(h - 148, 10, h - (dpad.offsetHeight || 130)) + 'px';
+          dpad.style.left = '20px';
+          dpad.style.top = clamp(h - 150, 10, h - 136) + 'px';
         }
         dpad.style.right = 'auto';
         dpad.style.bottom = 'auto';
@@ -895,62 +918,61 @@ function applyMobileButtonPositions() {
     }
   }
 
-  if (isVisibleMode) {
-    if (stick) {
-      stick.style.left = '24px';
-      stick.style.top = clamp(h - 138, 10, h - 114) + 'px';
-      stick.style.right = 'auto';
-      stick.style.bottom = 'auto';
-    }
-    if (dpad) {
-      dpad.style.left = '24px';
-      dpad.style.top = clamp(h - 148, 10, h - 130) + 'px';
-      dpad.style.right = 'auto';
-      dpad.style.bottom = 'auto';
-    }
-    brake.style.left = clamp(w - 108, 10, w - 84) + 'px';
-    brake.style.top = clamp(h - 108, 10, h - 84) + 'px';
-    brake.style.right = 'auto';
-    brake.style.bottom = 'auto';
+  brake.style.width = '124px';
+  brake.style.height = '48px';
+  brake.style.left = '20px';
+  brake.style.top = clamp(h * 0.42, 10, h - 190) + 'px';
+  brake.style.right = 'auto';
+  brake.style.bottom = 'auto';
 
-    yawL.style.left = clamp(w - 180, 10, w - 68) + 'px';
-    yawL.style.top = clamp(h - 86, 10, h - 68) + 'px';
-    yawL.style.right = 'auto';
-    yawL.style.bottom = 'auto';
+  yawR.style.width = '70px';
+  yawR.style.height = '70px';
+  yawR.style.left = clamp(w - 92, 10, w - 82) + 'px';
+  yawR.style.top = clamp(h - 96, 10, h - 84) + 'px';
+  yawR.style.right = 'auto';
+  yawR.style.bottom = 'auto';
 
-    yawR.style.left = clamp(w - 112, 10, w - 68) + 'px';
-    yawR.style.top = clamp(h - 158, 10, h - 68) + 'px';
-    yawR.style.right = 'auto';
-    yawR.style.bottom = 'auto';
+  yawL.style.width = '70px';
+  yawL.style.height = '70px';
+  yawL.style.left = clamp(w - 182, 10, w - 168) + 'px';
+  yawL.style.top = clamp(h - 96, 10, h - 84) + 'px';
+  yawL.style.right = 'auto';
+  yawL.style.bottom = 'auto';
 
-    if (roll) {
-      roll.style.left = clamp(w - 180, 10, w - 68) + 'px';
-      roll.style.top = clamp(h - 158, 10, h - 68) + 'px';
-      roll.style.right = 'auto';
-      roll.style.bottom = 'auto';
-    }
-  } else {
-    yawL.style.left = '24px';
-    yawL.style.top = (h - 88) + 'px';
-    yawL.style.right = 'auto';
-    yawL.style.bottom = 'auto';
+  if (roll) {
+    roll.style.width = '70px';
+    roll.style.height = '70px';
+    roll.style.left = clamp(w - 92, 10, w - 82) + 'px';
+    roll.style.top = clamp(h - 190, 10, h - 176) + 'px';
+    roll.style.right = 'auto';
+    roll.style.bottom = 'auto';
+  }
 
-    yawR.style.left = '100px';
-    yawR.style.top = (h - 88) + 'px';
-    yawR.style.right = 'auto';
-    yawR.style.bottom = 'auto';
+  if (tactical) {
+    tactical.style.width = '48px';
+    tactical.style.height = '48px';
+    tactical.style.left = clamp(w - 74, 10, w - 60) + 'px';
+    tactical.style.top = clamp(145, 10, h - 220) + 'px';
+    tactical.style.right = 'auto';
+    tactical.style.bottom = 'auto';
+  }
 
-    brake.style.left = (w - 108) + 'px';
-    brake.style.top = (h - 108) + 'px';
-    brake.style.right = 'auto';
-    brake.style.bottom = 'auto';
+  if (stick) {
+    stick.style.width = '114px';
+    stick.style.height = '114px';
+    stick.style.left = '22px';
+    stick.style.top = clamp(h - 138, 10, h - 124) + 'px';
+    stick.style.right = 'auto';
+    stick.style.bottom = 'auto';
+  }
 
-    if (roll) {
-      roll.style.left = (w - 180) + 'px';
-      roll.style.top = (h - 108) + 'px';
-      roll.style.right = 'auto';
-      roll.style.bottom = 'auto';
-    }
+  if (dpad) {
+    dpad.style.width = '130px';
+    dpad.style.height = '130px';
+    dpad.style.left = '20px';
+    dpad.style.top = clamp(h - 150, 10, h - 136) + 'px';
+    dpad.style.right = 'auto';
+    dpad.style.bottom = 'auto';
   }
 }
 
@@ -961,6 +983,7 @@ function saveMobileButtonPositions() {
   const roll = document.getElementById('mobile-btn-roll');
   const stick = document.getElementById('mobile-joystick');
   const dpad = document.getElementById('mobile-dpad');
+  const tactical = document.getElementById('mobile-btn-tactical');
   if (!yawL || !yawR || !brake) return;
 
   const w = window.innerWidth;
@@ -985,6 +1008,9 @@ function saveMobileButtonPositions() {
   if (roll && roll.offsetWidth > 20) {
     data.roll = { xRatio: roll.offsetLeft / w, yRatio: roll.offsetTop / h, size: roll.offsetWidth };
   }
+  if (tactical && tactical.offsetWidth > 20) {
+    data.tactical = { xRatio: tactical.offsetLeft / w, yRatio: tactical.offsetTop / h, size: tactical.offsetWidth };
+  }
   if (stick && stick.offsetWidth > 20 && stick.style.display !== 'none') {
     data.stick = { xRatio: stick.offsetLeft / w, yRatio: stick.offsetTop / h, size: stick.offsetWidth };
   }
@@ -1007,12 +1033,14 @@ function resetMobileButtonPositions() {
   const roll = document.getElementById('mobile-btn-roll');
   const stick = document.getElementById('mobile-joystick');
   const dpad = document.getElementById('mobile-dpad');
+  const tactical = document.getElementById('mobile-btn-tactical');
   if (yawL) { yawL.style.width = ''; yawL.style.height = ''; }
   if (yawR) { yawR.style.width = ''; yawR.style.height = ''; }
   if (brake) { brake.style.width = ''; brake.style.height = ''; }
   if (roll) { roll.style.width = ''; roll.style.height = ''; }
   if (stick) { stick.style.width = ''; stick.style.height = ''; }
   if (dpad) { dpad.style.width = ''; dpad.style.height = ''; }
+  if (tactical) { tactical.style.width = ''; tactical.style.height = ''; }
   applyMobileButtonPositions();
 }
 
@@ -1033,8 +1061,9 @@ function openMobileRepositionEditor() {
   const roll = document.getElementById('mobile-btn-roll');
   const stick = document.getElementById('mobile-joystick');
   const dpad = document.getElementById('mobile-dpad');
+  const tactical = document.getElementById('mobile-btn-tactical');
 
-  [yawL, yawR, brake, roll].forEach(btn => {
+  [yawL, yawR, brake, roll, tactical].forEach(btn => {
     if (btn) {
       btn.style.display = 'flex';
       btn.classList.add('reposition-mode');
@@ -1066,8 +1095,9 @@ function closeMobileRepositionEditor(save) {
   const roll = document.getElementById('mobile-btn-roll');
   const stick = document.getElementById('mobile-joystick');
   const dpad = document.getElementById('mobile-dpad');
+  const tactical = document.getElementById('mobile-btn-tactical');
 
-  [yawL, yawR, brake, roll, stick, dpad].forEach(btn => {
+  [yawL, yawR, brake, roll, stick, dpad, tactical].forEach(btn => {
     if (btn) {
       btn.classList.remove('reposition-mode');
     }
@@ -1080,6 +1110,10 @@ function closeMobileRepositionEditor(save) {
     if (pauseBtn) pauseBtn.style.display = 'flex';
     if (stick && (mobileJoystickMode === 'analog' || mobileJoystickMode === 'visible')) stick.style.display = 'flex';
     if (dpad && mobileJoystickMode === 'dpad') dpad.style.display = 'block';
+  }
+
+  if (tactical && (!multiplayerActive || (gameState !== 'RACING' && gameState !== 'RUNUP' && (typeof mpIsSpectating === 'undefined' || !mpIsSpectating)))) {
+    tactical.style.display = 'none';
   }
 
   const settingsOverlay = document.getElementById('settings-overlay');
@@ -1317,12 +1351,14 @@ function setupMobileControls() {
   const pause = document.getElementById('mobile-btn-pause');
   const stick = document.getElementById('mobile-joystick');
   const dpad = document.getElementById('mobile-dpad');
+  const tactical = document.getElementById('mobile-btn-tactical');
   const hudPause = document.getElementById('btn-hud-pause');
 
   setupDraggableButton(yawL);
   setupDraggableButton(yawR);
   setupDraggableButton(brake);
   if (roll) setupDraggableButton(roll);
+  if (tactical) setupDraggableButton(tactical);
   if (stick) setupDraggableButton(stick);
   if (dpad) setupDraggableButton(dpad);
 
@@ -1330,6 +1366,7 @@ function setupMobileControls() {
   setupResizableButton(yawR);
   setupResizableButton(brake);
   if (roll) setupResizableButton(roll);
+  if (tactical) setupResizableButton(tactical);
   if (stick) setupResizableButton(stick);
   if (dpad) setupResizableButton(dpad);
 
@@ -1365,6 +1402,16 @@ function setupMobileControls() {
       const rollDir = mobileRollInput !== 0 ? (mobileRollInput > 0 ? 1 : -1) : (player.roll >= 0 ? 1 : -1);
       triggerBarrelRoll(invertRoll ? -rollDir : rollDir);
     }, () => {});
+  }
+
+  if (tactical) {
+    tactical.addEventListener('pointerdown', (e) => {
+      if (isRepositionMode) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof audio !== 'undefined' && audio.init) audio.init();
+      if (typeof toggleMatchOverview === 'function') toggleMatchOverview();
+    });
   }
 
   if (pause) {
@@ -3137,6 +3184,11 @@ function updateDiscVisuals(discKey) {
       if (fallback) fallback.style.display = 'flex';
     };
   }
+
+  const fontSrc = (discKey === 'g64') ? 'gliderfonthting2.png' : 'gliderfontthing.png';
+  document.querySelectorAll('img[src*="gliderfont"], #splash-main-title, .ss-main-logo, .dash-logo, .credits-logo-img').forEach(img => {
+    img.src = fontSrc;
+  });
 }
 
 function triggerJukeboxEject() {

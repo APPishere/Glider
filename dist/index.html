@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#1a1a1a">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>GLIDER</title>
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
@@ -27,6 +28,12 @@
 <body>
 
 <div id="rotate-device-overlay">ROTATE YOUR DEVICE</div>
+
+<div id="mp-room-trapezoid">
+  <div id="mp-trapezoid-inner">
+    <span id="mp-trapezoid-code">----</span>
+  </div>
+</div>
 
 <div id="mobile-controls-wrap">
   <button id="mobile-btn-yaw-l" class="mobile-ctrl-btn" data-label="Q" aria-label="Yaw Left (Q)">
@@ -83,6 +90,15 @@
       </svg>
     </div>
   </div>
+  <button id="mobile-btn-tactical" class="mobile-ctrl-btn" data-label="💬" aria-label="Match Overview & Reactions">
+    <span style="font-size: 20px; line-height: 1; pointer-events: none;">💬</span>
+    <div class="ctrl-resize-handle" title="Resize">
+      <svg viewBox="0 0 16 16" width="16" height="16">
+        <path d="M16 2 L16 16 L2 16 Z" fill="rgba(0, 240, 255, 0.75)" stroke="#ffffff" stroke-width="1.2"/>
+        <path d="M4 16 L16 16 L16 4" fill="none" stroke="#00f0ff" stroke-width="2"/>
+      </svg>
+    </div>
+  </button>
 </div>
 
 <div id="mobile-reposition-overlay">
@@ -127,6 +143,7 @@
 </div>
 
 <div id="notif-container"></div>
+<div id="mp-floating-reactions-wrap"></div>
 
 <div id="unlocked-message-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 700; display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.82); pointer-events: none;">
   <img id="unlocked-message-img" src="unlockedmessage.png" alt="IMPOSSIBLE DIFFICULTY UNLOCKED" style="max-width: 85%; max-height: 80%; object-fit: contain; filter: drop-shadow(0 0 26px rgba(202, 138, 255, 0.95));">
@@ -195,6 +212,7 @@
   <svg viewBox="0 0 24 24">
     <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
   </svg>
+  <img class="btn-notif-badge notif-badge-settings" src="Animatedexclamtion.gif" alt="!" style="display: none;">
 </button>
 
 <div id="settings-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 560; display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px);">
@@ -255,6 +273,14 @@
           <div class="row-group" style="width: auto; margin-bottom: 0;">
             <button class="mono-btn gfx-btn active" data-gfx="low">LOW</button>
             <button class="mono-btn gfx-btn" data-gfx="high">HIGH</button>
+          </div>
+        </div>
+
+        <div class="control-toggle-box" style="margin-bottom: 0;">
+          <div class="control-toggle-label">MP EMOJIS</div>
+          <div class="row-group" style="width: auto; margin-bottom: 0;">
+            <button class="mono-btn mp-emoji-toggle-btn active" data-mp-emoji="on">ON</button>
+            <button class="mono-btn mp-emoji-toggle-btn" data-mp-emoji="off">OFF</button>
           </div>
         </div>
       </div>
@@ -417,7 +443,7 @@
       <div class="ss-dock-left">
         <button class="mono-btn ss-btn-primary" id="btn-start-play">PLAY</button>
         <button class="mono-btn ss-dock-btn" id="btn-start-multiplayer" style="font-size: 13px !important; padding: 10px 22px !important; border-color: var(--cyan); color: var(--cyan);">MULTIPLAYER</button>
-        <button class="mono-btn ss-dock-btn" id="btn-start-shop" style="font-size: 13px !important; padding: 10px 22px !important;">SHOP</button>
+        <button class="mono-btn ss-dock-btn" id="btn-start-shop" style="font-size: 13px !important; padding: 10px 22px !important;">SHOP<img class="btn-notif-badge notif-badge-shop" src="Animatedexclamtion.gif" alt="!" style="display: none;"></button>
       </div>
 
     <div class="ss-dock-center">
@@ -455,14 +481,17 @@
       <button class="dash-nav-btn" id="dash-nav-challenge" data-cat="challenge">
         <span class="dash-nav-bullet"></span>
         <span class="dash-nav-label">DAILY CHALLENGE</span>
+        <img class="btn-notif-badge notif-badge-challenge" src="Animatedexclamtion.gif" alt="!" style="display: none;">
       </button>
       <button class="dash-nav-btn" id="dash-nav-shop" data-cat="shop">
         <span class="dash-nav-bullet"></span>
         <span class="dash-nav-label">SHOP</span>
+        <img class="btn-notif-badge notif-badge-shop" src="Animatedexclamtion.gif" alt="!" style="display: none;">
       </button>
       <button class="dash-nav-btn" id="dash-nav-settings" data-cat="settings">
         <span class="dash-nav-bullet"></span>
         <span class="dash-nav-label">SETTINGS</span>
+        <img class="btn-notif-badge notif-badge-settings" src="Animatedexclamtion.gif" alt="!" style="display: none;">
       </button>
     </nav>
 
@@ -500,11 +529,11 @@
         <div class="menu-subtitle">Thanks To Peer.js!</div>
       </div>
 
-      <div class="control-toggle-box" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 12px 14px; margin-bottom: 12px;">
+      <div class="control-toggle-box mp-entry-actions" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 12px 14px; margin-bottom: 12px;">
         <button class="mono-btn btn-mp-create-room" style="width: 100%; border-color: var(--cyan); color: var(--cyan); font-weight: 800; padding: 11px;">CREATE NEW ROOM</button>
       </div>
 
-      <div class="control-toggle-box" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 12px 14px; margin-bottom: 12px;">
+      <div class="control-toggle-box mp-entry-actions" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 12px 14px; margin-bottom: 12px;">
         <div class="control-toggle-label" style="font-size: 9.5px;">JOIN WITH 4-LETTER CODE</div>
         <div style="display: flex; gap: 8px; width: 100%;">
           <input id="mp-join-input-dt" class="mp-join-code-input" type="text" maxlength="4" placeholder="CODE" style="width: 90px; background: rgba(0,0,0,0.75); border: 1.5px solid var(--mono-20); color: var(--cyan); font-family: monospace; font-size: 16px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; text-align: center; border-radius: 4px; outline: none;">
@@ -630,6 +659,14 @@
         <div class="row-group" style="width: auto; margin-bottom: 0;">
           <button class="mono-btn gfx-btn active" data-gfx="low">LOW</button>
           <button class="mono-btn gfx-btn" data-gfx="high">HIGH</button>
+        </div>
+      </div>
+
+      <div class="control-toggle-box">
+        <div class="control-toggle-label">MP EMOJIS</div>
+        <div class="row-group" style="width: auto; margin-bottom: 0;">
+          <button class="mono-btn mp-emoji-toggle-btn active" data-mp-emoji="on">ON</button>
+          <button class="mono-btn mp-emoji-toggle-btn" data-mp-emoji="off">OFF</button>
         </div>
       </div>
       <div class="row-group" style="margin-top: 10px; margin-bottom: 6px;">
@@ -801,7 +838,7 @@
 
   <div class="menu-subtitle" style="margin-bottom: 10px; text-align: center;">Thanks To Peer.js!</div>
 
-  <div style="display: flex; gap: 8px; width: 100%; margin-bottom: 10px;">
+  <div class="mp-entry-actions" style="display: flex; gap: 8px; width: 100%; margin-bottom: 10px;">
     <button class="mono-btn btn-mp-create-room" style="flex: 1; border-color: var(--cyan); color: var(--cyan); font-weight: 800; padding: 10px;">CREATE ROOM</button>
     <div style="display: flex; gap: 6px; flex: 1.3;">
       <input id="mp-join-input-mob" class="mp-join-code-input" type="text" maxlength="4" placeholder="CODE" style="width: 72px; background: rgba(0,0,0,0.75); border: 1.5px solid var(--mono-20); color: var(--cyan); font-family: monospace; font-size: 15px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; text-align: center; border-radius: 4px; outline: none;">
@@ -836,6 +873,7 @@
 
   <div class="row-group" style="margin-bottom: 0; width: 100%; gap: 8px;">
     <button class="mono-btn btn-mp-leave-room" style="flex: 1; border-color: var(--red); color: var(--red); padding: 9px;">LEAVE</button>
+    <button class="mono-btn btn-mp-menu-return" id="btn-mp-menu-return" style="flex: 1; padding: 9px;">MENU</button>
     <button class="mono-btn btn-mp-toggle-ready" style="flex: 1.2; font-weight: 800; border-color: var(--cyan); color: var(--cyan); padding: 9px;">READY</button>
     <button class="mono-btn btn-mp-start-race" style="flex: 1.5; font-weight: 900; letter-spacing: 2px; border-color: var(--cyan); background: var(--cyan); color: #000000; padding: 9px; display: none;">START</button>
   </div>
@@ -854,6 +892,7 @@
     </button>
     <button class="mono-btn select-tab-btn" id="btn-tab-challenge" style="padding: 6px 20px;">
       <img src="challenges.png" alt="GRAND PRIX" style="max-height: 70px; width: auto; object-fit: contain; display: block; margin: 0 auto; pointer-events: none;">
+      <img class="btn-notif-badge notif-badge-challenge" src="Animatedexclamtion.gif" alt="!" style="display: none;">
     </button>
   </div>
 
@@ -1202,6 +1241,14 @@
     <div class="control-toggle-label">MUSIC VOLUME <span class="music-vol-label" style="color: var(--cyan); margin-left: 6px;">80%</span></div>
     <div class="row-group" style="width: auto; margin-bottom: 0; align-items: center;">
       <input type="range" class="volume-slider music-volume-slider" min="0" max="100" value="80">
+    </div>
+  </div>
+
+  <div class="control-toggle-box">
+    <div class="control-toggle-label">MP EMOJIS</div>
+    <div class="row-group" style="width: auto; margin-bottom: 0;">
+      <button class="mono-btn mp-emoji-toggle-btn active" data-mp-emoji="on">ON</button>
+      <button class="mono-btn mp-emoji-toggle-btn" data-mp-emoji="off">OFF</button>
     </div>
   </div>
 

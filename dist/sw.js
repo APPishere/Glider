@@ -1,4 +1,4 @@
-const CACHE_NAME = 'glider-cache-v30';
+const CACHE_NAME = 'glider-cache-v33';
 
 function isHalloweenSeason() {
   const md = (new Date().getMonth() + 1) * 100 + new Date().getDate();
@@ -62,6 +62,7 @@ const ASSETS = [
   './Dpadup.png',
   './dpadupright.png',
   './gliderfontthing.png',
+  './gliderfonthting2.png',
   './aphelionlogo.png',
   './singletrack.png',
   './grandprix.png',
@@ -111,6 +112,7 @@ const ASSETS = [
   './aphelionapex.png',
   './Grandprixtrophy.png',
   './Tvturnedoff.gif',
+  './brokenTV.png',
   './jukebox.png',
   './musicdiscdefault.png',
   './musicdisc64.png',
@@ -126,11 +128,14 @@ const ASSETS = [
   './moonbanner.png',
   './fishbanner.png',
   './akane.png',
+  './victoriusBanner.png',
   './aphelionapexname.png',
   './devtoolsonly.png',
   './nopfpequiped.png',
   './boatPFP.png',
   './gliderPFPrga.png',
+  './RGBglider64PFP.png',
+  './victoriusPFP.png',
   './emptypfp.png',
   './krakenPFP.png',
   './wavesPFP.png',

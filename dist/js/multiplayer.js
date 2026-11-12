@@ -38,6 +38,28 @@ let mpRaceInProgress = false;
 let mpTacticalOverlayOpen = false;
 let mpLoadingTimers = [];
 let mpPlayerPings = {};
+let mpEmojisEnabled = localStorage.getItem('glider_mp_emojis_enabled') !== 'false';
+let lastEmojiSendTime = 0;
+let mpLastEmojiReactionTime = {};
+
+function setMpEmojisEnabled(enabled) {
+  mpEmojisEnabled = !!enabled;
+  try {
+    localStorage.setItem('glider_mp_emojis_enabled', mpEmojisEnabled ? 'true' : 'false');
+  } catch (e) {}
+  if (!mpEmojisEnabled) {
+    const container = document.getElementById('mp-floating-reactions-wrap');
+    if (container) container.innerHTML = '';
+  }
+  updateMpEmojiButtons();
+}
+
+function updateMpEmojiButtons() {
+  document.querySelectorAll('.mp-emoji-toggle-btn').forEach(btn => {
+    const isValOn = btn.getAttribute('data-mp-emoji') === 'on';
+    btn.classList.toggle('active', isValOn === mpEmojisEnabled);
+  });
+}
 
 setInterval(() => {
   if (!multiplayerActive || document.hidden) return;
@@ -54,7 +76,7 @@ setInterval(() => {
     mpHostConn.send({ type: 'PING', t: now });
   }
 }, 1500);
-
+// Thank you Pollytrack (kodub) for this idea of multiplayer! (code is mine)
 let mpModifiers = {
   disableYaw: false,
   disableAirbrake: false,
@@ -106,7 +128,7 @@ function recordMpBanOrKick() {
     sheet.push(now);
     localStorage.setItem('glider_mp_rap_sheet', JSON.stringify(sheet));
     if (sheet.length >= 3) {
-      localStorage.setItem('glider_mp_suspension_until', String(now + 12 * 60 * 60 * 1000));
+      localStorage.setItem('glider_mp_suspension_until', String(now + 30 * 60 * 1000));
     }
   } catch (e) {}
 }
@@ -116,8 +138,8 @@ function checkMpSuspension() {
     const until = parseInt(localStorage.getItem('glider_mp_suspension_until') || '0', 10);
     const now = Date.now();
     if (until > now) {
-      const remainingHours = Math.max(1, Math.ceil((until - now) / (60 * 60 * 1000)));
-      const msg = 'MULTIPLAYER SUSPENDED: You have been banned from too many lobbies recently. Try again in ' + remainingHours + ' hours.';
+      const remainingMins = Math.max(1, Math.ceil((until - now) / (60 * 1000)));
+      const msg = 'MULTIPLAYER SUSPENDED: You have been banned from too many lobbies recently. Try again in ' + remainingMins + ' minutes.';
       showHostDisconnectModal('MULTIPLAYER SUSPENDED', msg);
       setMultiplayerStatus('MULTIPLAYER SUSPENDED');
       return true;
@@ -133,6 +155,7 @@ const MP_BANNERS = [
   { id: 'moon', name: 'LUNAR SURFACE', src: 'moonbanner.png', color: '#888888' },
   { id: 'fish', name: 'FISH', src: 'fishbanner.png', color: '#EE844C' },
   { id: 'akane_banner', name: 'AKANE BANNER', src: 'akane.png', color: '#14098b' },
+  { id: 'victorius', name: 'VICTORIOUS', src: 'victoriusBanner.png', color: '#ca8aff', greatestGliderOnly: true },
   { id: 'aphelion_apex_banner', name: 'APHELION APEX', src: 'aphelionapexname.png', color: '#a020f0', devOnly: true },
   { id: 'dev_tools_banner', name: 'DEV TOOLS', src: 'devtoolsonly.png', color: '#ff4444', devOnly: true }
 ];
@@ -141,6 +164,8 @@ const MP_PFPS = [
   { id: 'default', name: 'NO PFP', src: 'nopfpequiped.png' },
   { id: 'boat', name: 'BOAT', src: 'boatPFP.png' },
   { id: 'glider_rgba', name: 'GLIDER RGBA', src: 'gliderPFPrga.png', hasColorPicker: true },
+  { id: 'rgb_glider_64', name: 'GLIDER 64 RGBA', src: 'RGBglider64PFP.png', hasColorPicker: true },
+  { id: 'victorius', name: 'VICTORIOUS', src: 'victoriusPFP.png', greatestGliderOnly: true },
   { id: 'emptypfp', name: 'EMPTY PFP', src: 'emptypfp.png' },
   { id: 'kraken', name: 'KRAKEN', src: 'krakenPFP.png' },
   { id: 'waves', name: 'WAVES', src: 'wavesPFP.png' },
@@ -157,6 +182,12 @@ const MP_PFPS = [
   { id: 'apex_logo', name: 'APEX LOGO', src: 'aphelionapexlogo.png', devOnly: true },
   { id: 'End', name: 'End', src: 'thatsallfools.png' },
 ];
+
+function isGreatestGliderUnlocked() {
+  if (typeof getTrackStats !== 'function') return false;
+  const s = getTrackStats();
+  return !!(s && s.totalAceOrBetter >= 20 && s.hasGhost);
+}
 
 function isDevToolsActive() {
   return (typeof impossibleDifficultyUnlocked !== 'undefined' && impossibleDifficultyUnlocked) ||
@@ -182,9 +213,9 @@ function getLocalProfile() {
   let banner = localStorage.getItem('glider_profile_banner') || 'default';
   const pfpColor = localStorage.getItem('glider_profile_pfp_color') || '#00f0ff';
   const bDef = MP_BANNERS.find(b => b.id === banner);
-  if (!bDef || (bDef.devOnly && !isDevToolsActive())) banner = 'default';
+  if (!bDef || (bDef.devOnly && !isDevToolsActive()) || (bDef.greatestGliderOnly && !isGreatestGliderUnlocked())) banner = 'default';
   const pDef = MP_PFPS.find(p => p.src === pfp);
-  if (!pDef || (pDef.devOnly && !isDevToolsActive())) pfp = 'nopfpequiped.png';
+  if (!pDef || (pDef.devOnly && !isDevToolsActive()) || (pDef.greatestGliderOnly && !isGreatestGliderUnlocked())) pfp = 'nopfpequiped.png';
   return { name, pfp, banner, pfpColor };
 }
 
@@ -297,7 +328,7 @@ function openProfileEditModal() {
   const pfpWrap = document.getElementById('profile-edit-pfp-list');
   if (pfpWrap) {
     pfpWrap.innerHTML = '';
-    const visiblePfps = MP_PFPS.filter(p => !p.devOnly || isDevToolsActive());
+    const visiblePfps = MP_PFPS.filter(p => (!p.devOnly || isDevToolsActive()) && (!p.greatestGliderOnly || isGreatestGliderUnlocked()));
     visiblePfps.forEach(p => {
       const isSel = (p.src === profileEditCurrentPfp);
       const item = document.createElement('div');
@@ -360,7 +391,7 @@ function openProfileEditModal() {
   const bannerWrap = document.getElementById('profile-edit-banner-list');
   if (bannerWrap) {
     bannerWrap.innerHTML = '';
-    const visibleBanners = MP_BANNERS.filter(b => !b.devOnly || isDevToolsActive());
+    const visibleBanners = MP_BANNERS.filter(b => (!b.devOnly || isDevToolsActive()) && (!b.greatestGliderOnly || isGreatestGliderUnlocked()));
     visibleBanners.forEach(b => {
       const isSel = (b.id === profileEditCurrentBanner);
       const item = document.createElement('div');
@@ -535,6 +566,10 @@ function toggleDedicatedServer() {
 
 function createMultiplayerRoom(useTurn = false) {
   if (checkMpSuspension()) return;
+  if (typeof impossibleDifficultyUnlocked !== 'undefined' && impossibleDifficultyUnlocked) {
+    setMultiplayerStatus('DEV TOOLS ACTIVE, CANNOT CREATE/JOIN ROOMs');
+    return;
+  }
   cancelActiveDailyChallenge();
   setMultiplayerStatus('CREATING ROOM...');
   mpUseTurn = useTurn;
@@ -652,7 +687,13 @@ function hostTriggerRaceOver() {
     isGp: !!mpGpMode,
     playerWins: mpPlayerWins
   });
-  showMultiplayerResultsScreen(mpLeaderboard);
+  if (mpGpMode && typeof startGrandPrixHighlightReel === 'function') {
+    startGrandPrixHighlightReel(() => {
+      showMultiplayerResultsScreen(mpLeaderboard);
+    });
+  } else {
+    showMultiplayerResultsScreen(mpLeaderboard);
+  }
 }
 
 function hostReturnAllToLobby() {
@@ -664,6 +705,14 @@ function handleHostReceivedData(peerId, data) {
   if (!data || !data.type) return;
 
   if (data.type === 'JOIN') {
+    if (data.devTools) {
+      const conn = mpConnections[peerId];
+      if (conn && conn.open) {
+        conn.send({ type: 'REJECT', reason: 'DEV TOOLS DETECTED' });
+        setTimeout(() => conn.close(), 200);
+      }
+      return;
+    }
     if (mpBannedPeerIds.has(peerId)) {
       const conn = mpConnections[peerId];
       if (conn && conn.open) {
@@ -765,6 +814,14 @@ function handleHostReceivedData(peerId, data) {
     }
   } else if (data.type === 'F') {
     relayFlightData(peerId, data);
+  } else if (data.type === 'EMOJI_REACTION') {
+    const now = performance.now();
+    if (!mpLastEmojiReactionTime[peerId]) mpLastEmojiReactionTime[peerId] = 0;
+    if (now - mpLastEmojiReactionTime[peerId] < 1000) return;
+    mpLastEmojiReactionTime[peerId] = now;
+    data.id = peerId;
+    relayPacketToClients(data, peerId);
+    showFloatingReaction(data.emoji, data.senderName);
   } else if (data.type === 'GATE') {
     data.id = peerId;
     relayPacketToClients(data);
@@ -929,6 +986,10 @@ function relayFlightData(senderPeerId, packet) {
 
 function joinMultiplayerRoom(rawCode) {
   if (checkMpSuspension()) return;
+  if (typeof impossibleDifficultyUnlocked !== 'undefined' && impossibleDifficultyUnlocked) {
+    setMultiplayerStatus('DEV TOOLS ACTIVE  CANNOT JOIN/CREATE ROOMs');
+    return;
+  }
   const code = (rawCode || '').trim().toUpperCase();
   if (code.length !== 4) {
     setMultiplayerStatus('CODE MUST BE 4 CHARACTERS');
@@ -959,7 +1020,8 @@ function joinMultiplayerRoom(rawCode) {
         type: 'JOIN',
         profile: getLocalProfile(),
         droneSkinId: getEquippedGhostSkinId(),
-        gliderSkinId: typeof getEquippedSkinId === 'function' ? getEquippedSkinId() : (localStorage.getItem('glider_equipped_skin') || 'default')
+        gliderSkinId: typeof getEquippedSkinId === 'function' ? getEquippedSkinId() : (localStorage.getItem('glider_equipped_skin') || 'default'),
+        devTools: !!(typeof impossibleDifficultyUnlocked !== 'undefined' && impossibleDifficultyUnlocked)
       });
       if (!isMobileDevice()) {
         if (typeof setDashboardCategory === 'function' && currentDashboardCat !== 'multiplayer') {
@@ -1041,12 +1103,16 @@ function handleClientReceivedData(data) {
       mpIsSpectating = false;
       launchMultiplayerRace();
     }
+  } else if (data.type === 'CHAOS_CMD') {
+    handleChaosCommand(data.cmd, data.value, data.targetId);
   } else if (data.type === 'START_COUNTDOWN') {
     clearMpLoadingTimers();
     hideMultiplayerLoadingScreen();
     finishMultiplayerCinematic();
   } else if (data.type === 'F') {
     handleRemoteFlightPacket(data);
+  } else if (data.type === 'EMOJI_REACTION') {
+    showFloatingReaction(data.emoji, data.senderName);
   } else if (data.type === 'GATE') {
     if (mpPlayers[data.id]) {
       mpPlayers[data.id].gate = data.gate;
@@ -1060,7 +1126,13 @@ function handleClientReceivedData(data) {
     if (data.playerWins) mpPlayerWins = data.playerWins;
     if (data.isGp !== undefined) mpGpMode = data.isGp;
     if (data.gpRaceIndex !== undefined) mpGpRaceIndex = data.gpRaceIndex;
-    showMultiplayerResultsScreen(mpLeaderboard);
+    if (mpGpMode && typeof startGrandPrixHighlightReel === 'function') {
+      startGrandPrixHighlightReel(() => {
+        showMultiplayerResultsScreen(mpLeaderboard);
+      });
+    } else {
+      showMultiplayerResultsScreen(mpLeaderboard);
+    }
   } else if (data.type === 'PING') {
     if (mpHostConn && mpHostConn.open) {
       mpHostConn.send({ type: 'PONG', t: data.t });
@@ -1075,15 +1147,17 @@ function handleClientReceivedData(data) {
   } else if (data.type === 'RETURN_TO_LOBBY') {
     returnToMultiplayerLobby();
   } else if (data.type === 'KICK' || data.type === 'REJECT') {
-    recordMpBanOrKick();
     const reason = data.reason || 'KICKED FROM ROOM';
     const isBan = reason.toUpperCase().includes('BAN');
+    if (data.type === 'KICK' || isBan) recordMpBanOrKick();
     const title = isBan ? 'BANNED FROM ROOM' : (data.type === 'REJECT' ? 'CONNECTION REJECTED' : 'KICKED FROM ROOM');
     showHostDisconnectModal(title, reason);
   }
 }
 
 function leaveMultiplayerRoom() {
+  window.mpGhostCache = {};
+  if (typeof resetChaosState === 'function') resetChaosState();
   if (mpHostConn) {
     try { mpHostConn.close(); } catch (e) {}
     mpHostConn = null;
@@ -1127,6 +1201,8 @@ function leaveMultiplayerRoom() {
   mpGpRaceIndex = 0;
   mpTacticalOverlayOpen = false;
   mpPlayerPings = {};
+  lastEmojiSendTime = 0;
+  mpLastEmojiReactionTime = {};
   if (typeof challengeMod !== 'undefined') challengeMod = null;
   clearMpLoadingTimers();
   const mOver = document.getElementById('mp-match-overview-overlay');
@@ -1137,6 +1213,7 @@ function leaveMultiplayerRoom() {
   }
   renderMultiplayerLobby();
   setMultiplayerStatus('IDLE');
+  updateMpTrapezoid();
 }
 
 function toggleMultiplayerReady() {
@@ -1309,7 +1386,7 @@ function showMultiplayerLoadingScreen() {
   overlay.innerHTML = `
     <div style="width:40%;min-width:280px;height:100%;background:linear-gradient(90deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.82) 45%, rgba(0, 0, 0, 0.45) 85%, transparent 100%);display:flex;flex-direction:column;justify-content:space-between;padding:40px 36px;box-sizing:border-box;pointer-events:auto;">
       <div style="display:flex;flex-direction:column;align-items:flex-start;">
-        <img src="gliderfontthing.png" alt="GLIDER" style="max-width:320px;width:100%;height:auto;display:block;filter:drop-shadow(0 4px 14px rgba(0, 0, 0, 0.95));">
+        <img src="${(localStorage.getItem('glider_soundtrack_disc') === 'g64') ? 'gliderfonthting2.png' : 'gliderfontthing.png'}" alt="GLIDER" style="max-width:320px;width:100%;height:auto;display:block;filter:drop-shadow(0 4px 14px rgba(0, 0, 0, 0.95));">
         <div style="font-size:14px;letter-spacing:1.5px;line-height:1.6;color:var(--mono-90);text-transform:uppercase;text-shadow:0 2px 8px rgba(0, 0, 0, 0.95);margin-top:28px;">
           ${randomMsg}
         </div>
@@ -1650,7 +1727,7 @@ function setupMultiplayerWorld(course, activeSubtrack) {
 }
 
 function updateMultiplayerFlight(dt) {
-  if (!multiplayerActive) return;
+  if (!multiplayerActive || !mpRaceInProgress) return;
 
   if (isMultiplayerHost && mpDnfTimerActive && !mpRaceOver) {
     mpDnfTimer -= dt;
@@ -1679,6 +1756,9 @@ function updateMultiplayerFlight(dt) {
     const drone = mpRemoteDrones[pId];
     const target = mpRemoteTargets[pId];
     if (drone && target) {
+      if (typeof mpGhostedPlayers !== 'undefined' && mpGhostedPlayers.has(pId) && !isMultiplayerHost) {
+        drone.visible = false;
+      }
       drone.position.lerp(target.pos, Math.min(1.0, 8.0 * dt));
 
       let dYaw = target.yaw - drone.rotation.y;
@@ -1702,6 +1782,7 @@ function updateMultiplayerFlight(dt) {
 }
 
 function broadcastLocalFlightPacket() {
+  if (!mpRaceInProgress) return;
   const packet = {
     type: 'F',
     d: [
@@ -1754,7 +1835,7 @@ function handleRemoteFlightPacket(packet) {
 }
 
 function onMultiplayerGatePassed(idx) {
-  if (!multiplayerActive) return;
+  if (!multiplayerActive || !mpRaceInProgress) return;
   const packet = { type: 'GATE', id: mpPeer ? mpPeer.id : 'me', gate: idx };
   if (isMultiplayerHost) {
     relayPacketToClients(packet);
@@ -1764,7 +1845,7 @@ function onMultiplayerGatePassed(idx) {
 }
 
 function onMultiplayerFinished() {
-  if (!multiplayerActive) return;
+  if (!multiplayerActive || !mpRaceInProgress) return;
   const myId = mpPeer ? mpPeer.id : 'me';
   const packet = { type: 'FINISH', id: myId, time: raceElapsedTime };
   mpFinishedRacers.add(myId);
@@ -1782,6 +1863,7 @@ function onMultiplayerFinished() {
 }
 
 function onMultiplayerCrashed() {
+  if (!multiplayerActive || !mpRaceInProgress) return;
   return;
 }
 
@@ -1969,6 +2051,7 @@ function showMultiplayerResultsScreen(leaderboard) {
 }
 
 function returnToMultiplayerLobby() {
+  if (typeof resetChaosState === 'function') resetChaosState();
   const resultsModal = document.getElementById('screen-mp-results');
   if (resultsModal) resultsModal.style.display = 'none';
   const finishBanner = document.getElementById('race-finish-banner');
@@ -2032,10 +2115,11 @@ function returnToMultiplayerLobby() {
 }
 
 function drawMultiplayerNametags(ctx, w, h) {
-  if (!multiplayerActive || !camera) return;
+  if (!multiplayerActive || !mpRaceInProgress || !camera) return;
 
   ctx.save();
   for (const pId in mpRemoteDrones) {
+    if (typeof mpGhostedPlayers !== 'undefined' && mpGhostedPlayers.has(pId) && !isMultiplayerHost) continue;
     const drone = mpRemoteDrones[pId];
     const target = mpRemoteTargets[pId];
     if (!drone || !target) continue;
@@ -2081,8 +2165,9 @@ function drawMultiplayerNametags(ctx, w, h) {
 }
 
 function drawMultiplayerMinimap(ctx, toMapX, toMapY) {
-  if (!multiplayerActive) return;
+  if (!multiplayerActive || !mpRaceInProgress) return;
   for (const pId in mpRemoteDrones) {
+    if (typeof mpGhostedPlayers !== 'undefined' && mpGhostedPlayers.has(pId) && !isMultiplayerHost) continue;
     const drone = mpRemoteDrones[pId];
     if (drone) {
       const mx = toMapX(drone.position.x);
@@ -2102,6 +2187,125 @@ function drawMultiplayerMinimap(ctx, toMapX, toMapY) {
   }
 }
 
+function updateMpTrapezoid() {
+  const trap = document.getElementById('mp-room-trapezoid');
+  const codeEl = document.getElementById('mp-trapezoid-code');
+  if (!trap || !codeEl) return;
+
+  if (!multiplayerActive || !mpRoomCode) {
+    trap.style.display = 'none';
+    return;
+  }
+
+  let inMpModal = false;
+  const isMob = (typeof isMobileDevice === 'function' && isMobileDevice()) || window.innerWidth <= 950 || window.innerHeight <= 600;
+  if (isMob) {
+    const mpScreen = document.getElementById('screen-multiplayer');
+    inMpModal = mpScreen && !mpScreen.classList.contains('hidden') && mpScreen.style.display !== 'none';
+  } else {
+    const dashEl = document.getElementById('desktop-dashboard');
+    const isDashOpen = dashEl && window.getComputedStyle(dashEl).display !== 'none';
+    inMpModal = isDashOpen && (typeof currentDashboardCat !== 'undefined' && currentDashboardCat === 'multiplayer');
+  }
+
+  if (inMpModal) {
+    trap.style.display = 'none';
+    return;
+  }
+
+  trap.style.display = 'flex';
+  codeEl.innerText = mpRoomCode;
+
+  const myId = mpPeer ? mpPeer.id : null;
+  const me = myId ? mpPlayers[myId] : null;
+  const amReady = !!(me ? me.ready : mpLocalReady);
+
+  const activeRacers = Object.values(mpPlayers).filter(p => !p.isDedicatedServer && p.slot >= 0 && !p.isSpectator);
+  const others = activeRacers.filter(p => p.id !== myId);
+  const othersReady = others.length > 0 && others.every(p => p.ready);
+
+if (amReady) {
+    codeEl.style.color = '#39ff14';
+    codeEl.style.textShadow = '0 0 8px rgba(57, 255, 20, 0.7)';
+    trap.style.background = '#39ff14'; 
+  } else if (othersReady) {
+    codeEl.style.color = '#ff4444';
+    codeEl.style.textShadow = '0 0 8px rgba(255, 68, 68, 0.7)';
+    trap.style.background = '#ff4444';
+  } else {
+    codeEl.style.color = '#ffffff';
+    codeEl.style.textShadow = 'none';
+    trap.style.background = '#ffffff'; 
+  }
+}
+
+window.updateMpTrapezoid = updateMpTrapezoid;
+
+function returnToMultiplayerRoomFromTrapezoid() {
+  if (!multiplayerActive || !mpRoomCode) return;
+  if (typeof audio !== 'undefined' && audio.init) audio.init();
+
+  if (typeof gameState !== 'undefined' && gameState !== 'START') {
+    gameState = 'START';
+    if (typeof audio !== 'undefined' && audio.stopAllAudio) audio.stopAllAudio();
+  }
+
+  const hud = document.getElementById('hud-overlay');
+  if (hud) hud.style.display = 'none';
+  const countBox = document.getElementById('countdown-box');
+  if (countBox) countBox.style.display = 'none';
+  const finishBanner = document.getElementById('race-finish-banner');
+  if (finishBanner) finishBanner.style.display = 'none';
+  const mobWrap = document.getElementById('mobile-controls-wrap');
+  if (mobWrap) mobWrap.style.display = 'none';
+  const mobSpd = document.getElementById('mobile-speedometer');
+  if (mobSpd) mobSpd.style.display = 'none';
+
+  if (typeof paragliderWingGroup !== 'undefined' && paragliderWingGroup) {
+    paragliderWingGroup.visible = true;
+  }
+
+  const modalsToClose = [
+    'settings-overlay',
+    'shop-preview-modal',
+    'keybind-modal-overlay',
+    'save-transfer-overlay',
+    'profile-edit-modal',
+    'mp-drone-picker-modal',
+    'mp-track-select-modal',
+    'mp-match-overview-overlay',
+    'flappy-minigame-overlay',
+    'screen-pause',
+    'screen-win',
+    'screen-lose',
+    'screen-dispatch',
+    'screen-select',
+    'screen-select-mobile',
+    'screen-shop'
+  ];
+  modalsToClose.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.display = 'none';
+      el.classList.add('hidden');
+    }
+  });
+
+  const isMob = (typeof isMobileDevice === 'function' && isMobileDevice()) || window.innerWidth <= 950 || window.innerHeight <= 600;
+  if (isMob) {
+    if (typeof showScreen === 'function') showScreen('screen-multiplayer');
+    if (typeof renderMultiplayerLobby === 'function') renderMultiplayerLobby();
+  } else {
+    if (typeof setDashboardCategory === 'function') setDashboardCategory('multiplayer');
+    if (typeof openDashboardRight === 'function') openDashboardRight('multiplayer');
+    if (typeof showScreen === 'function') showScreen('screen-start');
+    if (typeof renderMultiplayerLobby === 'function') renderMultiplayerLobby();
+  }
+
+  updateMpTrapezoid();
+}
+window.returnToMultiplayerRoomFromTrapezoid = returnToMultiplayerRoomFromTrapezoid;
+
 function setMultiplayerStatus(text) {
   document.querySelectorAll('.mp-status-banner').forEach(el => {
     el.innerText = text;
@@ -2110,6 +2314,11 @@ function setMultiplayerStatus(text) {
 
 function renderMultiplayerLobby() {
   updateProfileCardElements();
+
+  const isInRoom = !!(multiplayerActive && mpRoomCode);
+  document.querySelectorAll('.mp-entry-actions').forEach(el => {
+    el.style.display = isInRoom ? 'none' : 'flex';
+  });
 
   const serverBadges = document.querySelectorAll('.mp-server-badge-container');
   serverBadges.forEach(wrap => {
@@ -2367,6 +2576,7 @@ function renderMultiplayerLobby() {
   });
 
   renderDashboardMultiplayerCustomizer();
+  updateMpTrapezoid();
 }
 
 function showHostDisconnectModal(customTitle, customMsg) {
@@ -2773,7 +2983,7 @@ function renderDashboardMultiplayerCustomizer() {
   const stats = (typeof getTrackStats === 'function') ? getTrackStats() : {};
 
   pfpWrap.innerHTML = '';
-  const visiblePfps = MP_PFPS.filter(p => !p.devOnly || isDevToolsActive());
+  const visiblePfps = MP_PFPS.filter(p => (!p.devOnly || isDevToolsActive()) && (!p.greatestGliderOnly || isGreatestGliderUnlocked()));
   visiblePfps.forEach(p => {
     const isSel = (p.src === prof.pfp);
     const item = document.createElement('div');
@@ -2797,7 +3007,7 @@ function renderDashboardMultiplayerCustomizer() {
   });
 
   bannerWrap.innerHTML = '';
-  const visibleBanners = MP_BANNERS.filter(b => !b.devOnly || isDevToolsActive());
+  const visibleBanners = MP_BANNERS.filter(b => (!b.devOnly || isDevToolsActive()) && (!b.greatestGliderOnly || isGreatestGliderUnlocked()));
   visibleBanners.forEach(b => {
     const isSel = (b.id === prof.banner);
     const item = document.createElement('div');
@@ -2846,6 +3056,13 @@ function renderDashboardMultiplayerCustomizer() {
 
 function setupMultiplayerUI() {
   updateProfileCardElements();
+  updateMpEmojiButtons();
+  document.querySelectorAll('.mp-emoji-toggle-btn').forEach(btn => {
+    btn.onclick = () => {
+      if (typeof audio !== 'undefined' && audio.init) audio.init();
+      setMpEmojisEnabled(btn.getAttribute('data-mp-emoji') === 'on');
+    };
+  });
 
   document.querySelectorAll('.mp-profile-card').forEach(card => {
     card.onclick = () => {
@@ -2863,6 +3080,10 @@ function setupMultiplayerUI() {
 
   document.querySelectorAll('.btn-mp-create-room').forEach(btn => {
     btn.onclick = () => {
+      if (typeof impossibleDifficultyUnlocked !== 'undefined' && impossibleDifficultyUnlocked) {
+        setMultiplayerStatus('DEV TOOLS ACTIVE - CANNOT CREATE ROOM');
+        return;
+      }
       if (typeof isMobileDevice === 'function' && isMobileDevice()) {
         showMobileHostWarning();
       } else {
@@ -2873,6 +3094,10 @@ function setupMultiplayerUI() {
 
   document.querySelectorAll('.btn-mp-join-room').forEach(btn => {
     btn.onclick = () => {
+      if (typeof impossibleDifficultyUnlocked !== 'undefined' && impossibleDifficultyUnlocked) {
+        setMultiplayerStatus('DEV TOOLS ACTIVE - CANNOT JOIN ROOM');
+        return;
+      }
       const input = btn.parentElement.querySelector('.mp-join-code-input') || document.getElementById('mp-join-input-dt') || document.getElementById('mp-join-input-mob');
       const val = input ? input.value : '';
       if (input) input.value = '';
@@ -2946,6 +3171,23 @@ function setupMultiplayerUI() {
     };
   });
 
+  const trap = document.getElementById('mp-room-trapezoid');
+  if (trap) {
+    trap.onclick = () => {
+      returnToMultiplayerRoomFromTrapezoid();
+    };
+  }
+
+  const btnMenuReturn = document.getElementById('btn-mp-menu-return');
+  if (btnMenuReturn) {
+    btnMenuReturn.onclick = () => {
+      if (typeof showScreen === 'function') {
+        showScreen('screen-start-mobile');
+      }
+      updateMpTrapezoid();
+    };
+  }
+
   document.querySelectorAll('.mp-room-code-display').forEach(el => {
     el.onclick = () => {
       if (mpRoomCode) {
@@ -3003,6 +3245,73 @@ function setupMultiplayerUI() {
   }
 }
 
+function triggerEmojiReaction(emoji) {
+  if (!multiplayerActive) return;
+  if (!mpEmojisEnabled) return;
+  const now = performance.now();
+  if (now - lastEmojiSendTime < 1000) return;
+  lastEmojiSendTime = now;
+  const myName = (typeof getLocalProfile === 'function' ? getLocalProfile().name : 'PILOT') || 'PILOT';
+  const packet = {
+    type: 'EMOJI_REACTION',
+    emoji: emoji,
+    senderName: myName,
+    id: mpPeer ? mpPeer.id : 'me'
+  };
+  if (isMultiplayerHost) {
+    relayPacketToClients(packet);
+    showFloatingReaction(emoji, myName);
+  } else if (mpHostConn && mpHostConn.open) {
+    mpHostConn.send(packet);
+    showFloatingReaction(emoji, myName);
+  }
+  if (typeof audio !== 'undefined' && audio.playBeep) {
+    audio.playBeep(720, 'sine', 0.06, 0.15);
+  }
+}
+
+function escapeMpText(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function showFloatingReaction(emoji, senderName) {
+  if (!mpEmojisEnabled) return;
+  emoji = escapeMpText(String(emoji || '').substring(0, 8));
+  senderName = escapeMpText(String(senderName || '').substring(0, 12));
+  let container = document.getElementById('mp-floating-reactions-wrap');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'mp-floating-reactions-wrap';
+    container.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:850;overflow:hidden;';
+    document.body.appendChild(container);
+  }
+
+  const el = document.createElement('div');
+  el.className = 'mp-floating-emoji-item';
+
+  const w = window.innerWidth;
+  const minRight = Math.max(16, Math.floor(w * 0.04));
+  const maxRight = Math.min(w * 0.38, 320);
+  const randomRight = Math.floor(minRight + Math.random() * (maxRight - minRight));
+  const randomBottom = Math.floor(15 + Math.random() * 35);
+  const driftRot = (Math.random() - 0.5) * 16;
+
+  el.style.right = randomRight + 'px';
+  el.style.bottom = randomBottom + 'px';
+  el.style.setProperty('--drift-rot', driftRot + 'deg');
+
+  el.innerHTML = `
+    <span style="font-size: 38px; line-height: 1;">${emoji}</span>
+    ${senderName ? `<span style="font-size: 9px; font-weight: 800; letter-spacing: 1px; color: #ffffff; text-shadow: 0 1px 4px rgba(0,0,0,0.95); text-transform: uppercase; margin-top: 2px;">${senderName}</span>` : ''}
+  `;
+
+  container.appendChild(el);
+
+  setTimeout(() => {
+    if (el && el.parentNode) el.remove();
+  }, 2600);
+}
+
 function createMatchOverviewElements() {
   let overlay = document.getElementById('mp-match-overview-overlay');
   if (!overlay) {
@@ -3015,13 +3324,22 @@ function createMatchOverviewElements() {
 
     const card = document.createElement('div');
     card.className = 'menu-screen mp-match-overview-card';
-    card.style.cssText = 'position:relative;transform:none;top:auto;left:auto;max-width:650px;width:92%;max-height:85vh;padding:24px 28px;border:1.5px solid var(--mono-20);background:var(--mono-bg);border-radius:4px;box-shadow:0 10px 40px rgba(0,0,0,0.95);display:flex;flex-direction:column;align-items:center;';
+    card.style.cssText = 'position:relative;transform:none;top:auto;left:auto;max-width:840px;width:95%;max-height:88vh;padding:22px 26px;border:1.5px solid var(--mono-20);background:var(--mono-bg);border-radius:4px;box-shadow:0 10px 40px rgba(0,0,0,0.95);display:flex;flex-direction:column;align-items:center;';
 
     card.innerHTML = `
-      <div class="menu-title" style="margin-bottom: 2px;">MATCH OVERVIEW</div>
-      <div class="menu-subtitle mp-match-room-code" style="margin-bottom: 14px;">ROOM: ----</div>
-      <div id="mp-match-overview-rows" style="display: flex; flex-direction: column; gap: 8px; width: 100%; max-height: 52vh; overflow-y: auto;"></div>
-      <div style="font-size: 10px; letter-spacing: 1.5px; color: var(--mono-60); text-align: center; margin-top: 14px; text-transform: uppercase;">PRESS [TAB] TO CLOSE</div>
+      <div class="mp-match-overview-body" style="display:flex;gap:18px;width:100%;align-items:stretch;flex-wrap:wrap;">
+        <div style="flex:1.5;min-width:270px;display:flex;flex-direction:column;">
+          <div class="menu-title" style="margin-bottom:2px;text-align:left;">MATCH OVERVIEW</div>
+          <div class="menu-subtitle mp-match-room-code" style="margin-bottom:12px;text-align:left;">ROOM: ----</div>
+          <div id="mp-match-overview-rows" style="display:flex;flex-direction:column;gap:8px;width:100%;max-height:52vh;overflow-y:auto;padding-right:4px;"></div>
+        </div>
+        <div style="flex:1;min-width:190px;max-width:240px;display:flex;flex-direction:column;border-left:1px solid var(--mono-20);padding-left:16px;">
+          <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;color:var(--gold);text-transform:uppercase;margin-bottom:2px;text-align:left;">REACTIONS</div>
+          <div style="font-size:8.5px;letter-spacing:1px;color:var(--mono-60);text-transform:uppercase;margin-bottom:10px;text-align:left;">TAP EMOJI TO REACT</div>
+          <div id="mp-match-emoji-grid" style="display:grid;grid-template-columns:repeat(4, 1fr);gap:6px;width:100%;"></div>
+        </div>
+      </div>
+      <div style="font-size:10px;letter-spacing:1.5px;color:var(--mono-60);text-align:center;margin-top:14px;text-transform:uppercase;">PRESS [TAB] OR TAP OUTSIDE TO CLOSE</div>
     `;
 
     overlay.appendChild(card);
@@ -3035,6 +3353,22 @@ function renderMatchOverview() {
   if (!overlay) return;
   const roomCodeEl = overlay.querySelector('.mp-match-room-code');
   if (roomCodeEl) roomCodeEl.innerText = `ROOM: ${mpRoomCode || '----'}`;
+
+  const emojiGrid = document.getElementById('mp-match-emoji-grid');
+  if (emojiGrid && emojiGrid.children.length === 0) {
+    const emojis = ['👍', '👎', '😂', '💀', '🔥', '🚀', '😱', '👏', '🏆', '💥', '▶️', '⚡', '🎯', '🗿', '❓', '🎃', '🎄', '🥶', '🤩', '🫡'];
+    emojis.forEach(emoji => {
+      const btn = document.createElement('button');
+      btn.className = 'mp-emoji-btn';
+      btn.innerText = emoji;
+      btn.title = emoji;
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        triggerEmojiReaction(emoji);
+      };
+      emojiGrid.appendChild(btn);
+    });
+  }
 
   const rowsContainer = document.getElementById('mp-match-overview-rows');
   if (!rowsContainer) return;
@@ -3170,3 +3504,310 @@ function updateServerPlayersButton() {
 window.addEventListener('load', () => {
   setupMultiplayerUI();
 });
+
+let chaosGravityMult = 1.0;
+let chaosPlayerScale = 1.0;
+let chaosHoverActive = false;
+let chaosHoverAltitude = 0;
+let chaosControlsLocked = false;
+let chaosCrashForced = false;
+let chaosInvertActive = false;
+let chaosCrosswind = 0;
+let chaosFreezeActive = false;
+const mpGhostedPlayers = new Set();
+
+function resetChaosState() {
+  chaosGravityMult = 1.0;
+  chaosPlayerScale = 1.0;
+  chaosHoverActive = false;
+  chaosControlsLocked = false;
+  chaosCrashForced = false;
+  chaosInvertActive = false;
+  chaosCrosswind = 0;
+  chaosFreezeActive = false;
+  mpGhostedPlayers.clear();
+  if (typeof paragliderWingGroup !== 'undefined' && paragliderWingGroup) {
+    paragliderWingGroup.scale.set(1, 1, 1);
+  }
+}
+
+function resolveChaosTargets(targetInput) {
+  if (!targetInput && targetInput !== 0) return [];
+  const players = Object.values(mpPlayers);
+  if (targetInput === window) {
+    const hostPlayer = players.find(p => (mpPeer && p.id === mpPeer.id) || p.isHost);
+    return hostPlayer ? [hostPlayer] : [];
+  }
+  const str = String(targetInput).trim();
+  const lower = str.toLowerCase();
+
+  if (lower === 'all') {
+    return players;
+  }
+  if (lower === 'self') {
+    const hostPlayer = players.find(p => (mpPeer && p.id === mpPeer.id) || p.isHost);
+    return hostPlayer ? [hostPlayer] : [];
+  }
+
+  const idMatches = players.filter(p => p.id === str || p.id.split('-')[0] === str || p.id.replace(MP_ROOM_PREFIX, '') === str);
+  if (idMatches.length > 0) return idMatches;
+
+  const nameMatches = players.filter(p => p.profile && p.profile.name === str);
+  if (nameMatches.length > 0) return nameMatches;
+
+  console.error(`ERROR: No players found matching "${str}"`);
+  return [];
+}
+
+function syncPlayerGlobals() {
+  window.all = 'all';
+  window.storm = 'storm';
+  window.ghost_piggy_bank = 'ghost_piggy_bank';
+  for (const id in mpPlayers) {
+    const p = mpPlayers[id];
+    if (p.profile && p.profile.name) {
+      try { window[p.profile.name] = p.profile.name; } catch (e) {}
+    }
+    try {
+      window[p.id] = p.id;
+      window[p.id.split('-')[0]] = p.id;
+    } catch (e) {}
+  }
+}
+
+function handleChaosCommand(cmd, value, targetId) {
+  if (cmd === 'ghost') {
+    if (targetId) {
+      if (value === true || value === 'true') mpGhostedPlayers.add(targetId);
+      else mpGhostedPlayers.delete(targetId);
+    }
+    return;
+  }
+
+  if (cmd === 'weather') {
+    if (String(value).toLowerCase() === 'storm' && typeof weather !== 'undefined') {
+      weather.isStormy2X = true;
+      weather.rainIntensity = 1.0;
+      weather.targetRainIntensity = 1.0;
+      weather.windSpeed = 38;
+      weather.targetWindSpeed = 38;
+      weather.conditionText = 'STORMY';
+      weather.lightningTimer = 1.5;
+    }
+    return;
+  }
+
+  if (cmd === 'speed') {
+    const spd = Math.max(0, Math.min(500, parseFloat(value) || 0));
+    player.speed = spd;
+  } else if (cmd === 'gravity') {
+    chaosGravityMult = Math.max(0, Math.min(10, parseFloat(value) || 0));
+  } else if (cmd === 'scale') {
+    chaosPlayerScale = Math.max(0.25, Math.min(10, parseFloat(value) || 1));
+    if (typeof paragliderWingGroup !== 'undefined' && paragliderWingGroup) {
+      paragliderWingGroup.scale.set(chaosPlayerScale, chaosPlayerScale, chaosPlayerScale);
+    }
+  } else if (cmd === 'teleport') {
+    let coords = value;
+    if (typeof coords === 'string') coords = coords.split(',').map(n => parseFloat(n.trim()));
+    if (Array.isArray(coords) && coords.length >= 3 && coords.slice(0, 3).every(Number.isFinite)) {
+      player.pos.set(coords[0], coords[1], coords[2]);
+      if (typeof updateCameraView === 'function') updateCameraView(0, 0);
+    }
+  } else if (cmd === 'hover') {
+    chaosHoverActive = (value === true || value === 'true');
+    chaosHoverAltitude = player.pos.y;
+  } else if (cmd === 'lock') {
+    chaosControlsLocked = (value === true || value === 'true');
+  } else if (cmd === 'crash') {
+    chaosCrashForced = (value === true || value === 'true');
+  } else if (cmd === 'gate') {
+    const gIdx = Math.max(0, parseInt(value, 10) || 0);
+    player.nextGateIdx = gIdx;
+    if (typeof onMultiplayerGatePassed === 'function') onMultiplayerGatePassed(gIdx);
+  } else if (cmd === 'skin') {
+    const sId = String(value).trim();
+    localStorage.setItem('glider_equipped_ghost_skin', sId);
+    if (typeof equipMultiplayerDrone === 'function') equipMultiplayerDrone(sId);
+  } else if (cmd === 'invert') {
+    chaosInvertActive = (value === true || value === 'true');
+  } else if (cmd === 'wind') {
+    chaosCrosswind = parseFloat(value) || 150;
+  } else if (cmd === 'freeze') {
+    chaosFreezeActive = (value === true || value === 'true');
+  }
+}
+
+function dispatchChaosCommand(cmd, target, value) {
+  if (!multiplayerActive || (!isMultiplayerHost && !mpIsDedicatedServer)) {
+    console.error('ERROR: Only host or server can run console commands.');
+    return;
+  }
+  const targets = resolveChaosTargets(target);
+  if (targets.length === 0) return;
+
+  targets.forEach(p => {
+    const isSelf = mpPeer && p.id === mpPeer.id;
+    if (cmd === 'ghost') {
+      if (value === true || value === 'true') mpGhostedPlayers.add(p.id);
+      else mpGhostedPlayers.delete(p.id);
+      relayPacketToClients({ type: 'CHAOS_CMD', cmd: 'ghost', targetId: p.id, value: !!value });
+      return;
+    }
+
+    if (cmd === 'weather') {
+      handleChaosCommand('weather', value);
+      relayPacketToClients({ type: 'CHAOS_CMD', cmd: 'weather', value: value });
+      return;
+    }
+
+    if (isSelf) {
+      handleChaosCommand(cmd, value);
+    } else {
+      const conn = mpConnections[p.id];
+      if (conn && conn.open) {
+        conn.send({ type: 'CHAOS_CMD', cmd: cmd, value: value });
+      }
+    }
+  });
+}
+
+function showHostHelp() {
+  console.log(`HOST COMMANDS & SYNTAX:
+Syntax: [feature].player([playername]): [value]
+Targets: "all", "self", exact player name (caps sensitive), or Peer ID
+
+COMMANDS:
+- speed.player([name]): [0-500] (Set speed in knots)
+- gravity.player([name]): [0+] (0 turns off gravity, higher increases it)
+- scale.player([name]): [0.25-10] (Scales player paraglider/drone and hitbox)
+- teleport.player([name]): [x, y, z] (Instantly moves player to coordinates)
+- hover.player([name]): [true/false] (Locks altitude in place)
+- lock.player([name]): [true/false] (Disables all player controls)
+- crash.player([name]): [true] (Forces player to pitch down until impact)
+- gate.player([name]): [number] (Skips player to specific gate)
+- skin.player([name]): [skin_id] (Force-equips drone skin, e.g. ghost_piggy_bank)
+- invert.player([name]): [true/false] (Inverts pitch & roll controls)
+- weather.player([all/name]): [storm] (Forces storm weather)
+- wind.player([name]): [number] (Blasts crosswind in knots, e.g. 150)
+- freeze.player([all/name]): [true/false] (Freezes clients in place)
+- ghost.player([self/name]): [true/false] (Invisible to everyone except host)
+- fetch.PeerID([all/self/name]) (Fetch player IDs for edge cases / duplicates)
+- help.host (Displays this command list)`);
+}
+
+function parseAndExecuteChaos(str) {
+  const clean = String(str).trim();
+  if (clean === 'help.host' || clean === 'help.host()' || clean === 'help') {
+    showHostHelp();
+    return;
+  }
+  const m = clean.match(/^([a-zA-Z0-9_$]+)\.player\(([^)]*)\)\s*:\s*(.*)$/);
+  if (m) {
+    const feat = m[1].trim();
+    const tgt = m[2].trim();
+    const rawVal = m[3].trim();
+    let val = rawVal;
+    if (val === 'true') val = true;
+    else if (val === 'false') val = false;
+    else if (!isNaN(Number(val)) && val !== '') val = Number(val);
+    dispatchChaosCommand(feat, tgt, val);
+    return;
+  }
+  const mFetch = clean.match(/^fetch\.PeerID\(([^)]*)\)$/);
+  if (mFetch) {
+    window.fetch.PeerID(mFetch[1].trim());
+    return;
+  }
+}
+
+function createPlayerCmdHandler(feat) {
+  const fn = function(target, ...rest) {
+    syncPlayerGlobals();
+    if (typeof target === 'string' && target.includes(':') && rest.length === 0) {
+      const idx = target.indexOf(':');
+      const t = target.slice(0, idx).trim();
+      const rawVal = target.slice(idx + 1).trim();
+      let val = rawVal;
+      if (val === 'true') val = true;
+      else if (val === 'false') val = false;
+      else if (!isNaN(Number(val)) && val !== '') val = Number(val);
+      dispatchChaosCommand(feat, t, val);
+      return;
+    }
+    if (rest.length === 0) {
+      return function(val, ...extra) {
+        if (extra.length > 0) val = [val, ...extra].join(', ');
+        dispatchChaosCommand(feat, target, val);
+      };
+    }
+    let val = rest.length > 1 ? rest.join(', ') : rest[0];
+    dispatchChaosCommand(feat, target, val);
+  };
+  return fn;
+}
+
+window.cmd = parseAndExecuteChaos;
+window.command = parseAndExecuteChaos;
+
+window.speed = { player: createPlayerCmdHandler('speed') };
+window.gravity = { player: createPlayerCmdHandler('gravity') };
+window.scale = { player: createPlayerCmdHandler('scale') };
+window.teleport = { player: createPlayerCmdHandler('teleport') };
+window.hover = { player: createPlayerCmdHandler('hover') };
+window.lock = { player: createPlayerCmdHandler('lock') };
+window.crash = { player: createPlayerCmdHandler('crash') };
+window.gate = { player: createPlayerCmdHandler('gate') };
+window.skin = { player: createPlayerCmdHandler('skin') };
+window.invert = { player: createPlayerCmdHandler('invert') };
+window.weather = window.weather || {};
+window.weather.player = createPlayerCmdHandler('weather');
+window.wind = { player: createPlayerCmdHandler('wind') };
+window.freeze = { player: createPlayerCmdHandler('freeze') };
+window.ghost = { player: createPlayerCmdHandler('ghost') };
+
+var help = {
+  get host() {
+    showHostHelp();
+    return function() {};
+  }
+};
+window.help = help;
+globalThis.help = help;
+
+window.fetch.PeerID = function(target) {
+  if (!multiplayerActive || (!isMultiplayerHost && !mpIsDedicatedServer)) {
+    console.error('ERROR: Only host or server can run console commands.');
+    return;
+  }
+  const players = Object.values(mpPlayers);
+  if (target === undefined || target === window || String(target).toLowerCase() === 'all') {
+    let idx = 1;
+    players.forEach(p => {
+      const isSelf = mpPeer && p.id === mpPeer.id;
+      const name = isSelf ? (p.isHost ? 'Host (self)' : `${p.profile ? p.profile.name : 'PILOT'} (self)`) : (p.profile ? p.profile.name : 'PILOT');
+      const shortId = p.id.split('-')[0];
+      console.log(` [${idx}] - ${shortId} - ${name}`);
+      idx++;
+    });
+    return;
+  }
+  if (String(target).toLowerCase() === 'self') {
+    const p = mpPeer ? mpPlayers[mpPeer.id] : players.find(x => x.isHost);
+    if (p) {
+      const shortId = p.id.split('-')[0];
+      console.log(` [1] - ${shortId} - ${p.profile ? p.profile.name : 'Host'} (self)`);
+    }
+    return;
+  }
+  const str = String(target).trim();
+  const matches = players.filter(p => (p.profile && p.profile.name === str) || p.id === str || p.id.split('-')[0] === str);
+  if (matches.length === 0) {
+    console.error(`ERROR: No players found matching "${str}"`);
+    return;
+  }
+  matches.forEach((p, i) => {
+    const shortId = p.id.split('-')[0];
+    console.log(`Output: [${i + 1}] - ${shortId} - ${p.profile ? p.profile.name : 'PILOT'}`);
+  });
+};

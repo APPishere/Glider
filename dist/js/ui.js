@@ -284,6 +284,19 @@ function drawCustomSpeedometer(ctx, x, y, speed, rBoost) {
   ctx.letterSpacing = '3px';
   ctx.fillText(speedStr, 540, 156);
 
+  if (typeof currentGhostSpeedDelta !== 'undefined' && currentGhostSpeedDelta && ghostDeltaTimeout) {
+    ctx.save();
+    ctx.fillStyle = currentGhostSpeedDelta.colHex;
+    ctx.font = '900 36px "Courier New", Courier, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.letterSpacing = '2px';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+    ctx.shadowBlur = 8;
+    ctx.fillText(currentGhostSpeedDelta.text, 540, -35);
+    ctx.restore();
+  }
+
   const pivotX = 380;
   const pivotY = 197;
 
@@ -600,6 +613,8 @@ function startCountdown() {
   const ov = document.getElementById('gp-finale-overlay');
   if (ov) ov.style.display = 'none';
   resetChallengeTracker();
+  window.mpGhostCache = {};
+  if (typeof lastGpGhostRecordTime !== 'undefined') lastGpGhostRecordTime = 0;
   if (typeof multiplayerActive !== 'undefined' && multiplayerActive) {
     if (typeof cancelActiveDailyChallenge === 'function') cancelActiveDailyChallenge();
     challengeActive = null;
@@ -645,18 +660,22 @@ function startCountdown() {
   }
   showScreen(null);
   stopMenuTheme(true);
+  const course = COURSES[selectedCourseId] || COURSES['canyon'];
+  if (!course.subtracks[selectedSubtrack]) {
+    selectedSubtrack = 'A';
+  }
+
   if (!multiplayerActive || !environmentGroup.children.some(c => c.name === 'terrain')) {
     buildCourse(selectedCourseId);
   }
 
-  const course = COURSES[selectedCourseId];
-  const activeSubtrack = course.subtracks[selectedSubtrack];
+  const activeSubtrack = course.subtracks[selectedSubtrack] || course.subtracks['A'];
   cliffLaunchPos.copy(activeSubtrack.cliffPos || course.cliffPos);
   cliffForwardDir.copy(activeSubtrack.cliffForward || course.cliffForward);
 
   const runwayBasePos = _tempVec1.copy(cliffLaunchPos).sub(_tempVec2.copy(cliffForwardDir).multiplyScalar(220));
 
-  if (typeof multiplayerActive !== 'undefined' && multiplayerActive && typeof getMultiplayerSlotOffset === 'function') {
+  if (typeof multiplayerActive !== 'undefined' && multiplayerActive && mpRaceInProgress && typeof getMultiplayerSlotOffset === 'function') {
     const slotOff = getMultiplayerSlotOffset();
     const cRight = new THREE.Vector3(-cliffForwardDir.z, 0, cliffForwardDir.x).normalize();
     runwayBasePos.addScaledVector(cRight, slotOff);
@@ -1319,6 +1338,451 @@ grandPrixState.racers = [
   startCountdown();
 }
 
+let gpHighlightActive = false;
+let gpHighlightPlaylist = [];
+let gpHighlightIndex = 0;
+let gpHighlightTimer = 0;
+let gpHighlightDronesGroup = null;
+let gpHighlightDroneMeshes = {};
+let gpHighlightOnComplete = null;
+let gpHighlightBlackoutTimeout = null;
+
+function sampleRacerFrame(frames, t) {
+  if (!frames || frames.length === 0) return null;
+  if (t <= frames[0].t) return frames[0];
+  if (t >= frames[frames.length - 1].t) return frames[frames.length - 1];
+  let low = 0, high = frames.length - 1;
+  while (low <= high) {
+    const mid = (low + high) >> 1;
+    if (frames[mid].t < t) low = mid + 1;
+    else high = mid - 1;
+  }
+  const i0 = Math.max(0, low - 1);
+  const i1 = Math.min(frames.length - 1, low);
+  const f0 = frames[i0];
+  const f1 = frames[i1];
+  if (i0 === i1) return f0;
+  const factor = (t - f0.t) / (f1.t - f0.t);
+
+  let dYaw = f1.yaw - f0.yaw;
+  while (dYaw > Math.PI) dYaw -= Math.PI * 2;
+  while (dYaw < -Math.PI) dYaw += Math.PI * 2;
+
+  let dRoll = f1.roll - f0.roll;
+  while (dRoll > Math.PI) dRoll -= Math.PI * 2;
+  while (dRoll < -Math.PI) dRoll += Math.PI * 2;
+
+  return {
+    x: f0.x + (f1.x - f0.x) * factor,
+    y: f0.y + (f1.y - f0.y) * factor,
+    z: f0.z + (f1.z - f0.z) * factor,
+    pitch: f0.pitch + (f1.pitch - f0.pitch) * factor,
+    yaw: f0.yaw + dYaw * factor,
+    roll: f0.roll + dRoll * factor,
+    speed: f0.speed + ((f1.speed || 0) - (f0.speed || 0)) * factor,
+    name: f0.name || 'PILOT',
+    color: f0.color || '#00f0ff'
+  };
+}
+
+function scanGrandPrixHighlights(ghostCache) {
+  const filtered = {};
+  for (const rId in ghostCache) {
+    filtered[rId] = (ghostCache[rId] || []).filter(f => f.t >= 3.0);
+  }
+  const racerIds = Object.keys(filtered);
+  if (racerIds.length === 0) return [];
+
+  const events = [];
+
+  for (let r = 0; r < racerIds.length; r++) {
+    const rId = racerIds[r];
+    const frames = filtered[rId];
+    for (let i = 1; i < frames.length; i++) {
+      let dRoll = Math.abs(frames[i].roll - frames[i - 1].roll);
+      while (dRoll > Math.PI) dRoll -= Math.PI * 2;
+      dRoll = Math.abs(dRoll);
+      if (dRoll > 1.5) {
+        events.push({
+          type: 'BARREL_ROLL',
+          racerId: rId,
+          time: frames[i].t,
+          duration: 3.8,
+          label: 'BARREL ROLL',
+          cameraType: 'orbit',
+          priority: 10
+        });
+        break;
+      }
+    }
+  }
+
+  let bumpCooldown = 0;
+  for (let i = 0; i < racerIds.length; i++) {
+    const id1 = racerIds[i];
+    const f1List = filtered[id1];
+    for (let j = i + 1; j < racerIds.length; j++) {
+      const id2 = racerIds[j];
+      const f2List = filtered[id2];
+      let idx2 = 0;
+      for (let k = 0; k < f1List.length; k++) {
+        const f1 = f1List[k];
+        while (idx2 < f2List.length - 1 && f2List[idx2].t < f1.t - 0.08) {
+          idx2++;
+        }
+        const f2 = f2List[idx2];
+        if (Math.abs(f1.t - f2.t) < 0.2) {
+          const dist = Math.hypot(f1.x - f2.x, f1.z - f2.z);
+          if (dist < 30 && f1.t > bumpCooldown) {
+            events.push({
+              type: 'NEAR_MISS',
+              racerId: id1,
+              targetRacerId: id2,
+              time: f1.t,
+              duration: 3.6,
+              label: 'NEAR MISS',
+              cameraType: 'hero',
+              priority: 8
+            });
+            bumpCooldown = f1.t + 4.0;
+          }
+        }
+      }
+    }
+  }
+
+  for (let i = 0; i < racerIds.length; i++) {
+    const id1 = racerIds[i];
+    const f1List = filtered[id1];
+    for (let j = 0; j < racerIds.length; j++) {
+      if (i === j) continue;
+      const id2 = racerIds[j];
+      const f2List = filtered[id2];
+      let draftStart = null;
+      let idx2 = 0;
+      for (let k = 0; k < f1List.length; k++) {
+        const f1 = f1List[k];
+        while (idx2 < f2List.length - 1 && f2List[idx2].t < f1.t - 0.08) {
+          idx2++;
+        }
+        const f2 = f2List[idx2];
+        if (Math.abs(f1.t - f2.t) < 0.2) {
+          const dx = f2.x - f1.x;
+          const dz = f2.z - f1.z;
+          const dist = Math.hypot(dx, dz);
+          const fwdX = -Math.sin(f1.yaw || 0);
+          const fwdZ = -Math.cos(f1.yaw || 0);
+          const fwdDot = dx * fwdX + dz * fwdZ;
+          const sideDot = Math.abs(dx * (-fwdZ) + dz * fwdX);
+          if (dist <= 200 && fwdDot < -15 && sideDot < 45) {
+            if (draftStart === null) {
+              draftStart = f1.t;
+            } else if (f1.t - draftStart >= 2.0) {
+              events.push({
+                type: 'DRAFTING',
+                racerId: id2,
+                targetRacerId: id1,
+                time: draftStart + 1.0,
+                duration: 3.8,
+                label: 'SLIPSTREAM DRAFT',
+                cameraType: 'hero',
+                priority: 7
+              });
+              draftStart = null;
+              break;
+            }
+          } else {
+            draftStart = null;
+          }
+        }
+      }
+    }
+  }
+
+  events.sort((a, b) => b.priority - a.priority);
+  const selected = [];
+  for (let i = 0; i < events.length; i++) {
+    const ev = events[i];
+    const clashes = selected.some(s => Math.abs(ev.time - s.time) < 3.0 && ev.racerId === s.racerId);
+    if (!clashes) selected.push(ev);
+    if (selected.length >= 3) break;
+  }
+
+  const pFrames = filtered['player'] || (filtered[racerIds[0]] || []);
+  if (selected.length < 2 && pFrames && pFrames.length > 10) {
+    let fastest = pFrames[0];
+    for (let i = 1; i < pFrames.length; i++) {
+      if ((pFrames[i].speed || 0) > (fastest.speed || 0)) fastest = pFrames[i];
+    }
+    selected.push({
+      type: 'TOP_SPEED',
+      racerId: filtered['player'] ? 'player' : racerIds[0],
+      time: fastest.t,
+      duration: 3.5,
+      label: 'TOP SPEED SPRINT',
+      cameraType: 'hero',
+      priority: 5
+    });
+    if (selected.length < 2) {
+      const midFrame = pFrames[Math.floor(pFrames.length / 2)];
+      selected.push({
+        type: 'ACTION',
+        racerId: filtered['player'] ? 'player' : racerIds[0],
+        time: midFrame.t,
+        duration: 3.5,
+        label: 'RACE HIGHLIGHT',
+        cameraType: 'orbit',
+        priority: 4
+      });
+    }
+  }
+
+  selected.sort((a, b) => a.time - b.time);
+  return selected.map(ev => Object.assign({}, ev, {
+    startTime: Math.max(3.0, ev.time - 1.2),
+    baseAngle: Math.random() * Math.PI * 2
+  }));
+}
+
+function createHighlightDroneMesh(skinId, colorHex) {
+  if (typeof createRemoteDroneMesh === 'function') {
+    const m = createRemoteDroneMesh(skinId || 'ghost_default');
+    if (colorHex) {
+      m.traverse(child => {
+        if (child.isMesh && child.material) {
+          child.material = child.material.clone();
+          if (child.material.color) child.material.color.set(colorHex);
+        }
+      });
+    }
+    return m;
+  }
+  const grp = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: colorHex || 0x00f0ff });
+  const body = new THREE.Mesh(new THREE.ConeGeometry(5, 24, 4).rotateX(-Math.PI / 2), mat);
+  const wing = new THREE.Mesh(new THREE.BoxGeometry(42, 0.4, 6), mat);
+  wing.position.set(0, 0, 3);
+  grp.add(body, wing);
+  return grp;
+}
+
+function startGrandPrixHighlightReel(onComplete) {
+  gpHighlightOnComplete = onComplete;
+  if (!window.mpGhostCache || Object.keys(window.mpGhostCache).length === 0) {
+    if (gpHighlightOnComplete) gpHighlightOnComplete();
+    return;
+  }
+
+  gpHighlightPlaylist = scanGrandPrixHighlights(window.mpGhostCache);
+  if (!gpHighlightPlaylist || gpHighlightPlaylist.length === 0) {
+    if (gpHighlightOnComplete) gpHighlightOnComplete();
+    return;
+  }
+
+  gpHighlightActive = true;
+  gpHighlightIndex = 0;
+  gpHighlightTimer = 0;
+
+  let fadeEl = document.getElementById('gp-highlight-fade');
+  if (!fadeEl) {
+    fadeEl = document.createElement('div');
+    fadeEl.id = 'gp-highlight-fade';
+    fadeEl.style.cssText = 'position:fixed;inset:0;background:#000000;z-index:680;pointer-events:auto;transition:opacity 0.6s ease;opacity:0;display:none;';
+    fadeEl.onclick = (e) => {
+      e.stopPropagation();
+      skipGrandPrixHighlightReel();
+    };
+    document.body.appendChild(fadeEl);
+  }
+
+  let broadcastUI = document.getElementById('gp-highlight-broadcast-ui');
+  if (!broadcastUI) {
+    broadcastUI = document.createElement('div');
+    broadcastUI.id = 'gp-highlight-broadcast-ui';
+    broadcastUI.style.cssText = 'position:fixed;inset:0;z-index:675;display:none;flex-direction:column;justify-content:space-between;padding:26px 32px;pointer-events:auto;user-select:none;cursor:pointer;background:linear-gradient(180deg, rgba(0,0,0,0.65) 0%, transparent 22%, transparent 78%, rgba(0,0,0,0.75) 100%);box-sizing:border-box;';
+    broadcastUI.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;width:100%;pointer-events:none;">
+        <div style="display:flex;flex-direction:column;gap:3px;text-align:left;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="display:inline-block;width:10px;height:10px;background:#ff2222;border-radius:50%;box-shadow:0 0 10px #ff2222;"></span>
+            <span style="font-family:monospace;font-size:12px;font-weight:900;letter-spacing:3px;color:#ffffff;text-shadow:0 0 10px rgba(255,255,255,0.7);text-transform:uppercase;">RACE HIGHLIGHTS</span>
+          </div>
+          <div id="gp-highlight-clip-title" style="font-size:18px;font-weight:900;letter-spacing:2px;color:var(--gold);text-shadow:0 0 14px rgba(241,196,15,0.8), 0 2px 6px #000;text-transform:uppercase;margin-top:2px;">BARREL ROLL</div>
+          <div id="gp-highlight-racer-name" style="font-size:11.5px;font-weight:800;letter-spacing:1.5px;color:var(--cyan);text-shadow:0 2px 4px #000;text-transform:uppercase;">PILOT: YOU</div>
+        </div>
+        <div id="gp-highlight-clip-counter" style="font-family:monospace;font-size:11px;font-weight:800;letter-spacing:2px;color:rgba(255,255,255,0.75);background:rgba(0,0,0,0.65);padding:5px 12px;border:1px solid var(--mono-20);border-radius:3px;">CLIP 1 / 3</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;width:100%;pointer-events:none;">
+        <div style="font-size:10px;letter-spacing:2px;color:var(--mono-60);text-shadow:0 1px 3px #000;text-transform:uppercase;">APHELION BROADCAST RECAP</div>
+        <div style="font-size:11px;font-weight:800;letter-spacing:2px;color:var(--gold);text-shadow:0 0 8px rgba(241,196,15,0.6);text-transform:uppercase;animation:promptPulse 1s ease-in-out infinite alternate;">PRESS [ESC] OR TAP TO SKIP</div>
+      </div>
+    `;
+    broadcastUI.onclick = (e) => {
+      e.stopPropagation();
+      skipGrandPrixHighlightReel();
+    };
+    document.body.appendChild(broadcastUI);
+  }
+
+  fadeEl.style.display = 'block';
+  fadeEl.style.opacity = '1';
+
+  const hudOverlay = document.getElementById('hud-overlay');
+  if (hudOverlay) hudOverlay.style.display = 'none';
+  const finishBanner = document.getElementById('race-finish-banner');
+  if (finishBanner) finishBanner.style.display = 'none';
+  const countBox = document.getElementById('countdown-box');
+  if (countBox) countBox.style.display = 'none';
+  if (paragliderWingGroup) paragliderWingGroup.visible = false;
+
+  if (gpHighlightDronesGroup && environmentGroup) {
+    environmentGroup.remove(gpHighlightDronesGroup);
+  }
+  gpHighlightDronesGroup = new THREE.Group();
+  gpHighlightDroneMeshes = {};
+
+  for (const rId in window.mpGhostCache) {
+    const frames = window.mpGhostCache[rId];
+    if (frames && frames.length > 0) {
+      const firstF = frames[0];
+      const m = createHighlightDroneMesh(firstF.skinId, firstF.color);
+      m.visible = false;
+      gpHighlightDronesGroup.add(m);
+      gpHighlightDroneMeshes[rId] = m;
+    }
+  }
+  environmentGroup.add(gpHighlightDronesGroup);
+
+  if (typeof audio !== 'undefined' && audio.stopAllAudio) audio.stopAllAudio();
+
+  gpHighlightBlackoutTimeout = setTimeout(() => {
+    if (!gpHighlightActive) return;
+    fadeEl.style.opacity = '0';
+    setTimeout(() => { if (fadeEl) fadeEl.style.display = 'none'; }, 600);
+    broadcastUI.style.display = 'flex';
+    if (typeof playMenuTheme === 'function') playMenuTheme('pause');
+    gameState = 'GP_HIGHLIGHTS';
+    startHighlightClip(0);
+  }, 1600);
+}
+
+function startHighlightClip(idx) {
+  if (!gpHighlightPlaylist || idx >= gpHighlightPlaylist.length) {
+    finishGrandPrixHighlightReel();
+    return;
+  }
+  gpHighlightIndex = idx;
+  gpHighlightTimer = 0;
+  const clip = gpHighlightPlaylist[idx];
+
+  const titleEl = document.getElementById('gp-highlight-clip-title');
+  if (titleEl) titleEl.innerText = clip.label;
+
+  const countEl = document.getElementById('gp-highlight-clip-counter');
+  if (countEl) countEl.innerText = `CLIP ${idx + 1} / ${gpHighlightPlaylist.length}`;
+
+  const primaryFrames = window.mpGhostCache[clip.racerId];
+  const rName = (primaryFrames && primaryFrames[0] && primaryFrames[0].name) ? primaryFrames[0].name : 'PILOT';
+  const nameEl = document.getElementById('gp-highlight-racer-name');
+  if (nameEl) nameEl.innerText = `PILOT: ${rName}`;
+}
+
+function updateGrandPrixHighlights(dt) {
+  if (!gpHighlightActive || !gpHighlightPlaylist || gpHighlightIndex >= gpHighlightPlaylist.length) return;
+  const clip = gpHighlightPlaylist[gpHighlightIndex];
+  gpHighlightTimer += dt;
+
+  const curRaceTime = clip.startTime + gpHighlightTimer;
+
+  for (const rId in gpHighlightDroneMeshes) {
+    const mesh = gpHighlightDroneMeshes[rId];
+    const frame = sampleRacerFrame(window.mpGhostCache[rId], curRaceTime);
+    if (frame) {
+      mesh.visible = true;
+      mesh.position.set(frame.x, frame.y, frame.z);
+      mesh.rotation.set(0, 0, 0);
+      mesh.rotation.order = 'YXZ';
+      mesh.rotation.y = frame.yaw;
+      mesh.rotation.x = frame.pitch;
+      mesh.rotation.z = frame.roll;
+    } else {
+      mesh.visible = false;
+    }
+  }
+
+  const primary = sampleRacerFrame(window.mpGhostCache[clip.racerId], curRaceTime);
+  if (primary && camera) {
+    if (clip.cameraType === 'orbit') {
+      const angle = (gpHighlightTimer / clip.duration) * 1.5 + (clip.baseAngle || 0);
+      const elev = 70 * (Math.PI / 180);
+      const dist = 65;
+      camera.position.set(
+        primary.x + Math.cos(angle) * Math.cos(elev) * dist,
+        primary.y + Math.sin(elev) * dist,
+        primary.z + Math.sin(angle) * Math.cos(elev) * dist
+      );
+      camera.lookAt(primary.x, primary.y + 2, primary.z);
+      camera.rotation.z = 0;
+    } else {
+      const fwdX = -Math.sin(primary.yaw);
+      const fwdZ = -Math.cos(primary.yaw);
+      const rightX = -fwdZ;
+      const rightZ = fwdX;
+      const progress = gpHighlightTimer / clip.duration;
+      const panX = (progress - 0.5) * 10;
+      camera.position.set(
+        primary.x + fwdX * 42 + rightX * (14 + panX),
+        primary.y + 10 + progress * 4,
+        primary.z + fwdZ * 42 + rightZ * (14 + panX)
+      );
+      camera.lookAt(primary.x, primary.y + 2, primary.z);
+      camera.rotation.z = 0;
+    }
+  }
+
+  if (gpHighlightTimer >= clip.duration) {
+    startHighlightClip(gpHighlightIndex + 1);
+  }
+}
+
+function skipGrandPrixHighlightReel() {
+  finishGrandPrixHighlightReel();
+}
+
+function finishGrandPrixHighlightReel() {
+  if (!gpHighlightActive) return;
+  gpHighlightActive = false;
+
+  if (gpHighlightBlackoutTimeout) {
+    clearTimeout(gpHighlightBlackoutTimeout);
+    gpHighlightBlackoutTimeout = null;
+  }
+
+  if (typeof stopMenuTheme === 'function') {
+    stopMenuTheme(true);
+  }
+
+  const fadeEl = document.getElementById('gp-highlight-fade');
+  if (fadeEl) {
+    fadeEl.style.opacity = '0';
+    fadeEl.style.display = 'none';
+  }
+  const broadcastUI = document.getElementById('gp-highlight-broadcast-ui');
+  if (broadcastUI) broadcastUI.style.display = 'none';
+
+  if (gpHighlightDronesGroup && environmentGroup) {
+    environmentGroup.remove(gpHighlightDronesGroup);
+    gpHighlightDronesGroup = null;
+  }
+  gpHighlightDroneMeshes = {};
+
+  if (paragliderWingGroup) paragliderWingGroup.visible = true;
+
+  const cb = gpHighlightOnComplete;
+  gpHighlightOnComplete = null;
+  if (cb) cb();
+}
+
 function handleGrandPrixRaceFinish(playerPos, playerTime, isDnf) {
   const activeSubtrack = COURSES[selectedCourseId].subtracks[selectedSubtrack];
   const playerProgress = getTrackProgress(player.pos, player.nextGateIdx, 0);
@@ -1362,10 +1826,18 @@ function handleGrandPrixRaceFinish(playerPos, playerTime, isDnf) {
   });
 
   const isLastRace = (grandPrixState.currentRaceIndex >= grandPrixState.races.length - 1);
-  if (isLastRace) {
-    startGrandPrixFinaleAnimation();
+  const proceedToStandings = () => {
+    if (isLastRace) {
+      startGrandPrixFinaleAnimation();
+    } else {
+      showGrandPrixInterstitial(results.find(r => r.racerIdx === 0));
+    }
+  };
+
+  if (typeof startGrandPrixHighlightReel === 'function') {
+    startGrandPrixHighlightReel(proceedToStandings);
   } else {
-    showGrandPrixInterstitial(results.find(r => r.racerIdx === 0));
+    proceedToStandings();
   }
 }
 
@@ -1742,9 +2214,13 @@ function finishRace() {
 
       showAchievementNotifications([{
         name: "Challenge Complete: " + activeCh.name,
-        sub: isPastDay ? "Catch-up challenge cleared!" : "Great flying, pilot! You beat today's daily challenge."
+        sub: isPastDay ? "Catch up challenge cleared!" : "Great flying, pilot! You beat today's daily challenge."
       }]);
       audio.playFinishFanfare();
+      challengeActive = null;
+      challengeMod = null;
+      challengeActiveDateKey = null;
+      challengeActiveDayOffset = 0;
     }
   }
 
@@ -1786,7 +2262,7 @@ if (isKrampusBossDuel) {
   }
   }
 
-  if (typeof multiplayerActive !== 'undefined' && multiplayerActive && typeof onMultiplayerFinished === 'function') {
+  if (typeof multiplayerActive !== 'undefined' && multiplayerActive && mpRaceInProgress && typeof onMultiplayerFinished === 'function') {
     onMultiplayerFinished();
   }
 
@@ -1871,7 +2347,9 @@ if (isKrampusBossDuel) {
     });
 
     if (newlyUnlocked.length > 0) {
+      try { localStorage.removeItem('glider_shop_badge_dismissed'); } catch (e) {}
       showAchievementNotifications(newlyUnlocked);
+      if (typeof updateMenuNotifications === 'function') updateMenuNotifications();
     }
 
     const didUnlockGreatestGlider = newlyUnlocked.some(s => s.id === 'all_ace') ||
@@ -2796,6 +3274,9 @@ function setupUI() {
     if (tab === 'gp') {
       renderGrandPrixCupList();
     } else if (tab === 'challenge') {
+      const todayKey = (typeof getDailyChallengeDateKey === 'function') ? getDailyChallengeDateKey(0) : '';
+      if (todayKey) localStorage.setItem('glider_challenge_seen_date', todayKey);
+      if (typeof updateMenuNotifications === 'function') updateMenuNotifications();
       renderDailyChallenge();
     }
   }
@@ -2851,6 +3332,8 @@ function setupUI() {
 
   document.getElementById('btn-start-shop').addEventListener('click', () => {
     audio.init();
+    localStorage.setItem('glider_shop_badge_dismissed', 'true');
+    if (typeof updateMenuNotifications === 'function') updateMenuNotifications();
     openShopMenu();
     updateCellarDoorVisibility();
   });
@@ -2879,9 +3362,14 @@ function setupUI() {
 
   document.querySelectorAll('#screen-select-mobile .track-opt').forEach(opt => {
     opt.addEventListener('click', () => {
-      document.querySelectorAll('#screen-select-mobile .track-opt').forEach(o => o.classList.remove('active'));
-      opt.classList.add('active');
       selectedCourseId = opt.getAttribute('data-course');
+      const course = COURSES[selectedCourseId];
+      if (course && !course.subtracks[selectedSubtrack]) {
+        selectedSubtrack = 'A';
+      }
+      document.querySelectorAll('#screen-select-mobile .track-opt').forEach(o => {
+        o.classList.toggle('active', o.getAttribute('data-course') === selectedCourseId);
+      });
       try { localStorage.setItem('glider_last_course', selectedCourseId); } catch (e) {}
       buildCourse(selectedCourseId);
       grandPrixState.active = false;
@@ -3025,11 +3513,12 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
     });
   });
 
-  document.querySelectorAll('.subtrack-opt').forEach(opt => {
+  document.querySelectorAll('#subtrack-list .subtrack-opt').forEach(opt => {
     opt.addEventListener('click', () => {
-      document.querySelectorAll('.subtrack-opt').forEach(o => o.classList.remove('active'));
-      opt.classList.add('active');
       selectedSubtrack = opt.getAttribute('data-sub');
+      document.querySelectorAll('#subtrack-list .subtrack-opt').forEach(o => {
+        o.classList.toggle('active', o.getAttribute('data-sub') === selectedSubtrack);
+      });
       updateMedalDisplay();
     });
   });
@@ -3154,6 +3643,8 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
 
   document.getElementById('btn-settings-toggle').addEventListener('click', () => {
     audio.init();
+    localStorage.removeItem('glider_settings_notif');
+    if (typeof updateMenuNotifications === 'function') updateMenuNotifications();
     document.getElementById('settings-overlay').style.display = 'flex';
     updateHalloweenThemeVisibility();
   });
@@ -3172,7 +3663,20 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
     krampusRetryPending = false;
     document.getElementById('countdown-box').style.display = 'none';
     gameState = 'START';
+    pausedState = 'START';
+    pauseStartTime = 0;
+    raceElapsedTime = 0;
     audio.stopAllAudio();
+    const cData = COURSES[selectedCourseId];
+    if (cData && cData.cliffPos) {
+      player.pos.copy(cData.cliffPos);
+      menuCamCenter.copy(cData.cliffPos);
+    }
+    player.speed = 0;
+    player.verticalVelocity = 0;
+    player.flightPathPitch = 0;
+    player.pitch = 0;
+    player.roll = 0;
     if (isHalloweenBossDuel) {
       isHalloweenBossDuel = false;
       localStorage.setItem('glider_equipped_skin', halloweenPreviousSkin || 'default');
@@ -3222,6 +3726,9 @@ document.getElementById('btn-dispatch-back').addEventListener('click', () => {
   updateSfxVolume(sfxVolume);
 
   updateMedalDisplay();
+  if (typeof updateMenuNotifications === 'function') {
+    updateMenuNotifications();
+  }
 }
 
 function refreshDispatchModal() {
@@ -3246,13 +3753,13 @@ function refreshDispatchModal() {
       optD.classList.add('hidden');
       if (selectedSubtrack === 'D') {
         selectedSubtrack = 'A';
-        document.querySelectorAll('.subtrack-opt').forEach(b => {
-          if (b.getAttribute('data-sub') === 'A') b.classList.add('active');
-          else b.classList.remove('active');
-        });
       }
     }
   }
+
+  document.querySelectorAll('#subtrack-list .subtrack-opt').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-sub') === selectedSubtrack);
+  });
 
   const impDiffBtn = document.getElementById('btn-diff-impossible');
   if (impDiffBtn) {
@@ -3487,8 +3994,7 @@ function renderDailyChallenge() {
             <span style="font-size: ${isMobileView ? '11px' : '10px'}; font-weight: 800; letter-spacing: 1.2px; color: ${statusColor};">${statusText}</span>
           </div>
           <div style="display: flex; gap: 6px; align-items: center; margin-left: auto;">
-            ${isActive ? `<button class="mono-btn challenge-action-trigger" data-chid="${ch.id}" data-date="${item.dateKey}" data-offset="${item.dayOffset}" data-action="cancel" style="flex: none !important; width: auto !important; border-color: var(--red); color: var(--red); font-weight: 800; padding: ${btnPadding}; font-size: ${btnFontSize};">CANCEL</button>` : ''}
-            ${(!isActive || isDone) ? `<button class="mono-btn challenge-action-trigger" data-chid="${ch.id}" data-date="${item.dateKey}" data-offset="${item.dayOffset}" data-action="${isDone ? 'replay' : 'accept'}" style="flex: none !important; width: auto !important; border-color: var(--cyan); color: var(--cyan); font-weight: 800; padding: ${btnPadding}; font-size: ${btnFontSize};">${isDone ? 'REPLAY' : ((ch.config === 'TRACK' || ch.config === 'TRACK+MOD') ? 'LAUNCH' : 'ACCEPT')}</button>` : ''}
+            ${isActive ? `<button class="mono-btn challenge-action-trigger" data-chid="${ch.id}" data-date="${item.dateKey}" data-offset="${item.dayOffset}" data-action="cancel" style="flex: none !important; width: auto !important; border-color: var(--red); color: var(--red); font-weight: 800; padding: ${btnPadding}; font-size: ${btnFontSize};">CANCEL</button>` : `<button class="mono-btn challenge-action-trigger" data-chid="${ch.id}" data-date="${item.dateKey}" data-offset="${item.dayOffset}" data-action="${isDone ? 'replay' : 'accept'}" style="flex: none !important; width: auto !important; border-color: var(--cyan); color: var(--cyan); font-weight: 800; padding: ${btnPadding}; font-size: ${btnFontSize};">${isDone ? 'REPLAY' : ((ch.config === 'TRACK' || ch.config === 'TRACK+MOD') ? 'LAUNCH' : 'ACCEPT')}</button>`}
           </div>
         </div>
       </div>
@@ -3656,6 +4162,7 @@ function openDashboardRight(panelId) {
   void colRight.offsetWidth;
   colRight.classList.add('dash-sliding');
   updateProfileCardVisibility();
+  if (typeof updateMpTrapezoid === 'function') updateMpTrapezoid();
 }
 
 function closeDashboardRight() {
@@ -3669,6 +4176,7 @@ function closeDashboardRight() {
     if (rightP) rightP.classList.add('hidden');
   });
   updateProfileCardVisibility();
+  if (typeof updateMpTrapezoid === 'function') updateMpTrapezoid();
 }
 
 function setDashboardCategory(cat) {
@@ -3680,6 +4188,10 @@ function setDashboardCategory(cat) {
 
   const colMid = document.getElementById('dash-col-middle');
   closeDashboardRight();
+
+  if (cat !== 'shop') {
+    if (typeof isShopTvBroken !== 'undefined') isShopTvBroken = false;
+  }
 
   if (!cat) {
     if (colMid) {
@@ -3725,17 +4237,28 @@ function setDashboardCategory(cat) {
     }
     playMenuTheme('menu');
   } else if (cat === 'challenge') {
+    const todayKey = (typeof getDailyChallengeDateKey === 'function') ? getDailyChallengeDateKey(0) : '';
+    if (todayKey) localStorage.setItem('glider_challenge_seen_date', todayKey);
+    if (typeof updateMenuNotifications === 'function') updateMenuNotifications();
     renderDailyChallenge();
     playMenuTheme('menu');
   } else if (cat === 'shop') {
+    localStorage.setItem('glider_shop_badge_dismissed', 'true');
+    if (typeof updateMenuNotifications === 'function') updateMenuNotifications();
+    if (typeof checkShopTvOnOpen === 'function') checkShopTvOnOpen();
     renderShop();
     updateCellarDoorVisibility();
-    playMenuTheme('shop');
+    if (typeof isShopTvBroken === 'undefined' || !isShopTvBroken) {
+      playMenuTheme('shop');
+    }
   } else if (cat === 'settings') {
+    localStorage.removeItem('glider_settings_notif');
+    if (typeof updateMenuNotifications === 'function') updateMenuNotifications();
     renderKeybindList();
     playMenuTheme('menu');
   }
   if (typeof updateHalloweenThemeVisibility === 'function') updateHalloweenThemeVisibility();
+  if (typeof updateMpTrapezoid === 'function') updateMpTrapezoid();
 }
 
 function refreshDashboardSingle() {
@@ -3889,6 +4412,10 @@ document.querySelectorAll('.dash-nav-btn').forEach(btn => {
     opt.addEventListener('click', () => {
       audio.init();
       selectedCourseId = opt.getAttribute('data-course');
+      const course = COURSES[selectedCourseId];
+      if (course && !course.subtracks[selectedSubtrack]) {
+        selectedSubtrack = 'A';
+      }
       try { localStorage.setItem('glider_last_course', selectedCourseId); } catch (e) {}
       buildCourse(selectedCourseId);
       refreshDashboardSingle();
@@ -3979,7 +4506,7 @@ document.querySelectorAll('.dash-nav-btn').forEach(btn => {
 
 const startMessages = [
   'PITCH / BANK / YAW FLIGHT SYSTEM<br>PRESS W + ctrl /cmd for free golden time trial ghost!',
-  'Wait... you were expecting a tutorial? <br>Aphelion Code of Conduct says: "Git Gud."',
+  'Aphelion is sad to announce we broke our code of conduct <br>  We included a tutorial :(',
   'Did you know Aphelion has their own AI? <br>And now this 3D game?',
   'Dev Count: 1... <br>and that artist "Konekofire"',
   'Thermals go up. Sinks go down.<br>And either way you will find a way to get stuck in the sinks!',
@@ -4006,7 +4533,7 @@ const startMessages = [
   "Super Funny joke: I told my glider to ride the volcano's thermals <br> Now it's a 'lava' glider… and not in the cool way.",
   'Dont go pressing random keybinds like: <br> cmd/ctrl + W or cmd/ctrl + T or alt + shift+ D especially not that one',
   'i rate those 2 funny jokes a solid 6.25/10!',
-  'Did you know: this game alone is just about 23k lines <br> as of making this message, but it will hit 25k soon stay tuned!',
+  'Did you know: this game is just about 29k lines <br> at the moment, but it will hit 30k soon stay tuned!',
   'Hey you better NOT get that greatest glider to ever live! <br> it costs TREE(3) EACH to make and that can get expensive yk',
   'Our state of the art anti theft and anti robbery Aphelion Encoder™ <br> will not allow cheators from editing their save files!',
   'Watch out! playing this game might cause you to get <br> BUTTERFINGERS',
@@ -4024,13 +4551,14 @@ const startMessages = [
   "Now FULLY supports mobile!",
   "Mu-mu-multiplayer?!?!? oh no.",
   "Did you know? The moon is actually a glider! <br> It just doesn't have a thermal to fly in.",
-  "This game is ANNOYING when copilot is telling you how to code <br> yeah thats what i thought.",
+  "Me: writes code. <br> Copilot: 'have you tried-' <br> Me: no.",
   'buy piggy bank now and save BIG on your next purchases!',
   'I heard the hardest daily challenge <br> looks at you in the eyes with disapointment.',
   'Dont have friends? <br> play multiplayer and make some!',
   'The best glider is the one YOU have equiped! <br> except aphelion apex and greatest glider to ever live are better',
   'Shoutout to rip_n00b/ fox_but_better/ Doge_notDetected for being the only playtesters who actually did their job.<br>The rest of them just crashed into the canyon.',
   'I forgot what i was gonna say',
+  'Welcome to patch 5!',
 ];
 
 function getRandomStartMessage() {
@@ -4050,6 +4578,7 @@ function showScreen(screenId) {
   }
   if (screenId !== 'screen-shop') {
     clearShopTvTimer();
+    if (typeof isShopTvBroken !== 'undefined') isShopTvBroken = false;
   }
 
   const screens = ['screen-start', 'screen-select', 'screen-start-mobile', 'screen-select-mobile', 'screen-shop', 'screen-dispatch', 'screen-pause', 'screen-win', 'screen-lose', 'screen-gp-preview', 'screen-gp-interstitial', 'screen-gp-summary', 'screen-multiplayer'];
@@ -4138,7 +4667,9 @@ function showScreen(screenId) {
     if (mobileSpd) mobileSpd.style.display = 'none';
 
     if (screenId === 'screen-shop') {
-      playMenuTheme('shop');
+      if (typeof isShopTvBroken === 'undefined' || !isShopTvBroken) {
+        playMenuTheme('shop');
+      }
     } else if (screenId === 'screen-pause') {
       playMenuTheme('pause');
     } else {
@@ -4188,6 +4719,10 @@ function showScreen(screenId) {
     refreshCourseCards();
   } catch (e) {}
 
+  if (typeof renderShop === 'function') {
+    renderShop();
+  }
+
   if (screenId !== 'screen-gp-summary') {
     const ov = document.getElementById('gp-finale-overlay');
     if (ov) ov.style.display = 'none';
@@ -4197,6 +4732,12 @@ function showScreen(screenId) {
   }
 
   updateProfileCardVisibility();
+  if (typeof updateMenuNotifications === 'function') {
+    updateMenuNotifications();
+  }
+  if (typeof updateMpTrapezoid === 'function') {
+    updateMpTrapezoid();
+  }
 }
 
 function updateHudTheme() {
@@ -4218,7 +4759,7 @@ function updateHudTheme() {
 }
 
 function refreshCourseCards() {
-  document.querySelectorAll('#single-track-list .track-opt[data-course], #single-track-list-dt .track-opt[data-course]').forEach(card => {
+  document.querySelectorAll('#single-track-list .track-opt[data-course], #single-track-list-dt .track-opt[data-course], #screen-select-mobile .track-opt[data-course]').forEach(card => {
     const courseId = card.getAttribute('data-course');
     card.classList.toggle('active', courseId === selectedCourseId);
 
@@ -4280,7 +4821,7 @@ function updateHUD() {
   const posVal = document.getElementById('hud-pos');
   const deltaElem = document.getElementById('hud-delta');
 
-if (typeof multiplayerActive !== 'undefined' && multiplayerActive) {
+if (typeof multiplayerActive !== 'undefined' && multiplayerActive && mpRaceInProgress) {
     if (typeof updateServerPlayersButton === 'function') updateServerPlayersButton();
     if ((typeof mpIsSpectating !== 'undefined' && mpIsSpectating) || (typeof mpIsDedicatedServer !== 'undefined' && mpIsDedicatedServer)) {
       posLabel.innerText = 'MODE';
@@ -4342,24 +4883,10 @@ if (typeof multiplayerActive !== 'undefined' && multiplayerActive) {
         }
       }
     }
-  } else {
+    } else {
     posLabel.innerText = 'MODE';
     posVal.innerText = 'TT';
-    if (ghostDroneGroup) {
-      _tempVec1.subVectors(player.pos, ghostDroneGroup.position);
-      const dotAhead = _tempVec1.dot(_playerForward);
-      const gSeconds = dotAhead / Math.max(player.speed, 45);
-      if (gSeconds >= 0) {
-        deltaElem.style.color = 'var(--cyan)';
-        deltaElem.innerText = `(+${gSeconds.toFixed(1)}s GHOST)`;
-      } else {
-        deltaElem.style.color = 'var(--red)';
-        deltaElem.innerText = `(${gSeconds.toFixed(1)}s GHOST)`;
-      }
-    } else {
-      deltaElem.style.color = 'var(--mono-60)';
-      deltaElem.innerText = '(Time Trial)';
-    }
+    if (deltaElem) deltaElem.innerText = '';
   }
 }
 
@@ -4813,11 +5340,21 @@ function updateRestartHold(dt) {
 function animate() {
   requestAnimationFrame(animate);
 
+  if (document.hidden) return;
+
+  if (typeof updateMpTrapezoid === 'function' && typeof multiplayerActive !== 'undefined' && multiplayerActive) {
+    if (!window._lastTrapUpdate || performance.now() - window._lastTrapUpdate > 300) {
+      updateMpTrapezoid();
+      window._lastTrapUpdate = performance.now();
+    }
+  }
+
   document.body.classList.toggle('in-flight',
     gameState === 'RUNUP' || gameState === 'RACING' ||
     gameState === 'FINISHING' || gameState === 'CREDITS' ||
     gameState === 'GHOST_FLEET_CINEMATIC' || gameState === 'KRAMPUS_CINEMATIC' ||
-    gameState === 'MP_CINEMATIC' || gameState === 'MP_LOADING' || gameState === 'GP_FINALE');
+    gameState === 'MP_CINEMATIC' || gameState === 'MP_LOADING' || gameState === 'GP_FINALE' ||
+    gameState === 'GP_HIGHLIGHTS');
 
   const now = performance.now();
   let dt = Math.min((now - lastTime) / 1000, 0.1);
@@ -4862,6 +5399,8 @@ function animate() {
   } else if (gameState === 'GP_FINALE') {
     updateGrandPrixFinale(dt);
     updateFlight(dt);
+  } else if (gameState === 'GP_HIGHLIGHTS') {
+    updateGrandPrixHighlights(dt);
   } else if (gameState === 'CREDITS') {
     updateCredits(dt);
   } else if (gameState === 'RUNUP') {

@@ -729,7 +729,11 @@ function completeTutorial() {
   tutorialActive = false;
   try {
     localStorage.setItem('glider_tutorial_complete', 'true');
+    localStorage.setItem('glider_settings_notif', 'true');
   } catch (e) {}
+  if (typeof updateMenuNotifications === 'function') {
+    updateMenuNotifications();
+  }
   cleanupTutorialUI();
   if (typeof gameState !== 'undefined') {
     gameState = 'PAUSED';
