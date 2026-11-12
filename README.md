@@ -5,7 +5,7 @@
 # Glider
 A Free to play browser/ app game.
 
-Take to the air in a high-stakes glider race where the wind is your ally and the terrain is your enemy. GLIDER puts you in the cockpit of a dynamic glider, challenging you to carve through treacherous mountain passes, floating sky ruins, and storm battered coastlines.
+Take to the air in a high stakes glider race where the wind is your ally and the terrain is your enemy. GLIDER puts you in the cockpit of a dynamic glider, challenging you to carve through treacherous mountain passes, floating sky ruins, and storm battered coastlines.
 
 There is no need for engines here only pitch, roll, and the raw physics of flight. Use thermals to gain altitude, dive to build blistering speed, and risk a stall to trigger a recovery boost at dire times. Every gate you pass brings you closer to victory, but one wrong move means death.
 
@@ -42,8 +42,9 @@ Keyboard (WASD Mode + Mouse):
 
 > Barrel roll: double tap A / D
 
+>Hold R (restarts)
 
->Hold R (restarts)  
+> Tab list: Tab
 
 
 Controller:
@@ -70,6 +71,7 @@ Controller:
  Mobile?
 > Dont worry! You can use D-Pad, Analog, Touch anywhere on the screen OR Gyro just make sure to click the little settings icon in the top right to change it!
 > Barrel roll: currently not available on gyro
+> 💬 for tab list
 
 
 > ### Check out the Artist!
@@ -142,7 +144,6 @@ Open the app as normal!
 ## Known Issues / things to look out for
 - **Mobile UI is still WIP.** Basically finished! just have to make sure everything on mobile side is good - 98% done
 - **Heavy Front Loading On Mobile Devices / All devices really but specifically on slower internet for service workers causes the devices to be locked at the logo screen for quite a while**
-- **Multiplayer** WIP... (Soon. 70%! there)
 - **New Gamemode** (Patch 6)
 - **Staff Ghosts** (Patch 6)
 - **3rd Person** (Patch 6)
