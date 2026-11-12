@@ -10,7 +10,7 @@ function init() {
   renderer = new THREE.WebGLRenderer({ canvas, antialias: !isMobileDeviceCheck });
   renderer.setSize(window.innerWidth, window.innerHeight);
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(isMobile ? 1.0 : Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   hudCanvas = document.getElementById('hud-canvas');
@@ -123,6 +123,15 @@ buildParagliderMesh();
       return;
     }
 
+    if (gameState === 'GP_HIGHLIGHTS') {
+      if (e.code === 'Escape' || e.code === 'Space') {
+        if (typeof skipGrandPrixHighlightReel === 'function') {
+          skipGrandPrixHighlightReel();
+        }
+        return;
+      }
+    }
+
     if (e.code === 'Tab' && typeof multiplayerActive !== 'undefined' && multiplayerActive) {
       e.preventDefault();
       if (typeof toggleMatchOverview === 'function') {
@@ -137,8 +146,13 @@ buildParagliderMesh();
     if (gameState === 'RACING') {
       const barrelRollCodes = (keybinds && keybinds.barrelRoll) || defaultKeybinds.barrelRoll || ['KeyF', 'KeyB'];
       if (barrelRollCodes.includes(e.code)) {
-        const rollDir = player.roll >= 0 ? 1 : -1;
-        triggerBarrelRoll(invertRoll ? -rollDir : rollDir);
+        let rollDir = 1; 
+        if (isActionPressed('rollLeft')) rollDir = -1;
+        else if (isActionPressed('rollRight')) rollDir = 1;
+        
+        if (invertRoll) rollDir *= -1;
+        
+        triggerBarrelRoll(rollDir);
       }
     }
     if (gameState === 'GHOST_FLEET_CINEMATIC' || gameState === 'KRAMPUS_CINEMATIC') {
@@ -316,7 +330,9 @@ buildParagliderMesh();
         return;
       }
 
-      togglePauseMenu();
+      if (gameState === 'RACING' || gameState === 'RUNUP' || gameState === 'PAUSED') {
+        togglePauseMenu();
+      }
     }
   });
 
@@ -342,6 +358,12 @@ buildParagliderMesh();
   });
 
   window.addEventListener('pointerdown', () => {
+    if (gameState === 'GP_HIGHLIGHTS') {
+      if (typeof skipGrandPrixHighlightReel === 'function') {
+        skipGrandPrixHighlightReel();
+      }
+      return;
+    }
     if (gameState === 'GHOST_FLEET_CINEMATIC' && ghostFleetCinematicTimer > 2.0) {
       finishGhostFleetCinematic();
     } else if (gameState === 'KRAMPUS_CINEMATIC' && krampusCinematicTimer > 2.0) {
@@ -1598,6 +1620,12 @@ const ACHIEVEMENT_SUBTITLES = {
 };
 
 function showAchievementNotifications(unlockedItems) {
+  try {
+    localStorage.removeItem('glider_shop_badge_dismissed');
+  } catch (e) {}
+  if (typeof updateMenuNotifications === 'function') {
+    updateMenuNotifications();
+  }
   const container = document.getElementById('notif-container');
   if (!container) return;
 
@@ -1760,7 +1788,24 @@ let tvClickCount = 0;
 const speedometerPointer2Img = new Image();
 speedometerPointer2Img.src = 'speedemeterpointer2.png';
 
+let isShopTvBroken = false;
+
+function checkShopTvOnOpen() {
+  clearShopTvTimer();
+  if (Math.random() < 0.01) {
+    isShopTvBroken = true;
+    setShopTvImage('brokenTV.png');
+    if (typeof stopMenuTheme === 'function') {
+      stopMenuTheme(true);
+    }
+  } else {
+    isShopTvBroken = false;
+    updateShopTvGif();
+  }
+}
+
 function onShopTvClick() {
+  if (isShopTvBroken) return;
   audio.init();
 
   tvClickCount++;
@@ -1793,8 +1838,105 @@ function updateShopTvGif() {
   setShopTvImage(randomGif);
 }
 
+function getSeenShopItems() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem('glider_seen_shop_items') || '[]'));
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function markShopItemSeen(itemId) {
+  if (!itemId) return;
+  const seen = getSeenShopItems();
+  seen.add(itemId);
+  try {
+    localStorage.setItem('glider_seen_shop_items', JSON.stringify(Array.from(seen)));
+  } catch (e) {}
+}
+
+function getUnseenUnlockedShopItems() {
+  const stats = (typeof getTrackStats === 'function') ? getTrackStats() : {};
+  const seen = getSeenShopItems();
+  const unseen = [];
+
+  if (typeof GLIDER_SKINS !== 'undefined') {
+    GLIDER_SKINS.forEach(s => {
+      if (s.id !== 'default' && s.checkUnlocked && s.checkUnlocked(stats)) {
+        if (!seen.has(s.id)) unseen.push(s.id);
+      }
+    });
+  }
+
+  if (typeof GHOST_SKINS !== 'undefined') {
+    GHOST_SKINS.forEach(s => {
+      if (s.id !== 'ghost_default' && s.checkUnlocked && s.checkUnlocked(stats)) {
+        if (!seen.has(s.id)) unseen.push(s.id);
+      }
+    });
+  }
+
+  if (typeof HUD_THEMES !== 'undefined') {
+    HUD_THEMES.forEach(t => {
+      if (t.id !== 'default' && t.checkUnlocked && t.checkUnlocked(stats)) {
+        if (!seen.has(t.id)) unseen.push(t.id);
+      }
+    });
+  }
+
+  return unseen;
+}
+
+function shouldShowShopNotification() {
+  if (localStorage.getItem('glider_shop_badge_dismissed') === 'true') {
+    return false;
+  }
+  return getUnseenUnlockedShopItems().length > 0;
+}
+
+function shouldShowChallengeNotification() {
+  const todayKey = (typeof getDailyChallengeDateKey === 'function') ? getDailyChallengeDateKey(0) : '';
+  const seenDate = localStorage.getItem('glider_challenge_seen_date');
+  return !!todayKey && seenDate !== todayKey;
+}
+
+function shouldShowSettingsNotification() {
+  return localStorage.getItem('glider_settings_notif') === 'true';
+}
+
+function updateMenuNotifications() {
+  const showShop = shouldShowShopNotification();
+  const showChallenge = shouldShowChallengeNotification();
+  const showSettings = shouldShowSettingsNotification();
+
+  const toggleBadge = (parentSelector, shouldShow, badgeClass) => {
+    document.querySelectorAll(parentSelector).forEach(parent => {
+      let badge = parent.querySelector('.' + badgeClass);
+      if (shouldShow) {
+        if (!badge) {
+          badge = document.createElement('img');
+          badge.className = 'btn-notif-badge ' + badgeClass;
+          badge.src = 'Animatedexclamtion.gif';
+          badge.alt = '!';
+          badge.draggable = false;
+          parent.appendChild(badge);
+        }
+        badge.style.display = 'block';
+      } else if (badge) {
+        badge.style.display = 'none';
+      }
+    });
+  };
+
+  toggleBadge('#dash-nav-shop, #btn-start-shop', showShop, 'notif-badge-shop');
+  toggleBadge('#dash-nav-challenge, #btn-tab-challenge', showChallenge, 'notif-badge-challenge');
+  toggleBadge('#dash-nav-settings, #btn-settings-toggle', showSettings, 'notif-badge-settings');
+}
+
 function openShopMenu() {
-  updateShopTvGif();
+  localStorage.setItem('glider_shop_badge_dismissed', 'true');
+  if (typeof updateMenuNotifications === 'function') updateMenuNotifications();
+  checkShopTvOnOpen();
   inspectedType = 'glider';
   inspectedGliderId = getEquippedSkinId();
   inspectedGhostId = getEquippedGhostSkinId();
@@ -1916,6 +2058,7 @@ function renderShop() {
       const isEquipped = theme.id === equippedThemeId;
       const isInspected = inspectedType === 'theme' && theme.id === inspectedThemeId;
 
+      const isUnseen = isUnlocked && !isEquipped && theme.id !== 'default' && !getSeenShopItems().has(theme.id);
       const item = document.createElement('div');
       item.className = `shop-item-card ${isInspected ? 'selected' : ''}`;
       let statusText = isEquipped ? '<b style="color: var(--cyan);">[EQUIPPED]</b>' : (isUnlocked ? '<span style="color: #4cd137;">UNLOCKED</span>' : '<span style="color: var(--mono-60);">LOCKED</span>');
@@ -1933,9 +2076,12 @@ function renderShop() {
           <div class="shop-item-name">${theme.name}</div>
           <div class="shop-item-status">${statusText} • <span style="color: var(--gold);">${theme.colorName}</span></div>
         </div>
+        ${isUnseen ? '<img src="Animatedexclamtion.gif" class="shop-item-notif-badge" alt="!">' : ''}
       `;
 
       item.addEventListener('click', () => {
+        markShopItemSeen(theme.id);
+        if (typeof updateMenuNotifications === 'function') updateMenuNotifications();
         inspectedType = 'theme';
         inspectedThemeId = theme.id;
         renderShop();
@@ -1960,6 +2106,7 @@ function renderShop() {
     const isEquipped = skin.id === equippedGliderId;
     const isInspected = inspectedType === 'glider' && skin.id === inspectedGliderId;
 
+    const isUnseen = isUnlocked && !isEquipped && skin.id !== 'default' && !getSeenShopItems().has(skin.id);
     const item = document.createElement('div');
     item.className = `shop-item-card ${isInspected ? 'selected' : ''}`;
     let statusText = isEquipped ? '<b style="color: var(--cyan);">[EQUIPPED]</b>' : (isUnlocked ? '<span style="color: #4cd137;">UNLOCKED</span>' : '<span style="color: var(--mono-60);">LOCKED</span>');
@@ -1974,9 +2121,12 @@ function renderShop() {
         <div class="shop-item-name">${skin.name}</div>
         <div class="shop-item-status">${statusText} • <span style="color: var(--gold);">${skin.colorName}</span></div>
       </div>
+      ${isUnseen ? '<img src="Animatedexclamtion.gif" class="shop-item-notif-badge" alt="!">' : ''}
     `;
 
     item.addEventListener('click', () => {
+      markShopItemSeen(skin.id);
+      if (typeof updateMenuNotifications === 'function') updateMenuNotifications();
       inspectedType = 'glider';
       inspectedGliderId = skin.id;
       renderShop();
@@ -2001,6 +2151,7 @@ function renderShop() {
     const isEquipped = skin.id === equippedGhostId;
     const isInspected = inspectedType === 'ghost' && skin.id === inspectedGhostId;
 
+    const isUnseen = isUnlocked && !isEquipped && skin.id !== 'ghost_default' && !getSeenShopItems().has(skin.id);
     const item = document.createElement('div');
     item.className = `shop-item-card ${isInspected ? 'selected' : ''}`;
     let statusText = isEquipped ? '<b style="color: var(--cyan);">[EQUIPPED]</b>' : (isUnlocked ? '<span style="color: #4cd137;">UNLOCKED</span>' : '<span style="color: var(--mono-60);">LOCKED</span>');
@@ -2016,9 +2167,12 @@ function renderShop() {
         <div class="shop-item-name">${skin.name}</div>
         <div class="shop-item-status">${statusText} • <span style="color: var(--gold);">${skin.colorName}</span></div>
       </div>
+      ${isUnseen ? '<img src="Animatedexclamtion.gif" class="shop-item-notif-badge" alt="!">' : ''}
     `;
 
     item.addEventListener('click', () => {
+      markShopItemSeen(skin.id);
+      if (typeof updateMenuNotifications === 'function') updateMenuNotifications();
       inspectedType = 'ghost';
       inspectedGhostId = skin.id;
       renderShop();
@@ -2040,13 +2194,17 @@ function renderShop() {
         if (idx < numThemes) {
           inspectedType = 'theme';
           inspectedThemeId = HUD_THEMES[idx].id;
+          markShopItemSeen(inspectedThemeId);
         } else if (idx < numThemes + GLIDER_SKINS.length) {
           inspectedType = 'glider';
           inspectedGliderId = GLIDER_SKINS[idx - numThemes].id;
+          markShopItemSeen(inspectedGliderId);
         } else {
           inspectedType = 'ghost';
           inspectedGhostId = GHOST_SKINS[idx - numThemes - GLIDER_SKINS.length].id;
+          markShopItemSeen(inspectedGhostId);
         }
+        if (typeof updateMenuNotifications === 'function') updateMenuNotifications();
         renderShop();
         if (typeof openDashboardRight === 'function') {
           openDashboardRight('shop');
@@ -3905,7 +4063,10 @@ seaStacks = [];
   const warnEl = document.getElementById('volcano-event-warning');
   if (warnEl) warnEl.style.display = 'none';
 
-  const course = COURSES[courseKey];
+  const course = COURSES[courseKey] || COURSES['canyon'];
+  if (!course.subtracks[selectedSubtrack]) {
+    selectedSubtrack = 'A';
+  }
   lunarMeteorEvent.triggered = false;
   lunarMeteorEvent.active = false;
   lunarMeteorEvent.timer = 0;
@@ -3914,7 +4075,10 @@ seaStacks = [];
     environmentGroup.remove(lunarMeteorEvent.group);
     lunarMeteorEvent.group = null;
   }
-  const activeSubtrack = course.subtracks[selectedSubtrack];
+  const activeSubtrack = course.subtracks[selectedSubtrack] || course.subtracks['A'];
+  if (course.cliffPos) {
+    menuCamCenter.copy(course.cliffPos);
+  }
 
 applySkySetting();
   scene.fog = new THREE.FogExp2(course.fogColor, course.fogDensity);
@@ -5326,7 +5490,7 @@ setupTrackHazards(courseKey, activeSubtrack);
     }
   }
 
-  if (typeof multiplayerActive !== 'undefined' && multiplayerActive && typeof setupMultiplayerWorld === 'function') {
+  if (typeof multiplayerActive !== 'undefined' && multiplayerActive && mpRaceInProgress && typeof setupMultiplayerWorld === 'function') {
     setupMultiplayerWorld(course, activeSubtrack);
   } else if (gameMode === 'race') {
     spawnAI(course, activeSubtrack);
@@ -5394,6 +5558,8 @@ function precomputeGhostWaypointTimes() {
   }
 }
 
+let currentGhostSpeedDelta = null;
+
 function showGhostDeltaCheckpoint(diff, spdDiff = 0) {
   const el = document.getElementById('ghost-delta-flash');
   const mobEl = document.getElementById('mobile-speed-delta');
@@ -5406,22 +5572,29 @@ function showGhostDeltaCheckpoint(diff, spdDiff = 0) {
     formatted = formatted.slice(0, -1);
   }
   const sign = diff < 0 ? '-' : '+';
+  const spdSign = spdDiff >= 0 ? '+' : '';
+  const spdColor = (spdDiff >= 0) ? 'var(--cyan)' : 'var(--red)';
+  const spdHex = (spdDiff >= 0) ? '#00f0ff' : '#ff4444';
+  currentGhostSpeedDelta = { text: `${spdSign}${spdDiff} KT`, color: spdColor, colHex: spdHex };
+
   if (el) {
-    el.innerText = `${sign} ${formatted}`;
+    el.innerHTML = `${sign} ${formatted}`;
     el.style.color = (diff <= 0) ? 'var(--red)' : 'var(--cyan)';
     el.style.display = 'block';
   }
-  if (mobEl && isMobileDevice()) {
-    const spdSign = spdDiff >= 0 ? '+' : '';
+  if (mobEl) {
     mobEl.innerText = `${spdSign}${spdDiff} KT`;
-    mobEl.style.color = (spdDiff >= 0) ? 'var(--cyan)' : 'var(--red)';
-    mobEl.style.display = 'block';
+    mobEl.style.color = spdColor;
+    if (isMobileDevice()) {
+      mobEl.style.display = 'block';
+    }
   }
 
   ghostDeltaTimeout = setTimeout(() => {
     if (el) el.style.display = 'none';
     if (mobEl) mobEl.style.display = 'none';
     ghostDeltaTimeout = null;
+    currentGhostSpeedDelta = null;
   }, 1000);
 }
 
@@ -5453,12 +5626,23 @@ function loadGhostDrone() {
     ghostCache[ghostKey] = savedGhostData;
     createGhostDroneMesh();
     precomputeGhostWaypointTimes();
-  } else {
-    savedGhostData = null;
-    ghostWaypointTimes = {};
+    } else {
+    posLabel.innerText = 'MODE';
+    posVal.innerText = 'TT';
     if (ghostDroneGroup) {
-      environmentGroup.remove(ghostDroneGroup);
-      ghostDroneGroup = null;
+      _tempVec1.subVectors(player.pos, ghostDroneGroup.position);
+      const dotAhead = _tempVec1.dot(_playerForward);
+      const gSeconds = dotAhead / Math.max(player.speed, 45);
+      if (gSeconds >= 0) {
+        deltaElem.style.color = 'var(--cyan)';
+        deltaElem.innerText = `(+${gSeconds.toFixed(1)}s GHOST)`;
+      } else {
+        deltaElem.style.color = 'var(--red)';
+        deltaElem.innerText = `(${gSeconds.toFixed(1)}s GHOST)`;
+      }
+    } else {
+      deltaElem.style.color = 'var(--mono-60)';
+      deltaElem.innerText = '(Time Trial)';
     }
   }
 }
@@ -6049,6 +6233,7 @@ function updateAI(dt) {
       if (ai.barrelRoll.timer >= ai.barrelRoll.duration) {
         ai.barrelRoll.active = false;
         ai.roll = 0;
+        ai.currentSpeed = Math.min(ai.currentSpeed + 15, currentDiveCap); 
       }
     } else {
       ai.roll = THREE.MathUtils.lerp(ai.roll, -yawDelta * 7.0, 6.0 * dt);
@@ -6125,6 +6310,13 @@ function updateGhostDrone() {
 
 function updateFlight(dt) {
   if (gameState !== 'RACING' && gameState !== 'FINISHING' && gameState !== 'GP_FINALE') return;
+
+  if (typeof chaosFreezeActive !== 'undefined' && chaosFreezeActive) {
+    player.speed = 0;
+    player.verticalVelocity = 0;
+    updateCameraView(0, 0);
+    return;
+  }
 
   if (devTimeFrozen) {
     if (devFreeCam) {
@@ -6317,6 +6509,74 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
     }
   }
 
+  if (typeof grandPrixState !== 'undefined' && (grandPrixState.active || (typeof multiplayerActive !== 'undefined' && multiplayerActive && mpGpMode))) {
+    if (!window.mpGhostCache) window.mpGhostCache = {};
+    if (typeof lastGpGhostRecordTime === 'undefined') window.lastGpGhostRecordTime = 0;
+    if (raceElapsedTime - window.lastGpGhostRecordTime >= 0.15) {
+      window.lastGpGhostRecordTime = raceElapsedTime;
+      if (!window.mpGhostCache['player']) window.mpGhostCache['player'] = [];
+      const pName = (typeof grandPrixState !== 'undefined' && grandPrixState.active && grandPrixState.racers && grandPrixState.racers[0]) ? grandPrixState.racers[0].name : (typeof getLocalProfile === 'function' ? getLocalProfile().name : 'YOU');
+      window.mpGhostCache['player'].push({
+        t: parseFloat(raceElapsedTime.toFixed(3)),
+        x: parseFloat(player.pos.x.toFixed(1)),
+        y: parseFloat(player.pos.y.toFixed(1)),
+        z: parseFloat(player.pos.z.toFixed(1)),
+        pitch: parseFloat(player.pitch.toFixed(3)),
+        yaw: parseFloat(player.yaw.toFixed(3)),
+        roll: parseFloat(player.roll.toFixed(3)),
+        speed: parseFloat(player.speed.toFixed(1)),
+        name: pName,
+        color: typeof getPlayerGliderColor === 'function' ? getPlayerGliderColor() : '#00f0ff',
+        skinId: typeof getEquippedSkinId === 'function' ? getEquippedSkinId() : 'default'
+      });
+
+      if (typeof aiGliders !== 'undefined' && aiGliders.length > 0) {
+        aiGliders.forEach((ai, idx) => {
+          const aiId = 'ai' + idx;
+          if (!window.mpGhostCache[aiId]) window.mpGhostCache[aiId] = [];
+          const aName = (typeof grandPrixState !== 'undefined' && grandPrixState.racers && grandPrixState.racers[idx + 1]) ? grandPrixState.racers[idx + 1].name : ('AI ' + (idx + 1));
+          const col = ai.color ? ('#' + ai.color.toString(16).padStart(6, '0')) : '#ff4444';
+          window.mpGhostCache[aiId].push({
+            t: parseFloat(raceElapsedTime.toFixed(3)),
+            x: parseFloat(ai.pos.x.toFixed(1)),
+            y: parseFloat(ai.pos.y.toFixed(1)),
+            z: parseFloat(ai.pos.z.toFixed(1)),
+            pitch: parseFloat(ai.pitch.toFixed(3)),
+            yaw: parseFloat(ai.yaw.toFixed(3)),
+            roll: parseFloat(ai.roll.toFixed(3)),
+            speed: parseFloat((ai.currentSpeed || 0).toFixed(1)),
+            name: aName,
+            color: col
+          });
+        });
+      }
+
+      if (typeof multiplayerActive !== 'undefined' && multiplayerActive && typeof mpRemoteTargets !== 'undefined') {
+        for (const pId in mpRemoteTargets) {
+          const tgt = mpRemoteTargets[pId];
+          if (tgt) {
+            if (!window.mpGhostCache[pId]) window.mpGhostCache[pId] = [];
+            const pData = (typeof mpPlayers !== 'undefined' && mpPlayers[pId]) ? mpPlayers[pId] : {};
+            const prof = pData.profile || {};
+            window.mpGhostCache[pId].push({
+              t: parseFloat(raceElapsedTime.toFixed(3)),
+              x: parseFloat(tgt.pos.x.toFixed(1)),
+              y: parseFloat(tgt.pos.y.toFixed(1)),
+              z: parseFloat(tgt.pos.z.toFixed(1)),
+              pitch: parseFloat((tgt.pitch || 0).toFixed(3)),
+              yaw: parseFloat((tgt.yaw || 0).toFixed(3)),
+              roll: parseFloat((tgt.roll || 0).toFixed(3)),
+              speed: parseFloat((tgt.speed || 0).toFixed(1)),
+              name: prof.name || 'PILOT',
+              color: pData.gliderSkinId ? (typeof getPlayerGliderColor === 'function' ? getPlayerGliderColor(pData.gliderSkinId) : '#00f0ff') : '#00f0ff',
+              skinId: pData.gliderSkinId || 'default'
+            });
+          }
+        }
+      }
+    }
+  }
+
   if (gameMode === 'timetrial') {
     if (currentGhostRun.length === 0 || raceElapsedTime - currentGhostRun[currentGhostRun.length - 1].t >= 0.15) {
       currentGhostRun.push({
@@ -6473,6 +6733,9 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
     
     player.pos.x += rightX * barrelRoll.direction * currentLatSpeed * dt;
     player.pos.z += rightZ * barrelRoll.direction * currentLatSpeed * dt;
+
+    camera.fov = THREE.MathUtils.lerp(camera.fov, 105, 5.0 * dt);
+    camera.updateProjectionMatrix();
     
     
     if (barrelRoll.timer >= barrelRoll.duration) {
@@ -6480,8 +6743,11 @@ if (selectedCourseId === 'moon' && selectedSubtrack === 'C') {
       barrelRoll.timer = 0;
       player.roll = 0;
       player.targetRoll = 0;
-      challengeTracker.prevRoll = 0;
-      challengeTracker.rollAccum = 0;
+      const originalDragLoss = 34; 
+      const actualPenalty = originalDragLoss * 0.25; 
+      player.speed = Math.max(20, player.speed - actualPenalty); 
+      if (typeof audio !== 'undefined') audio.playBeep(400, 'sine', 0.1, 0.15);
+    
     }
   }
 
@@ -6543,10 +6809,35 @@ const currentYawDir = ((activeMods && activeMods.disableRudderBoost) && !tutoria
 
   const maxPitch = 0.65; 
 
+  if (typeof chaosControlsLocked !== 'undefined' && chaosControlsLocked) {
+    pitchInput = 0;
+    rollInput = 0;
+    yawInput = 0;
+    player.airbrake = false;
+    hasPitchInput = false;
+    hasRollInput = false;
+  }
+
+  if (typeof chaosInvertActive !== 'undefined' && chaosInvertActive) {
+    pitchInput = -pitchInput;
+    rollInput = -rollInput;
+  }
+
+  if (typeof chaosCrashForced !== 'undefined' && chaosCrashForced) {
+    pitchInput = -1.0;
+    hasPitchInput = true;
+  }
+
   if (hasPitchInput) {
     player.targetPitch = THREE.MathUtils.lerp(player.targetPitch, pitchInput * maxPitch, 7.5 * dt);
   } else {
     player.targetPitch = THREE.MathUtils.lerp(player.targetPitch, 0.0, 3.5 * dt);
+  }
+
+  if (typeof chaosCrashForced !== 'undefined' && chaosCrashForced) {
+    player.pitch = -0.65;
+    player.targetPitch = -0.65;
+    player.flightPathPitch = -0.65;
   }
 
   if (activeMods && activeMods.disablePitchUp) {
@@ -6669,7 +6960,8 @@ const currentYawDir = ((activeMods && activeMods.disableRudderBoost) && !tutoria
   const liftForce = CL * (speedNorm * speedNorm) * 32.0;
   const verticalLift = liftForce * Math.cos(player.roll);
 
-  const gravityNormal = 32.0 * Math.cos(player.flightPathPitch);
+  const effGrav = (typeof chaosGravityMult !== 'undefined' ? chaosGravityMult : 1.0);
+  const gravityNormal = 32.0 * Math.cos(player.flightPathPitch) * effGrav;
   const gammaRate = (verticalLift - gravityNormal) / Math.max(player.speed, 18.0);
   player.flightPathPitch += gammaRate * 2.2 * dt;
 
@@ -6677,14 +6969,16 @@ const currentYawDir = ((activeMods && activeMods.disableRudderBoost) && !tutoria
   player.flightPathPitch = THREE.MathUtils.clamp(player.flightPathPitch, player.pitch - 0.35, player.pitch + 0.35);
   player.flightPathPitch = THREE.MathUtils.clamp(player.flightPathPitch, -Math.PI * 0.499, Math.PI * 0.499);
 
-  const aGravity = -36.0 * Math.sin(player.flightPathPitch);
+  const effGravForce = (typeof chaosGravityMult !== 'undefined' ? chaosGravityMult : 1.0);
+  const aGravity = -36.0 * Math.sin(player.flightPathPitch) * effGravForce;
   player.speed += aGravity * dt;
 
-  const aParasiticDrag = 0.00006 * (player.speed * player.speed);
+ const aParasiticDrag = 0.00006 * (player.speed * player.speed);
   const aInducedDrag = 0.35 * (CL * CL) * (60.0 / Math.max(player.speed, 20.0));
-  const aTurnDrag = (Math.abs(player.rudderDeflection) * 22.0 + Math.abs(player.roll) * 10.0);
+  const isTrickActive = barrelRoll.active; // In la future add || loopActive || corkscrewActive when new tricks are added
+  const rollDragMultiplier = isTrickActive ? 0 : Math.abs(player.roll);
+  const aTurnDrag = (Math.abs(player.rudderDeflection) * 22.0 + rollDragMultiplier * 10.0);
   const aAirbrake = player.airbrake ? 42.0 : 0.0;
-
   player.speed -= (aParasiticDrag + aInducedDrag + aTurnDrag + aAirbrake) * dt;
   if (birdStrikeDragTimer > 0) {
     birdStrikeDragTimer -= dt;
@@ -6694,7 +6988,7 @@ const currentYawDir = ((activeMods && activeMods.disableRudderBoost) && !tutoria
     screenShake = Math.max(screenShake, 0.25 * birdStrikeDragTimer);
   }
 
-  const devShiftBoost = impossibleDifficultyUnlocked && (keys['ShiftLeft'] || keys['ShiftRight']);
+  const devShiftBoost = !multiplayerActive && impossibleDifficultyUnlocked && (keys['ShiftLeft'] || keys['ShiftRight']);
   if (devShiftBoost) {
     player.speed = THREE.MathUtils.lerp(player.speed, 240, 4.5 * dt);
     screenShake = Math.max(screenShake, 0.45);
@@ -7081,6 +7375,19 @@ const currentYawDir = ((activeMods && activeMods.disableRudderBoost) && !tutoria
   player.pos.x += weather.windVector.x * dt * 0.95;
   player.pos.z += weather.windVector.z * dt * 0.95;
 
+  if (typeof chaosCrosswind !== 'undefined' && chaosCrosswind) {
+    const cRightX = Math.cos(player.yaw);
+    const cRightZ = -Math.sin(player.yaw);
+    player.pos.x += cRightX * chaosCrosswind * dt * 2.2;
+    player.pos.z += cRightZ * chaosCrosswind * dt * 2.2;
+  }
+
+  if (typeof chaosHoverActive !== 'undefined' && chaosHoverActive) {
+    player.pos.y = chaosHoverAltitude;
+    player.verticalVelocity = 0;
+    player.flightPathPitch = 0;
+  }
+
   const hCenter = getTerrainHeight(player.pos.x, player.pos.z, selectedCourseId);
   const centerClearance = player.pos.y - hCenter;
 
@@ -7088,7 +7395,7 @@ const currentYawDir = ((activeMods && activeMods.disableRudderBoost) && !tutoria
   let isSteepImpact = false;
 
   if (centerClearance < 30) {
-    const wingSpan = 11.5;
+    const wingSpan = 11.5 * (typeof chaosPlayerScale !== 'undefined' ? chaosPlayerScale : 1.0);
     const rightX = Math.cos(player.yaw);
     const rightZ = -Math.sin(player.yaw);
     const rollSin = -Math.sin(player.roll);
@@ -7122,6 +7429,9 @@ const currentYawDir = ((activeMods && activeMods.disableRudderBoost) && !tutoria
   }
 
   if (groundContact) {
+    if (typeof chaosCrashForced !== 'undefined') {
+      chaosCrashForced = false;
+    }
     if (player.speed > 48 || isSteepImpact) {
       if (typeof multiplayerActive !== 'undefined' && multiplayerActive) {
         handleMultiplayerCrashRecovery();
@@ -7144,17 +7454,6 @@ const currentYawDir = ((activeMods && activeMods.disableRudderBoost) && !tutoria
         }
         if (challengeTracker.touchdownApollo && player.speed <= 5) {
           challengeTracker.stoppedNearApollo = true;
-          triggerRaceFinishSequence();
-          return;
-        }
-      }
-
-      if (challengeActive === 30 && selectedCourseId === 'glacial') {
-        if (player.pos.y < 100) {
-          challengeTracker.touchdownFjord = true;
-        }
-        if (challengeTracker.touchdownFjord && player.speed <= 5 && !challengeTracker.usedBoost && !challengeTracker.wasInThermal) {
-          challengeTracker.stoppedInFjord = true;
           triggerRaceFinishSequence();
           return;
         }
@@ -7350,7 +7649,7 @@ const is16BitGlider = (getEquippedSkinId() === 'glider_16bit');
     }
 
     if (player.nextGateIdx >= activeSubtrack.waypoints.length) {
-      if (typeof multiplayerActive !== 'undefined' && multiplayerActive) {
+      if (typeof multiplayerActive !== 'undefined' && multiplayerActive && mpRaceInProgress) {
         if (typeof onMultiplayerFinished === 'function') {
           onMultiplayerFinished();
         }
@@ -7367,7 +7666,7 @@ function checkBoundaries() {
   if (gameState !== 'RACING') return;
   const course = COURSES[selectedCourseId];
   if (player.pos.y <= course.waterLevel + 3) {
-    if (typeof multiplayerActive !== 'undefined' && multiplayerActive) {
+    if (typeof multiplayerActive !== 'undefined' && multiplayerActive && mpRaceInProgress) {
       handleMultiplayerCrashRecovery();
       return;
     }
