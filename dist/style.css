@@ -101,7 +101,8 @@ button,
   }
 
   body.in-flight #happy-halloween-banner,
-  body.in-flight #halloween-decor-wrap {
+  body.in-flight #halloween-decor-wrap,
+  body.in-flight #mp-room-trapezoid {
     display: none !important;
   }
 
@@ -2458,7 +2459,7 @@ body.dpad-mode #mobile-btn-roll.active img {
   .mp-slots-list::-webkit-scrollbar-thumb:hover {
     background: var(--cyan);
   }
-  @media (pointer: coarse), (max-width: 950px), (max-height: 600px) {
+  @media (pointer: coarse), (max-width: 950px) {
     .desktop-layout {
       display: none !important;
     }
@@ -2918,6 +2919,7 @@ body.dpad-mode #mobile-btn-roll.active img {
     justify-content: space-between;
     padding: 32px 24px 28px 32px;
     pointer-events: auto;
+    overflow-y: auto;
     z-index: 52;
   }
 

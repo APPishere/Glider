@@ -444,24 +444,32 @@ function initPeerInstance(peerId, onSuccess, onError, useTurn = false) {
   if (mpPeer && !mpPeer.destroyed) {
     try { mpPeer.destroy(); } catch (e) {}
   }
-  const peerConfig = useTurn ? {
+  const peerConfig = {
     debug: 0,
     config: {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun.relay.metered.ca:80' },
         { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
         { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
         { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
       ]
     }
-  } : { debug: 0 };
+  };
   const p = peerId ? new Peer(peerId, peerConfig) : new Peer(peerConfig);
+  let opened = false;
   p.on('open', id => {
+    opened = true;
     if (onSuccess) onSuccess(id);
   });
+  p.on('disconnected', () => {
+    if (!p.destroyed) {
+      try { p.reconnect(); } catch (e) {}
+    }
+  });
   p.on('error', err => {
-    if (onError) onError(err);
+    if (onError) onError(err, opened);
   });
   return p;
 }
@@ -567,16 +575,42 @@ function toggleDedicatedServer() {
 function createMultiplayerRoom(useTurn = false) {
   if (checkMpSuspension()) return;
   if (typeof impossibleDifficultyUnlocked !== 'undefined' && impossibleDifficultyUnlocked) {
-    setMultiplayerStatus('DEV TOOLS ACTIVE, CANNOT CREATE/JOIN ROOMs');
+    setMultiplayerStatus('DEV TOOLS ACTIVE, CANNOT CREATE/JOIN ROOMS');
     return;
   }
   cancelActiveDailyChallenge();
   setMultiplayerStatus('CREATING ROOM...');
   mpUseTurn = useTurn;
+  mpRaceInProgress = false;
+  mpIsSpectating = false;
+  mpRaceOver = false;
+  mpDnfTimerActive = false;
+  mpDnfTimer = 0;
+  mpFinishedRacers.clear();
+  mpLeaderboard = [];
+  mpBannedPeerIds.clear();
+  mpGpMode = false;
+  mpGpCupId = null;
+  mpGpRaceIndex = 0;
+  mpGpRaces = [];
+  mpGpPoints = {};
+  mpPlayerWins = {};
+  mpServerActive = false;
+  mpPlayerPings = {};
+
   const code = generateRoomCode();
   const peerId = MP_ROOM_PREFIX + code;
+  let createTimeout = setTimeout(() => {
+    if (!multiplayerActive) {
+      if (mpPeer && !mpPeer.destroyed) {
+        try { mpPeer.destroy(); } catch (e) {}
+      }
+      setMultiplayerStatus('CREATE TIMED OUT');
+    }
+  }, 12000);
 
   mpPeer = initPeerInstance(peerId, id => {
+    clearTimeout(createTimeout);
     mpCreateRetryCount = 0;
     isMultiplayerHost = true;
     multiplayerActive = true;
@@ -607,12 +641,15 @@ function createMultiplayerRoom(useTurn = false) {
     if (!isMobileDevice() && typeof openDashboardRight === 'function') {
       openDashboardRight('multiplayer');
     }
-  }, err => {
-    if (err && err.type === 'unavailable-id' && mpCreateRetryCount < 3) {
+  }, (err, wasOpened) => {
+    clearTimeout(createTimeout);
+    if (!wasOpened && err && err.type === 'unavailable-id' && mpCreateRetryCount < 3) {
       mpCreateRetryCount++;
       setTimeout(() => createMultiplayerRoom(useTurn), 500);
-    } else {
+    } else if (!wasOpened) {
       mpCreateRetryCount = 0;
+      multiplayerActive = false;
+      mpRoomCode = '';
       setMultiplayerStatus('CREATE FAILED');
     }
   }, useTurn);
@@ -626,7 +663,7 @@ function handleHostIncomingConnection(conn) {
     });
     return;
   }
-  const nonServerPlayers = Object.values(mpPlayers).filter(p => !p.isDedicatedServer);
+  const nonServerPlayers = Object.values(mpPlayers).filter(p => !p.isDedicatedServer && !p.isSpectator && p.slot >= 0);
   if (nonServerPlayers.length >= MP_MAX_PLAYERS) {
     conn.on('open', () => {
       conn.send({ type: 'REJECT', reason: 'ROOM FULL (MAX 5)' });
@@ -721,7 +758,7 @@ function handleHostReceivedData(peerId, data) {
       }
       return;
     }
-    const nonServerPlayers = Object.values(mpPlayers).filter(p => !p.isDedicatedServer);
+    const nonServerPlayers = Object.values(mpPlayers).filter(p => !p.isDedicatedServer && !p.isSpectator && p.slot >= 0);
     if (nonServerPlayers.length >= MP_MAX_PLAYERS) {
       const conn = mpConnections[peerId];
       if (conn && conn.open) {
@@ -763,7 +800,9 @@ function handleHostReceivedData(peerId, data) {
       }
       return;
     }
-    const slot = nonServerPlayers.length;
+    const usedSlots = new Set(nonServerPlayers.map(p => p.slot));
+    let slot = 0;
+    while (usedSlots.has(slot)) slot++;
     mpPlayers[peerId] = {
       id: peerId,
       slot: slot,
@@ -987,7 +1026,7 @@ function relayFlightData(senderPeerId, packet) {
 function joinMultiplayerRoom(rawCode) {
   if (checkMpSuspension()) return;
   if (typeof impossibleDifficultyUnlocked !== 'undefined' && impossibleDifficultyUnlocked) {
-    setMultiplayerStatus('DEV TOOLS ACTIVE  CANNOT JOIN/CREATE ROOMs');
+    setMultiplayerStatus('DEV TOOLS ACTIVE CANNOT JOIN/CREATE ROOMS');
     return;
   }
   const code = (rawCode || '').trim().toUpperCase();
@@ -1004,16 +1043,30 @@ function joinMultiplayerRoom(rawCode) {
 
   setMultiplayerStatus('JOINING ROOM ' + code + '...');
   const hostPeerId = MP_ROOM_PREFIX + code;
+  let joinedOpened = false;
+  let joinTimeout = setTimeout(() => {
+    if (!joinedOpened) {
+      leaveMultiplayerRoom();
+      setMultiplayerStatus('ROOM NOT FOUND OR TIMED OUT');
+    }
+  }, 12000);
 
   mpPeer = initPeerInstance(null, id => {
-    isMultiplayerHost = false;
-    multiplayerActive = true;
-    mpRoomCode = code;
-    mpLocalReady = false;
-
     mpHostConn = mpPeer.connect(hostPeerId, { reliable: true });
 
     mpHostConn.on('open', () => {
+      joinedOpened = true;
+      clearTimeout(joinTimeout);
+      isMultiplayerHost = false;
+      multiplayerActive = true;
+      mpRoomCode = code;
+      mpLocalReady = false;
+      mpRaceInProgress = false;
+      mpIsSpectating = false;
+      mpRaceOver = false;
+      mpDnfTimerActive = false;
+      mpFinishedRacers.clear();
+      mpLeaderboard = [];
       cancelActiveDailyChallenge();
       setMultiplayerStatus('CONNECTED');
       mpHostConn.send({
@@ -1042,14 +1095,31 @@ function joinMultiplayerRoom(rawCode) {
     });
 
     mpHostConn.on('close', () => {
-      showHostDisconnectModal('HOST DISCONNECTED', 'HOST DISCONNECTED, POSSIBLY DUE TO CONNECTION ISSUES.');
+      clearTimeout(joinTimeout);
+      if (!joinedOpened) {
+        leaveMultiplayerRoom();
+        setMultiplayerStatus('FAILED TO JOIN ROOM');
+      } else {
+        showHostDisconnectModal('HOST DISCONNECTED', 'HOST DISCONNECTED, POSSIBLY DUE TO CONNECTION ISSUES.');
+      }
     });
 
     mpHostConn.on('error', () => {
-      showHostDisconnectModal('CONNECTION ERROR', 'FAILED TO COMMUNICATE WITH THE HOST.');
+      clearTimeout(joinTimeout);
+      if (!joinedOpened) {
+        leaveMultiplayerRoom();
+        setMultiplayerStatus('CONNECTION FAILED');
+      } else {
+        showHostDisconnectModal('CONNECTION ERROR', 'FAILED TO COMMUNICATE WITH THE HOST.');
+      }
     });
   }, err => {
-    setMultiplayerStatus('JOIN FAILED');
+    clearTimeout(joinTimeout);
+    if (!joinedOpened) {
+      const errType = err && err.type;
+      leaveMultiplayerRoom();
+      setMultiplayerStatus(errType === 'peer-unavailable' ? 'ROOM NOT FOUND' : 'JOIN FAILED');
+    }
   });
 }
 
@@ -1609,6 +1679,9 @@ function launchMultiplayerRace() {
     if (typeof buildCourse === 'function') {
       buildCourse(selectedCourseId);
     }
+    if (typeof showScreen === 'function') {
+      showScreen(null);
+    }
     const course = COURSES[selectedCourseId];
     if (course) {
       const sub = course.subtracks[selectedSubtrack] || course.subtracks['A'];
@@ -1625,6 +1698,7 @@ function launchMultiplayerRace() {
     const hudOverlay = document.getElementById('hud-overlay');
     if (hudOverlay) hudOverlay.style.display = 'block';
     gameState = 'RACING';
+    updateMpTrapezoid();
     return;
   }
 
@@ -2192,13 +2266,20 @@ function updateMpTrapezoid() {
   const codeEl = document.getElementById('mp-trapezoid-code');
   if (!trap || !codeEl) return;
 
-  if (!multiplayerActive || !mpRoomCode) {
+  const resEl = document.getElementById('screen-mp-results');
+  const loadEl = document.getElementById('mp-loading-screen');
+  const inRaceOrOverlay = mpRaceInProgress || mpCinematicActive || mpIsSpectating ||
+    (typeof isFlightState === 'function' && isFlightState()) ||
+    (resEl && resEl.style.display !== 'none') ||
+    (loadEl && loadEl.style.display !== 'none');
+
+  if (!multiplayerActive || !mpRoomCode || inRaceOrOverlay) {
     trap.style.display = 'none';
     return;
   }
 
   let inMpModal = false;
-  const isMob = (typeof isMobileDevice === 'function' && isMobileDevice()) || window.innerWidth <= 950 || window.innerHeight <= 600;
+  const isMob = (typeof isMobileDevice === 'function' && isMobileDevice()) || window.innerWidth <= 950;
   if (isMob) {
     const mpScreen = document.getElementById('screen-multiplayer');
     inMpModal = mpScreen && !mpScreen.classList.contains('hidden') && mpScreen.style.display !== 'none';
@@ -2242,7 +2323,7 @@ if (amReady) {
 window.updateMpTrapezoid = updateMpTrapezoid;
 
 function returnToMultiplayerRoomFromTrapezoid() {
-  if (!multiplayerActive || !mpRoomCode) return;
+  if (!multiplayerActive || !mpRoomCode || mpRaceInProgress || mpCinematicActive || mpIsSpectating || (typeof isFlightState === 'function' && isFlightState())) return;
   if (typeof audio !== 'undefined' && audio.init) audio.init();
 
   if (typeof gameState !== 'undefined' && gameState !== 'START') {
@@ -2291,14 +2372,14 @@ function returnToMultiplayerRoomFromTrapezoid() {
     }
   });
 
-  const isMob = (typeof isMobileDevice === 'function' && isMobileDevice()) || window.innerWidth <= 950 || window.innerHeight <= 600;
+  const isMob = (typeof isMobileDevice === 'function' && isMobileDevice()) || window.innerWidth <= 950;
   if (isMob) {
     if (typeof showScreen === 'function') showScreen('screen-multiplayer');
     if (typeof renderMultiplayerLobby === 'function') renderMultiplayerLobby();
   } else {
+    if (typeof showScreen === 'function') showScreen('screen-start');
     if (typeof setDashboardCategory === 'function') setDashboardCategory('multiplayer');
     if (typeof openDashboardRight === 'function') openDashboardRight('multiplayer');
-    if (typeof showScreen === 'function') showScreen('screen-start');
     if (typeof renderMultiplayerLobby === 'function') renderMultiplayerLobby();
   }
 
@@ -2949,11 +3030,6 @@ function openMultiplayerTrackModal() {
       mpGpCupId = mpTempCupId;
       mpModifiers = Object.assign({}, mpTempModifiers);
 
-      broadcastRoomState(); 
-    renderMultiplayerLobby();
-
-    modal.style.display = 'none';
-
       if (mpGpMode && mpGpCupId === 'shuffle') {
         if (typeof generateRandomShuffleTracks === 'function') {
           shuffleTracksCache = generateRandomShuffleTracks();
@@ -3227,6 +3303,7 @@ function setupMultiplayerUI() {
       selectedSubtrack = mpTempSubtrack;
       mpGpMode = mpTempIsGp;
       mpGpCupId = mpTempCupId;
+      mpModifiers = Object.assign({}, mpTempModifiers);
 
       if (mpGpMode && mpGpCupId === 'shuffle') {
         if (typeof generateRandomShuffleTracks === 'function') {

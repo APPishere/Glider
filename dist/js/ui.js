@@ -4129,7 +4129,7 @@ function updateProfileCardVisibility() {
     return;
   }
 
-  const isMobile = (typeof isMobileDevice === 'function' && isMobileDevice()) || window.innerWidth <= 950 || window.innerHeight <= 600;
+  const isMobile = (typeof isMobileDevice === 'function' && isMobileDevice()) || window.innerWidth <= 950;
   if (isMobile) {
     card.style.display = 'none';
     return;
@@ -4400,7 +4400,10 @@ function refreshDashboardGp() {
   }
 }
 
+let dashboardSetupDone = false;
 function setupDashboard() {
+if (dashboardSetupDone) return;
+dashboardSetupDone = true;
 document.querySelectorAll('.dash-nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     audio.init();
@@ -4569,7 +4572,7 @@ function getRandomStartMessage() {
 }
 
 function showScreen(screenId) {
-  const isMobile = isMobileDevice() || window.innerWidth <= 950 || window.innerHeight <= 600;
+  const isMobile = isMobileDevice() || window.innerWidth <= 950;
   if (screenId === 'screen-start' || screenId === 'screen-start-mobile') {
     screenId = isMobile ? 'screen-start-mobile' : 'screen-start';
   }
@@ -4898,7 +4901,7 @@ function formatTime(s) {
 }
 
 const creditsAudio = new Audio('creditsgliderscreen.mp3');
-creditsAudio.preload = 'auto';
+creditsAudio.preload = 'none';
 
 const CREDITS_TRACK_SEQUENCE = [
   {

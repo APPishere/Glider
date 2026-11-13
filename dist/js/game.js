@@ -65,7 +65,7 @@ hemiLight = new THREE.HemisphereLight(0xffffff, 0x445566, 0.95);
 buildParagliderMesh();
   initShopPreview();
   updateShopTvGif();
-  setGraphicsQuality(graphicsQuality);
+  setGraphicsQuality(graphicsQuality, true);
 
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -5626,24 +5626,9 @@ function loadGhostDrone() {
     ghostCache[ghostKey] = savedGhostData;
     createGhostDroneMesh();
     precomputeGhostWaypointTimes();
-    } else {
-    posLabel.innerText = 'MODE';
-    posVal.innerText = 'TT';
-    if (ghostDroneGroup) {
-      _tempVec1.subVectors(player.pos, ghostDroneGroup.position);
-      const dotAhead = _tempVec1.dot(_playerForward);
-      const gSeconds = dotAhead / Math.max(player.speed, 45);
-      if (gSeconds >= 0) {
-        deltaElem.style.color = 'var(--cyan)';
-        deltaElem.innerText = `(+${gSeconds.toFixed(1)}s GHOST)`;
-      } else {
-        deltaElem.style.color = 'var(--red)';
-        deltaElem.innerText = `(${gSeconds.toFixed(1)}s GHOST)`;
-      }
-    } else {
-      deltaElem.style.color = 'var(--mono-60)';
-      deltaElem.innerText = '(Time Trial)';
-    }
+  } else {
+    savedGhostData = null;
+    ghostWaypointTimes = {};
   }
 }
 

@@ -1,28 +1,25 @@
-const CACHE_NAME = 'glider-cache-v33';
+const CACHE_NAME = 'glider-cache-v35';
 
-function isHalloweenSeason() {
-  const md = (new Date().getMonth() + 1) * 100 + new Date().getDate();
-  return md >= 1027 && md <= 1102;
-}
-function isChristmasSeason() {
-  const md = (new Date().getMonth() + 1) * 100 + new Date().getDate();
-  return (md >= 1220 && md <= 1231) || (md === 101);
-}
-
-const ASSETS = [
+const CORE_ASSETS = [
   './',
   './index.html',
   './style.css',
   './manifest.json',
-  './sw.js',
   './icon.png',
   './js/core.js',
   './js/game.js',
   './js/ui.js',
   './js/tutorial.js',
   './js/multiplayer.js',
+  './aphelionlogo.png',
+  './gliderfontthing.png',
+  './glidercurser.png',
+  './glidercurser_select.png',
   'https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js',
-  'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js',
+  'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js'
+];
+
+const EXTRA_ASSETS = [
   './startup.mp3',
   './intro64.mp3',
   './impossible_mode_unlock.mp3',
@@ -44,8 +41,6 @@ const ASSETS = [
   './jingle64-5.mp3',
   './jingle64-6.mp3',
   './jingle64-8.mp3',
-  './glidercurser.png',
-  './glidercurser_select.png',
   './Keycurser.png',
   './rudderleft.png',
   './rudderRight.png',
@@ -61,9 +56,7 @@ const ASSETS = [
   './dpadupleft.png',
   './Dpadup.png',
   './dpadupright.png',
-  './gliderfontthing.png',
   './gliderfonthting2.png',
-  './aphelionlogo.png',
   './singletrack.png',
   './grandprix.png',
   './challenges.png',
@@ -188,16 +181,34 @@ const ASSETS = [
   './chimneytop.png'
 ];
 
+function delayMs(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function precacheExtrasSlowly() {
+  await delayMs(2000);
+  const cache = await caches.open(CACHE_NAME);
+  for (let i = 0; i < EXTRA_ASSETS.length; i += 2) {
+    const batch = EXTRA_ASSETS.slice(i, i + 2);
+    await Promise.all(
+      batch.map(async (url) => {
+        try {
+          const hit = await cache.match(url, { ignoreSearch: true });
+          if (!hit) {
+            await cache.add(url);
+          }
+        } catch (err) {}
+      })
+    );
+    await delayMs(200);
+  }
+}
+
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
-      console.log('Caching Glider assets...');
       await Promise.all(
-        ASSETS.map((url) =>
-          cache.add(url).catch((err) => {
-            console.warn(`Could not cache asset: ${url}`, err);
-          })
-        )
+        CORE_ASSETS.map((url) => cache.add(url).catch(() => {}))
       );
     })
   );
@@ -205,19 +216,12 @@ self.addEventListener('install', (e) => {
 });
 
 self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            console.log('Deleting old cache:', key);
-            return caches.delete(key);
-          }
-        })
-      )
-    )
-  );
-  self.clients.claim();
+  e.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null));
+    await self.clients.claim();
+    await precacheExtrasSlowly().catch(() => {});   
+  })());
 });
 
 async function handleRangeRequest(request, cachedResponse) {
@@ -242,30 +246,53 @@ async function handleRangeRequest(request, cachedResponse) {
   });
 }
 
+function fetchWithTimeout(request, ms) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return fetch(request, { signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 self.addEventListener('fetch', (e) => {
+  if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
 
   if (e.request.mode === 'navigate') {
     e.respondWith(
-      fetch(e.request).catch(() => caches.match('./index.html') || caches.match('./'))
-    );
-    return;
-  }
-
-  if (url.origin === self.location.origin && /\.(js|css|html)$/.test(url.pathname)) {
-    e.respondWith(
-      fetch(e.request)
+      fetchWithTimeout(e.request, 5000)
         .then((res) => {
-          if (res.ok) {
+          if (res && res.ok) {
             const copy = res.clone();
             caches.open(CACHE_NAME).then((c) => c.put(e.request, copy));
           }
           return res;
         })
-        .catch(() => caches.match(e.request, { ignoreSearch: true }))
+        .catch(async () => {
+          return (await caches.match('./index.html')) || (await caches.match('./'));
+        })
     );
     return;
   }
+
+if (url.origin === self.location.origin && /\.(js|css|html)$/.test(url.pathname)) {
+  e.respondWith(
+    fetchWithTimeout(e.request, 5000)  
+      .then((res) => {
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((c) => c.put(e.request, copy));
+        }
+        return res;
+      })
+      .catch(async () => {
+        const exact = await caches.match(e.request);
+        if (exact) return exact;
+        const loose = await caches.match(e.request, { ignoreSearch: true });
+        if (loose) return loose;
+        return new Response('', { status: 504, statusText: 'Offline' });
+      })
+  );
+  return;
+}
 
   e.respondWith(
     caches.match(e.request, { ignoreSearch: true }).then(async (cachedResponse) => {
@@ -275,10 +302,15 @@ self.addEventListener('fetch', (e) => {
         }
         return cachedResponse;
       }
-      return fetch(e.request).catch(() => {
-        return new Response('', { status: 404, statusText: 'Not Found' });
-      });
+      return fetch(e.request)
+        .then((res) => {
+          if (res && res.status === 200 && (url.origin === self.location.origin || url.hostname.includes('cdn.jsdelivr.net') || url.hostname.includes('unpkg.com'))) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(e.request, copy));
+          }
+          return res;
+        })
+        .catch(() => new Response('', { status: 404, statusText: 'Not Found' }));
     })
-    
   );
 });
