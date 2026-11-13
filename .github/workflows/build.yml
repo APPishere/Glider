@@ -37,9 +37,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v4.9.0
-          releaseName: "Glider Patch 4.9.0"
-          releaseBody: "MULTIPLAYER!!!! DOWNLAOD THIS !!!! PLAY WITH ME !!! (well idk about that but you can try!)"
+          tagName: v4.9.1
+          releaseName: "Glider Patch 4.9.1"
+          releaseBody: "MULTIPLAYER!!!! DOWNLAOD THIS !!!! PLAY WITH ME !!! (well idk about that but you can try!!)"
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

@@ -604,7 +604,9 @@ function hasAllChristmasPresents() {
 }
 
 function isMobileDevice() {
-  return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.matchMedia('(pointer: coarse)').matches;
+  const coarse = window.matchMedia('(pointer: coarse)').matches;
+  const mobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  return coarse || mobileUA || window.innerWidth <= 950;
 }
 
 
@@ -2923,8 +2925,6 @@ class GaplessAudio {
     this._arrayBufferPromise = null;
     this._decodePromise = null;
     this._fallback = null;
-
-    this._fetchData();
   }
 
   get volume() {
@@ -3298,7 +3298,7 @@ if (!['canyon', 'islands', 'coastal', 'volcano', 'glacial', 'moon'].includes(sel
 let selectedSubtrack = 'A';
 let gameMode = localStorage.getItem('glider_game_mode') || 'race';
 let selectedDifficulty = localStorage.getItem('glider_difficulty') || 'medium';
-if (selectedDifficulty === 'impossible' && !impossibleDifficultyUnlocked) {
+if (selectedDifficulty === 'impossible') {
   selectedDifficulty = 'medium';
 }
 let controlScheme = localStorage.getItem('glider_control_scheme') || 'wasd';
@@ -3862,7 +3862,7 @@ function applySkySetting() {
   }
 }
 
-function setGraphicsQuality(quality) {
+function setGraphicsQuality(quality, skipRebuild = false) {
   graphicsQuality = quality === 'high' ? 'high' : 'low';
   try {
     localStorage.setItem('glider_graphics_quality', graphicsQuality);
@@ -3883,7 +3883,7 @@ function setGraphicsQuality(quality) {
 
   applySkySetting();
 
-  if (gameState !== 'RACING' && gameState !== 'RUNUP' && typeof buildCourse === 'function' && selectedCourseId) {
+  if (!skipRebuild && gameState !== 'RACING' && gameState !== 'RUNUP' && typeof buildCourse === 'function' && selectedCourseId) {
     buildCourse(selectedCourseId);
   }
 
