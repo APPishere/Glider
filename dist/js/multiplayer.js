@@ -597,6 +597,7 @@ function createMultiplayerRoom(useTurn = false) {
   mpPlayerWins = {};
   mpServerActive = false;
   mpPlayerPings = {};
+  window.mpGpRecapRaces = [];
 
   const code = generateRoomCode();
   const peerId = MP_ROOM_PREFIX + code;
@@ -695,10 +696,118 @@ function checkAllRacersFinished() {
   }
 }
 
+function archiveCurrentMpGpRace() {
+  if (!mpGpMode || !window.mpGhostCache || Object.keys(window.mpGhostCache).length === 0) return;
+  if (!window.mpGpRecapRaces) window.mpGpRecapRaces = [];
+  const existingIdx = window.mpGpRecapRaces.findIndex(r => r.raceIndex === mpGpRaceIndex);
+  const raceEntry = {
+    courseId: selectedCourseId,
+    subtrack: selectedSubtrack,
+    raceIndex: mpGpRaceIndex,
+    ghostCache: window.mpGhostCache
+  };
+  if (existingIdx >= 0) window.mpGpRecapRaces[existingIdx] = raceEntry;
+  else window.mpGpRecapRaces.push(raceEntry);
+}
+
+function showMpGpNextRaceTransition() {
+  let el = document.getElementById('mp-gp-transition-fade');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'mp-gp-transition-fade';
+    document.body.appendChild(el);
+  }
+  el.style.cssText = 'position:fixed;inset:0;background:#000000;z-index:685;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;opacity:0;transition:opacity 0.35s ease;pointer-events:auto;';
+  el.innerHTML = `
+    <div style="font-size:18px;font-weight:900;letter-spacing:4px;color:var(--cyan);text-transform:uppercase;">LOADING NEXT RACE</div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--mono-60);text-transform:uppercase;">RACE ${mpGpRaceIndex + 1} COMPLETE</div>
+  `;
+  void el.offsetWidth;
+  el.style.opacity = '1';
+}
+
+function hideMpGpNextRaceTransition() {
+  const el = document.getElementById('mp-gp-transition-fade');
+  if (el) {
+    el.style.opacity = '0';
+    setTimeout(() => {
+      if (el && el.style.opacity === '0') el.style.display = 'none';
+    }, 350);
+  }
+}
+
+function handleMpRaceOverFlow(totalGpRaces) {
+  if (typeof hideMpSpectateButton === 'function') hideMpSpectateButton();
+  const myId = mpPeer ? mpPeer.id : 'me';
+  const myEntry = mpLeaderboard.find(e => e.id === myId);
+  const isLocalDnf = !mpIsDedicatedServer && !mpIsSpectating && (!myEntry || myEntry.isDnf);
+  const resolvedTotal = totalGpRaces || (mpGpRaces && mpGpRaces.length) || 3;
+  const isGpLastRace = mpGpMode && (mpGpRaceIndex >= resolvedTotal - 1);
+
+  if (mpGpMode) {
+    archiveCurrentMpGpRace();
+    if (isGpLastRace) {
+      const runRecap = () => {
+        if (typeof startGrandPrixHighlightReel === 'function') {
+          startGrandPrixHighlightReel(() => {
+            showMultiplayerResultsScreen(mpLeaderboard, true);
+          });
+        } else {
+          showMultiplayerResultsScreen(mpLeaderboard, true);
+        }
+      };
+      if (isLocalDnf && typeof showRaceFinishBannerForRank === 'function') {
+        showRaceFinishBannerForRank(5, false);
+        setTimeout(runRecap, 2000);
+      } else {
+        runRecap();
+      }
+      return;
+    }
+
+    const startTransition = () => {
+      showMpGpNextRaceTransition();
+      if (isMultiplayerHost) {
+        const delay = isLocalDnf ? 1500 : (mpLeaderboard.some(e => e.isDnf) ? 3200 : 1500);
+        setTimeout(() => {
+          if (multiplayerActive && mpGpMode && mpRaceInProgress) {
+            hostStartNextGpRace();
+          }
+        }, delay);
+      }
+    };
+
+    if (isLocalDnf && typeof showRaceFinishBannerForRank === 'function') {
+      showRaceFinishBannerForRank(5, false);
+      setTimeout(startTransition, 2000);
+    } else {
+      startTransition();
+    }
+    return;
+  }
+
+  if (isLocalDnf && typeof showRaceFinishBannerForRank === 'function') {
+    showRaceFinishBannerForRank(5, false);
+    setTimeout(() => {
+      showMultiplayerResultsScreen(mpLeaderboard, true);
+    }, 2000);
+  } else {
+    showMultiplayerResultsScreen(mpLeaderboard, false);
+  }
+}
+
 function hostTriggerRaceOver() {
   if (mpRaceOver) return;
   mpRaceOver = true;
   mpDnfTimerActive = false;
+
+  const activeRacers = Object.values(mpPlayers).filter(p => !p.isDedicatedServer && p.slot >= 0 && !p.isSpectator);
+  for (const r of activeRacers) {
+    if (!mpFinishedRacers.has(r.id)) {
+      mpFinishedRacers.add(r.id);
+      updateMultiplayerLeaderboard({ id: r.id, time: 9999, isDnf: true, type: 'DNF' });
+    }
+  }
 
   if (mpGpMode) {
     const ptTable = [10, 6, 4, 3, 2];
@@ -715,22 +824,17 @@ function hostTriggerRaceOver() {
     mpPlayerWins[winnerId] = (mpPlayerWins[winnerId] || 0) + 1;
   }
 
+  const totalGpRaces = mpGpRaces ? mpGpRaces.length : 0;
   relayPacketToClients({
     type: 'MP_RACE_OVER',
     leaderboard: mpLeaderboard,
     gpPoints: mpGpPoints,
     gpRaceIndex: mpGpRaceIndex,
-    gpTotalRaces: mpGpRaces ? mpGpRaces.length : 0,
+    gpTotalRaces: totalGpRaces,
     isGp: !!mpGpMode,
     playerWins: mpPlayerWins
   });
-  if (mpGpMode && typeof startGrandPrixHighlightReel === 'function') {
-    startGrandPrixHighlightReel(() => {
-      showMultiplayerResultsScreen(mpLeaderboard);
-    });
-  } else {
-    showMultiplayerResultsScreen(mpLeaderboard);
-  }
+  handleMpRaceOverFlow(totalGpRaces);
 }
 
 function hostReturnAllToLobby() {
@@ -1188,6 +1292,7 @@ function handleClientReceivedData(data) {
       mpPlayers[data.id].gate = data.gate;
     }
   } else if (data.type === 'FINISH') {
+    if (data.id) mpFinishedRacers.add(data.id);
     updateMultiplayerLeaderboard(data);
   } else if (data.type === 'MP_RACE_OVER') {
     mpRaceOver = true;
@@ -1196,13 +1301,7 @@ function handleClientReceivedData(data) {
     if (data.playerWins) mpPlayerWins = data.playerWins;
     if (data.isGp !== undefined) mpGpMode = data.isGp;
     if (data.gpRaceIndex !== undefined) mpGpRaceIndex = data.gpRaceIndex;
-    if (mpGpMode && typeof startGrandPrixHighlightReel === 'function') {
-      startGrandPrixHighlightReel(() => {
-        showMultiplayerResultsScreen(mpLeaderboard);
-      });
-    } else {
-      showMultiplayerResultsScreen(mpLeaderboard);
-    }
+    handleMpRaceOverFlow(data.gpTotalRaces);
   } else if (data.type === 'PING') {
     if (mpHostConn && mpHostConn.open) {
       mpHostConn.send({ type: 'PONG', t: data.t });
@@ -1246,6 +1345,9 @@ function leaveMultiplayerRoom() {
       environmentGroup.remove(mpRemoteDrones[id]);
     }
   }
+    window.mpGpRecapRaces = [];
+  if (typeof hideMpSpectateButton === 'function') hideMpSpectateButton();
+  hideMpGpNextRaceTransition();
   const loadOverlay = document.getElementById('mp-loading-screen');
   if (loadOverlay) loadOverlay.style.display = 'none';
   const resultsModal = document.getElementById('screen-mp-results');
@@ -1352,6 +1454,7 @@ function triggerMultiplayerStart(force = false) {
     return;
   }
 
+  window.mpGpRecapRaces = [];
   mpRaceInProgress = true;
   if (mpGpMode) {
     mpGpRaceIndex = 0;
@@ -1653,6 +1756,30 @@ function finishMultiplayerCinematic() {
 }
 
 function launchMultiplayerRace() {
+  if (mpGpMode && mpGpRaceIndex === 0) {
+    window.mpGpRecapRaces = [];
+  }
+  if (typeof grandPrixState !== 'undefined') grandPrixState.active = false;
+  if (typeof gpFinaleActive !== 'undefined') gpFinaleActive = false;
+  if (typeof gpHighlightActive !== 'undefined' && gpHighlightActive && typeof finishGrandPrixHighlightReel === 'function') {
+    finishGrandPrixHighlightReel();
+  }
+  if (typeof hideMpSpectateButton === 'function') hideMpSpectateButton();
+  hideMpGpNextRaceTransition();
+  if (typeof audio !== 'undefined' && audio.stopAllAudio) audio.stopAllAudio();
+  if (typeof stopMenuTheme === 'function') stopMenuTheme(true);
+  ['screen-gp-preview', 'screen-gp-interstitial', 'screen-gp-summary', 'screen-win', 'screen-lose', 'screen-pause', 'screen-dispatch', 'screen-select', 'screen-select-mobile', 'screen-shop'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.add('hidden');
+      el.style.display = 'none';
+    }
+  });
+  const gpOv = document.getElementById('gp-finale-overlay');
+  if (gpOv) gpOv.style.display = 'none';
+  const finBanner = document.getElementById('race-finish-banner');
+  if (finBanner) finBanner.style.display = 'none';
+
   cancelActiveDailyChallenge();
   challengeActive = null;
   challengeActiveDateKey = null;
@@ -1666,6 +1793,9 @@ function launchMultiplayerRace() {
   mpDnfTimer = 0;
   mpRaceOver = false;
   mpRaceInProgress = true;
+  for (const id in mpPlayers) {
+    if (mpPlayers[id]) mpPlayers[id].gate = 1;
+  }
   const modal = document.getElementById('screen-multiplayer');
   if (modal) modal.classList.add('hidden');
   const dashEl = document.getElementById('desktop-dashboard');
@@ -1687,10 +1817,16 @@ function launchMultiplayerRace() {
       const sub = course.subtracks[selectedSubtrack] || course.subtracks['A'];
       const cp = sub.cliffPos || course.cliffPos;
       const cf = sub.cliffForward || course.cliffForward;
-      devFreeCam = true;
-      devFreeCamPos.set(cp.x, cp.y + 60, cp.z);
-      devFreeCamYaw = Math.atan2(-cf.x, -cf.z);
-      devFreeCamPitch = 0;
+      if (isMobileDevice() && !mpIsDedicatedServer && typeof cycleMpSpectateTarget === 'function') {
+        devFreeCam = false;
+        cycleMpSpectateTarget(true);
+        if (typeof showMpSpectateButton === 'function') showMpSpectateButton();
+      } else {
+        devFreeCam = true;
+        devFreeCamPos.set(cp.x, cp.y + 60, cp.z);
+        devFreeCamYaw = Math.atan2(-cf.x, -cf.z);
+        devFreeCamPitch = 0;
+      }
     }
     if (paragliderWingGroup) paragliderWingGroup.visible = false;
     const countBox = document.getElementById('countdown-box');
@@ -1699,6 +1835,16 @@ function launchMultiplayerRace() {
     if (hudOverlay) hudOverlay.style.display = 'block';
     gameState = 'RACING';
     updateMpTrapezoid();
+    return;
+  }
+
+  if (mpGpMode && mpGpRaceIndex > 0) {
+    if (typeof buildCourse === 'function') {
+      buildCourse(selectedCourseId);
+    }
+    if (typeof startCountdown === 'function') {
+      startCountdown();
+    }
     return;
   }
 
@@ -1924,6 +2070,10 @@ function onMultiplayerFinished() {
   const packet = { type: 'FINISH', id: myId, time: raceElapsedTime };
   mpFinishedRacers.add(myId);
   updateMultiplayerLeaderboard(packet);
+  const myRankIdx = mpLeaderboard.findIndex(e => e.id === myId && !e.isDnf);
+  if (myRankIdx >= 0) {
+    player.rank = myRankIdx + 1;
+  }
   if (isMultiplayerHost) {
     relayPacketToClients(packet);
     if (!mpDnfTimerActive) {
@@ -1942,7 +2092,13 @@ function onMultiplayerCrashed() {
 }
 
 function calculateMultiplayerRank() {
-  if (!multiplayerActive) return;
+  if (!multiplayerActive || !mpRaceInProgress) return;
+  const myId = mpPeer ? mpPeer.id : 'me';
+  if (mpFinishedRacers.has(myId)) {
+    const myRankIdx = mpLeaderboard.findIndex(e => e.id === myId && !e.isDnf);
+    if (myRankIdx >= 0) player.rank = myRankIdx + 1;
+    return;
+  }
   let rank = 1;
   const myGate = player.nextGateIdx;
   const myProg = typeof getTrackProgress === 'function' ? getTrackProgress(player.pos, player.nextGateIdx, 0) : 0;
@@ -1950,6 +2106,10 @@ function calculateMultiplayerRank() {
   for (const pId in mpPlayers) {
     if (mpPeer && pId === mpPeer.id) continue;
     if (mpPlayers[pId].isDedicatedServer || mpPlayers[pId].isSpectator || mpPlayers[pId].slot < 0) continue;
+    if (mpFinishedRacers.has(pId)) {
+      rank++;
+      continue;
+    }
     const remP = mpPlayers[pId];
     const remGate = remP.gate || 1;
     if (remGate > myGate) {
@@ -1986,7 +2146,8 @@ function updateMultiplayerLeaderboard(entry) {
   });
 }
 
-function showMultiplayerResultsScreen(leaderboard) {
+function showMultiplayerResultsScreen(leaderboard, skipDelay = false) {
+  if (typeof hideMpSpectateButton === 'function') hideMpSpectateButton();
   let modal = document.getElementById('screen-mp-results');
   if (!modal) {
     modal = document.createElement('div');
@@ -2113,9 +2274,13 @@ function showMultiplayerResultsScreen(leaderboard) {
     modal.style.display = 'flex';
   };
 
-  if (!mpIsDedicatedServer && !mpIsSpectating) {
-    const banner = document.getElementById('race-finish-banner');
-    if (banner) banner.style.display = 'flex';
+ if (!skipDelay && !mpIsDedicatedServer && !mpIsSpectating) {
+    if (typeof showRaceFinishBannerForRank === 'function') {
+      showRaceFinishBannerForRank(5, false);
+    } else {
+      const banner = document.getElementById('race-finish-banner');
+      if (banner) banner.style.display = 'flex';
+    }
     setTimeout(() => {
       renderContent();
     }, 2000);
@@ -2126,6 +2291,9 @@ function showMultiplayerResultsScreen(leaderboard) {
 
 function returnToMultiplayerLobby() {
   if (typeof resetChaosState === 'function') resetChaosState();
+  if (typeof hideMpSpectateButton === 'function') hideMpSpectateButton();
+  hideMpGpNextRaceTransition();
+  window.mpGpRecapRaces = [];
   const resultsModal = document.getElementById('screen-mp-results');
   if (resultsModal) resultsModal.style.display = 'none';
   const finishBanner = document.getElementById('race-finish-banner');
@@ -2362,8 +2530,13 @@ function returnToMultiplayerRoomFromTrapezoid() {
     'screen-dispatch',
     'screen-select',
     'screen-select-mobile',
-    'screen-shop'
+    'screen-shop',
+    'screen-gp-preview',
+    'screen-gp-interstitial',
+    'screen-gp-summary',
+    'gp-finale-overlay'
   ];
+  if (typeof grandPrixState !== 'undefined') grandPrixState.active = false;
   modalsToClose.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
@@ -2532,9 +2705,14 @@ function renderMultiplayerLobby() {
     }
   });
 
+  const leaveBtns = document.querySelectorAll('.btn-mp-leave-room');
+  leaveBtns.forEach(btn => {
+    btn.style.display = isInRoom ? '' : 'none';
+  });
+
   const readyBtns = document.querySelectorAll('.btn-mp-toggle-ready');
   readyBtns.forEach(btn => {
-    btn.style.display = (isMultiplayerHost && mpIsDedicatedServer) ? 'none' : '';
+    btn.style.display = (!isInRoom || (isMultiplayerHost && mpIsDedicatedServer)) ? 'none' : '';
     btn.innerText = mpLocalReady ? 'UNREADY' : 'READY';
     btn.style.borderColor = mpLocalReady ? 'var(--gold)' : 'var(--cyan)';
     btn.style.color = mpLocalReady ? 'var(--gold)' : 'var(--cyan)';
@@ -2663,6 +2841,8 @@ function renderMultiplayerLobby() {
 function showHostDisconnectModal(customTitle, customMsg) {
   const wasActive = multiplayerActive;
   leaveMultiplayerRoom();
+  hideMpGpNextRaceTransition();
+  if (typeof hideMpSpectateButton === 'function') hideMpSpectateButton();
   if (!wasActive) return;
 
   if (typeof audio !== 'undefined' && audio.stopAllAudio) audio.stopAllAudio();
@@ -3580,6 +3760,7 @@ function updateServerPlayersButton() {
 
 window.addEventListener('load', () => {
   setupMultiplayerUI();
+  renderMultiplayerLobby();
 });
 
 let chaosGravityMult = 1.0;

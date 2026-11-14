@@ -70,7 +70,7 @@ function hasExistingPB() {
 
 function checkTutorialTrigger() {
   if (tutorialActive) return false;
-  if (typeof multiplayerActive !== 'undefined' && multiplayerActive) return false;
+  if (typeof multiplayerActive !== 'undefined' && multiplayerActive && typeof mpRaceInProgress !== 'undefined' && mpRaceInProgress) return false;
   if (challengeActive) return false;
   if (hasExistingPB()) {
     try { localStorage.setItem('glider_tutorial_complete', 'true'); } catch (e) {}
