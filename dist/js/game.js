@@ -2430,7 +2430,7 @@ function renderShop() {
       buyBtn.addEventListener('click', () => {
         localStorage.setItem('glider_unlocked_theme2', 'true');
         showAchievementNotifications([{ name: 'Theme 2' }]);
-        audio.playRecoveryBoost();
+        if (typeof playPurchaseJingle === 'function') playPurchaseJingle();
         renderShop();
       });
       box.appendChild(buyBtn);
@@ -2448,7 +2448,7 @@ function renderShop() {
           localStorage.setItem('glider_unlocked_money_bag', 'true');
           showAchievementNotifications([{ name: 'Money Bag' }]);
         }
-        audio.playRecoveryBoost();
+        if (typeof playPurchaseJingle === 'function') playPurchaseJingle();
         renderShop();
       });
       box.appendChild(buyBtn);
@@ -2718,8 +2718,11 @@ function triggerRaceFinishSequence() {
 
   player.nextGateIdx = 0;
 
-  audio.playFinishFanfare();
-  showRaceFinishBannerForRank(player.rank, gameMode === 'timetrial');
+  const isTt = (gameMode === 'timetrial');
+  if (typeof playRankFinishJingle === 'function') {
+    playRankFinishJingle(isTt ? 1 : player.rank);
+  }
+  showRaceFinishBannerForRank(player.rank, isTt);
 }
 
 
@@ -7649,7 +7652,6 @@ function triggerMultiplayerFinishSpectator() {
   mpSpectateTargetId = null;
   devFreeCam = false;
   player.nextGateIdx = 0;
-  audio.playFinishFanfare();
 
   const mobWrap = document.getElementById('mobile-controls-wrap');
   if (mobWrap) mobWrap.style.display = 'none';
@@ -7663,6 +7665,9 @@ function triggerMultiplayerFinishSpectator() {
   }
   player.rank = finishRank;
 
+  if (typeof playRankFinishJingle === 'function') {
+    playRankFinishJingle(finishRank);
+  }
   showRaceFinishBannerForRank(finishRank, false);
 
   setTimeout(() => {

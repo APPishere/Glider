@@ -535,11 +535,14 @@ function toggleDedicatedServer() {
   if (!mpIsDedicatedServer) {
     mpIsDedicatedServer = true;
     mpServerActive = true;
+    mpLocalReady = true;
+    mpSlotIndex = -1;
     mpPlayers[hostId] = {
       id: hostId,
       slot: -1,
       profile: getLocalProfile(),
       droneSkinId: getEquippedGhostSkinId(),
+      gliderSkinId: typeof getEquippedSkinId === 'function' ? getEquippedSkinId() : (localStorage.getItem('glider_equipped_skin') || 'default'),
       ready: true,
       isHost: true,
       isDedicatedServer: true
@@ -554,11 +557,15 @@ function toggleDedicatedServer() {
       return;
     }
     mpIsDedicatedServer = false;
+    mpServerActive = false;
+    mpLocalReady = false;
+    mpSlotIndex = 0;
     mpPlayers[hostId] = {
       id: hostId,
       slot: 0,
       profile: getLocalProfile(),
       droneSkinId: getEquippedGhostSkinId(),
+      gliderSkinId: typeof getEquippedSkinId === 'function' ? getEquippedSkinId() : (localStorage.getItem('glider_equipped_skin') || 'default'),
       ready: false,
       isHost: true,
       isDedicatedServer: false
@@ -757,6 +764,7 @@ function handleMpRaceOverFlow(totalGpRaces) {
         }
       };
       if (isLocalDnf && typeof showRaceFinishBannerForRank === 'function') {
+        if (typeof playRankFinishJingle === 'function') playRankFinishJingle(5);
         showRaceFinishBannerForRank(5, false);
         setTimeout(runRecap, 2000);
       } else {
@@ -766,9 +774,8 @@ function handleMpRaceOverFlow(totalGpRaces) {
     }
 
     const startTransition = () => {
-      showMpGpNextRaceTransition();
       if (isMultiplayerHost) {
-        const delay = isLocalDnf ? 1500 : (mpLeaderboard.some(e => e.isDnf) ? 3200 : 1500);
+        const delay = isLocalDnf ? 500 : (mpLeaderboard.some(e => e.isDnf) ? 2500 : 2000);
         setTimeout(() => {
           if (multiplayerActive && mpGpMode && mpRaceInProgress) {
             hostStartNextGpRace();
@@ -778,6 +785,7 @@ function handleMpRaceOverFlow(totalGpRaces) {
     };
 
     if (isLocalDnf && typeof showRaceFinishBannerForRank === 'function') {
+      if (typeof playRankFinishJingle === 'function') playRankFinishJingle(5);
       showRaceFinishBannerForRank(5, false);
       setTimeout(startTransition, 2000);
     } else {
@@ -787,6 +795,7 @@ function handleMpRaceOverFlow(totalGpRaces) {
   }
 
   if (isLocalDnf && typeof showRaceFinishBannerForRank === 'function') {
+    if (typeof playRankFinishJingle === 'function') playRankFinishJingle(5);
     showRaceFinishBannerForRank(5, false);
     setTimeout(() => {
       showMultiplayerResultsScreen(mpLeaderboard, true);
@@ -1523,12 +1532,12 @@ function hostStartNextGpRace() {
     gpRaceIndex: mpGpRaceIndex,
     gpRaces: mpGpRaces,
     modifiers: mpModifiers,
-    startIn: 300
+    startIn: 0
   };
   relayPacketToClients(startPacket);
   const resultsModal = document.getElementById('screen-mp-results');
   if (resultsModal) resultsModal.style.display = 'none';
-  setTimeout(() => launchMultiplayerRace(), 300);
+  launchMultiplayerRace();
 }
 
 let mpCinematicActive = false;
@@ -1544,7 +1553,13 @@ const mpCineCam = {
 };
 const _mpCineLook = new THREE.Vector3();
 
+let mpHideLoadingTimer = null;
+
 function showMultiplayerLoadingScreen() {
+  if (mpHideLoadingTimer) {
+    clearTimeout(mpHideLoadingTimer);
+    mpHideLoadingTimer = null;
+  }
   let overlay = document.getElementById('mp-loading-screen');
   if (!overlay) {
     overlay = document.createElement('div');
@@ -1578,17 +1593,37 @@ function showMultiplayerLoadingScreen() {
 }
 
 function hideMultiplayerLoadingScreen() {
+  if (mpHideLoadingTimer) {
+    clearTimeout(mpHideLoadingTimer);
+    mpHideLoadingTimer = null;
+  }
   const overlay = document.getElementById('mp-loading-screen');
   if (overlay) {
     overlay.style.opacity = '0';
-    setTimeout(() => {
+    mpHideLoadingTimer = setTimeout(() => {
       overlay.style.display = 'none';
+      mpHideLoadingTimer = null;
     }, 500);
   }
 }
 
 function startMultiplayerLoadingSequence() {
   clearMpLoadingTimers();
+  mpCinematicActive = false;
+  devFreeCam = false;
+  const hudOverlay = document.getElementById('hud-overlay');
+  if (hudOverlay) hudOverlay.style.display = 'none';
+  const countBox = document.getElementById('countdown-box');
+  if (countBox) countBox.style.display = 'none';
+  const finBanner = document.getElementById('race-finish-banner');
+  if (finBanner) finBanner.style.display = 'none';
+  const mobWrap = document.getElementById('mobile-controls-wrap');
+  if (mobWrap) mobWrap.style.display = 'none';
+  const mobSpd = document.getElementById('mobile-speedometer');
+  if (mobSpd) mobSpd.style.display = 'none';
+  const srvBtn = document.getElementById('mp-server-players-btn');
+  if (srvBtn) srvBtn.style.display = 'none';
+
   showMultiplayerLoadingScreen();
   if (typeof buildCourse === 'function') {
     buildCourse(selectedCourseId);
@@ -1806,6 +1841,7 @@ function launchMultiplayerRace() {
   }
 
   if (mpIsSpectating) {
+    hideMultiplayerLoadingScreen();
     if (typeof buildCourse === 'function') {
       buildCourse(selectedCourseId);
     }
@@ -1835,16 +1871,6 @@ function launchMultiplayerRace() {
     if (hudOverlay) hudOverlay.style.display = 'block';
     gameState = 'RACING';
     updateMpTrapezoid();
-    return;
-  }
-
-  if (mpGpMode && mpGpRaceIndex > 0) {
-    if (typeof buildCourse === 'function') {
-      buildCourse(selectedCourseId);
-    }
-    if (typeof startCountdown === 'function') {
-      startCountdown();
-    }
     return;
   }
 
@@ -2272,14 +2298,27 @@ function showMultiplayerResultsScreen(leaderboard, skipDelay = false) {
     }
 
     modal.style.display = 'flex';
+    const myResId = mpPeer ? mpPeer.id : 'me';
+    const myResIdx = sortedBoard.findIndex(e => e.id === myResId);
+    const myResEntry = myResIdx >= 0 ? sortedBoard[myResIdx] : null;
+    const isFifthOrDnf = !!(myResEntry && (myResEntry.isDnf || myResIdx >= 4));
+    if (typeof playResultsTheme === 'function') {
+      playResultsTheme(isFifthOrDnf);
+    }
   };
 
- if (!skipDelay && !mpIsDedicatedServer && !mpIsSpectating) {
-    if (typeof showRaceFinishBannerForRank === 'function') {
-      showRaceFinishBannerForRank(5, false);
-    } else {
-      const banner = document.getElementById('race-finish-banner');
-      if (banner) banner.style.display = 'flex';
+  if (!skipDelay && !mpIsDedicatedServer && !mpIsSpectating) {
+    const myId = mpPeer ? mpPeer.id : 'me';
+    const myEntry = leaderboard.find(e => e.id === myId);
+    const isMyDnf = !myEntry || myEntry.isDnf;
+    if (isMyDnf) {
+      if (typeof playRankFinishJingle === 'function') playRankFinishJingle(5);
+      if (typeof showRaceFinishBannerForRank === 'function') {
+        showRaceFinishBannerForRank(5, false);
+      } else {
+        const banner = document.getElementById('race-finish-banner');
+        if (banner) banner.style.display = 'flex';
+      }
     }
     setTimeout(() => {
       renderContent();
@@ -2296,6 +2335,9 @@ function returnToMultiplayerLobby() {
   window.mpGpRecapRaces = [];
   const resultsModal = document.getElementById('screen-mp-results');
   if (resultsModal) resultsModal.style.display = 'none';
+  if (typeof RESULTS_THEMES !== 'undefined' && typeof activeAudioTrack !== 'undefined' && (activeAudioTrack === RESULTS_THEMES.win || activeAudioTrack === RESULTS_THEMES.lose)) {
+    if (typeof stopMenuTheme === 'function') stopMenuTheme(true);
+  }
   const finishBanner = document.getElementById('race-finish-banner');
   if (finishBanner) finishBanner.style.display = 'none';
   const mOver = document.getElementById('mp-match-overview-overlay');
@@ -3359,6 +3401,20 @@ function setupMultiplayerUI() {
       if (input) input.value = '';
       joinMultiplayerRoom(val);
     };
+  });
+
+  document.querySelectorAll('.mp-join-code-input').forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const joinBtn = input.parentElement.querySelector('.btn-mp-join-room') || document.querySelector('.btn-mp-join-room');
+        if (joinBtn) joinBtn.click();
+      }
+    });
+    
+    input.addEventListener('input', (e) => {
+      e.target.value = e.target.value.toUpperCase();
+    });
   });
 
   document.querySelectorAll('.btn-mp-toggle-ready').forEach(btn => {

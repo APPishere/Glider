@@ -2087,6 +2087,7 @@ function showGrandPrixInterstitial(playerResult) {
     startCountdown();
   };
 
+  window._lastGpInterIs5th = !!(playerResult.isDnf || playerResult.position >= 5);
   showScreen('screen-gp-interstitial');
 }
 let gpFinaleActive = false;
@@ -2351,6 +2352,7 @@ function showGrandPrixSummary() {
     showScreen('screen-select');
   };
 
+  window._lastGpSummaryIs5th = (playerRank >= 5);
   if (justUnlockedApex) {
     startCredits({
       unlockType: 'aphelion_apex',
@@ -2405,7 +2407,6 @@ function finishRace() {
         name: "Challenge Complete: " + activeCh.name,
         sub: isPastDay ? "Catch up challenge cleared!" : "Great flying, pilot! You beat today's daily challenge."
       }]);
-      audio.playFinishFanfare();
       challengeActive = null;
       challengeMod = null;
       challengeActiveDateKey = null;
@@ -4854,9 +4855,20 @@ function showScreen(screenId) {
     if (screenId === 'screen-shop') {
       if (typeof isShopTvBroken === 'undefined' || !isShopTvBroken) {
         playMenuTheme('shop');
+      } else {
+        stopMenuTheme(true);
       }
     } else if (screenId === 'screen-pause') {
       playMenuTheme('pause');
+    } else if (screenId === 'screen-win') {
+      const isFifth = (gameMode === 'race' && player.rank >= 5);
+      if (typeof playResultsTheme === 'function') playResultsTheme(isFifth);
+    } else if (screenId === 'screen-lose') {
+      if (typeof playResultsTheme === 'function') playResultsTheme(true);
+    } else if (screenId === 'screen-gp-interstitial') {
+      if (typeof playResultsTheme === 'function') playResultsTheme(!!window._lastGpInterIs5th);
+    } else if (screenId === 'screen-gp-summary') {
+      if (typeof playResultsTheme === 'function') playResultsTheme(!!window._lastGpSummaryIs5th);
     } else {
       playMenuTheme('menu');
     }

@@ -2700,8 +2700,11 @@ body.dpad-mode #mobile-btn-roll.active img {
       max-width: 96vw !important;
       height: 92vh !important;
       max-height: 92vh !important;
-      padding: 10px 14px !important;
+      padding: 12px 14px 20px 14px !important;
       box-sizing: border-box !important;
+      justify-content: flex-start !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
     }
 
     #screen-shop #btn-shop-back {
@@ -2711,23 +2714,42 @@ body.dpad-mode #mobile-btn-roll.active img {
       font-size: 9.5px !important;
     }
 
+    #shop-split-tabs {
+      flex: none !important;
+      min-height: auto !important;
+      align-items: flex-start !important;
+      margin-top: 4px;
+    }
+
+    .shop-split-col {
+      height: auto !important;
+    }
+
     .shop-items-scroll {
-      max-height: 64vh !important;
+      max-height: none !important;
+      overflow-y: visible !important;
+      flex: none !important;
     }
 
     #shop-preview-modal {
-      inset: 6px !important;
+      position: fixed !important;
+      inset: 10px !important;
       padding: 10px 14px !important;
+      z-index: 600 !important;
     }
 
     .shop-tv-gif {
-      height: 85px;
-      max-height: 85px;
+      height: 76px;
+      max-height: 76px;
     }
 
-    .shop-tv-corner {
-      top: 5px;
-      right: 20px;
+    #screen-shop .shop-tv-corner {
+      position: relative !important;
+      top: auto !important;
+      right: auto !important;
+      margin: 2px auto 10px auto !important;
+      display: flex;
+      justify-content: center;
     }
 
     img.track-name {

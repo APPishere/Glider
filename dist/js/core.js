@@ -1217,12 +1217,51 @@ function setupResizableButton(btn) {
   handle.addEventListener('pointercancel', onResizeEnd);
 }
 
+const MOBILE_KONAMI_SEQ = ['UP', 'UP', 'DOWN', 'DOWN', 'LEFT', 'LEFT', 'RIGHT', 'RIGHT', 'BRAKE', 'ROLL'];
+let mobileKonamiIdx = 0;
+let mobileKonamiLastTime = 0;
+
+function recordMobileKonamiInput(input) {
+  if (typeof isMobileDevice !== 'function' || !isMobileDevice()) return;
+  if (isRepositionMode) return;
+  if (gameState !== 'RACING' && gameState !== 'RUNUP') {
+    mobileKonamiIdx = 0;
+    return;
+  }
+  const now = performance.now();
+  if (mobileKonamiIdx > 0 && now - mobileKonamiLastTime > 4000) {
+    mobileKonamiIdx = 0;
+  }
+  mobileKonamiLastTime = now;
+  if (input === MOBILE_KONAMI_SEQ[mobileKonamiIdx]) {
+    mobileKonamiIdx++;
+    if (mobileKonamiIdx === MOBILE_KONAMI_SEQ.length) {
+      mobileKonamiIdx = 0;
+      if (typeof triggerDevToolsUnlock === 'function') {
+        triggerDevToolsUnlock();
+      }
+    }
+  } else {
+    mobileKonamiIdx = 0;
+  }
+}
+
+function getStrictCardinalDir(dx, dy) {
+  const deg = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+  if (deg >= 342 || deg <= 18) return 'RIGHT';
+  if (deg >= 72 && deg <= 108) return 'DOWN';
+  if (deg >= 162 && deg <= 198) return 'LEFT';
+  if (deg >= 252 && deg <= 288) return 'UP';
+  return 'DIAG';
+}
+
 function setupJoystick() {
   const stick = document.getElementById('mobile-joystick');
   const knob = document.getElementById('mobile-joystick-knob');
   if (!stick || !knob) return;
 
   let pointerId = null;
+  let lastStickDir = null;
 
   stick.addEventListener('pointerdown', (e) => {
     if (isRepositionMode) return;
@@ -1231,8 +1270,6 @@ function setupJoystick() {
     pointerId = e.pointerId;
     stick.classList.add('active');
     stick.setPointerCapture(e.pointerId);
-    const rect = stick.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
     handleMove(e);
   });
 
@@ -1256,6 +1293,16 @@ function setupJoystick() {
     knob.style.transform = `translate(${clampedX}px, ${clampedY}px)`;
     mobileRollInput = THREE.MathUtils.clamp(clampedX / maxR, -1, 1);
     mobilePitchInput = THREE.MathUtils.clamp(clampedY / maxR, -1, 1);
+
+    if (dist < maxR * 0.30) {
+      lastStickDir = null;
+    } else if (dist > maxR * 0.55) {
+      const dir = getStrictCardinalDir(dx, dy);
+      if (dir !== lastStickDir) {
+        lastStickDir = dir;
+        recordMobileKonamiInput(dir);
+      }
+    }
   };
 
   stick.addEventListener('pointermove', handleMove);
@@ -1263,6 +1310,7 @@ function setupJoystick() {
   const handleEnd = (e) => {
     if (e.pointerId !== pointerId) return;
     pointerId = null;
+    lastStickDir = null;
     stick.classList.remove('active');
     knob.style.transform = 'translate(0px, 0px)';
     mobileRollInput = 0;
@@ -1280,6 +1328,7 @@ function setupDpad() {
   if (!dpad || !dpadImg) return;
 
   let pointerId = null;
+  let lastDpadDir = null;
 
   const dpadTable = [
     { roll: 1, pitch: 0, img: 'dpadright.png' },
@@ -1307,6 +1356,7 @@ function setupDpad() {
       dpadImg.src = 'D-pad.png';
       mobileRollInput = 0;
       mobilePitchInput = 0;
+      lastDpadDir = null;
       return;
     }
 
@@ -1317,6 +1367,11 @@ function setupDpad() {
       dpadImg.src = entry.img;
       mobileRollInput = entry.roll;
       mobilePitchInput = entry.pitch;
+      const dir = sector === 6 ? 'UP' : (sector === 2 ? 'DOWN' : (sector === 4 ? 'LEFT' : (sector === 0 ? 'RIGHT' : 'DIAG')));
+      if (dir !== lastDpadDir) {
+        lastDpadDir = dir;
+        recordMobileKonamiInput(dir);
+      }
     }
   };
 
@@ -1335,6 +1390,7 @@ function setupDpad() {
   const handleEnd = (e) => {
     if (e.pointerId !== pointerId) return;
     pointerId = null;
+    lastDpadDir = null;
     dpadImg.src = 'D-pad.png';
     mobileRollInput = 0;
     mobilePitchInput = 0;
@@ -1396,11 +1452,12 @@ function setupMobileControls() {
     btn.addEventListener('pointerleave', release);
   };
 
-  attachAction(yawL, () => { mobileYawLeft = true; updateRudderVisuals(); }, () => { mobileYawLeft = false; updateRudderVisuals(); });
-  attachAction(yawR, () => { mobileYawRight = true; updateRudderVisuals(); }, () => { mobileYawRight = false; updateRudderVisuals(); });
-  attachAction(brake, () => { mobileAirbrake = true; player.airbrake = true; }, () => { mobileAirbrake = false; if (!isActionPressed('airbrake') && !gpAirbrake) player.airbrake = false; });
+  attachAction(yawL, () => { mobileYawLeft = true; updateRudderVisuals(); recordMobileKonamiInput('YAW'); }, () => { mobileYawLeft = false; updateRudderVisuals(); });
+  attachAction(yawR, () => { mobileYawRight = true; updateRudderVisuals(); recordMobileKonamiInput('YAW'); }, () => { mobileYawRight = false; updateRudderVisuals(); });
+  attachAction(brake, () => { mobileAirbrake = true; player.airbrake = true; recordMobileKonamiInput('BRAKE'); }, () => { mobileAirbrake = false; if (!isActionPressed('airbrake') && !gpAirbrake) player.airbrake = false; });
   if (roll) {
     attachAction(roll, () => {
+      recordMobileKonamiInput('ROLL');
       const rollDir = mobileRollInput !== 0 ? (mobileRollInput > 0 ? 1 : -1) : (player.roll >= 0 ? 1 : -1);
       triggerBarrelRoll(invertRoll ? -rollDir : rollDir);
     }, () => {});
@@ -1468,11 +1525,14 @@ function setupMobileControls() {
     });
   }
 
+  let lastTouchKonamiDir = null;
+
   function updateSteeringFromTouches() {
     if (mobileJoystickMode === 'gyro' || mobileJoystickMode === 'dpad') return;
     if (activeSteeringTouches.size === 0) {
       mobilePitchInput = 0;
       mobileRollInput = 0;
+      lastTouchKonamiDir = null;
       return;
     }
     let latest = null;
@@ -1480,6 +1540,7 @@ function setupMobileControls() {
     if (!latest) {
       mobilePitchInput = 0;
       mobileRollInput = 0;
+      lastTouchKonamiDir = null;
       return;
     }
     const dx = latest.currX - latest.startX;
@@ -1487,6 +1548,18 @@ function setupMobileControls() {
     const dragRange = Math.min(window.innerWidth, window.innerHeight) * 0.18;
     mobileRollInput = THREE.MathUtils.clamp(dx / dragRange, -1, 1);
     mobilePitchInput = THREE.MathUtils.clamp(dy / dragRange, -1, 1);
+    if (mobileJoystickMode === 'invisible') {
+      const dist = Math.hypot(dx, dy);
+      if (dist < dragRange * 0.30) {
+        lastTouchKonamiDir = null;
+      } else if (dist > dragRange * 0.55) {
+        const dir = getStrictCardinalDir(dx, dy);
+        if (dir !== lastTouchKonamiDir) {
+          lastTouchKonamiDir = dir;
+          recordMobileKonamiInput(dir);
+        }
+      }
+    }
   }
 
   window.addEventListener('touchstart', (e) => {
@@ -2786,6 +2859,7 @@ class SoundEngine {
   }
 
   stopAllAudio() {
+    if (typeof stopRankFinishJingle === 'function') stopRankFinishJingle();
     if (!this.ctx) return;
     if (this.windGain) this.windGain.gain.setTargetAtTime(0.0001, this.ctx.currentTime, 0.05);
     if (this.thermalGain) this.thermalGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
@@ -3133,6 +3207,64 @@ const INTERACT_SFX_64 = [
 
 let splashDismissed = false;
 
+const FINISH_RANK_JINGLES = {
+  1: 'first.mp3',
+  2: 'second.mp3',
+  3: 'third.mp3',
+  4: 'fourth.mp3',
+  5: 'fifth.mp3'
+};
+let activeFinishJingle = null;
+
+function stopRankFinishJingle() {
+  if (activeFinishJingle) {
+    try {
+      activeFinishJingle.pause();
+      activeFinishJingle.currentTime = 0;
+    } catch (e) {}
+    activeFinishJingle = null;
+  }
+}
+
+function playRankFinishJingle(rank) {
+  const safeRank = Math.min(5, Math.max(1, rank || 1));
+  const src = FINISH_RANK_JINGLES[safeRank] || 'first.mp3';
+  stopRankFinishJingle();
+  activeFinishJingle = new Audio(src);
+  activeFinishJingle.volume = sfxVolume;
+  activeFinishJingle.play().catch(() => {});
+}
+
+const RESULTS_THEMES = {
+  win: new GaplessAudio('firstto4ththeme.mp3'),
+  lose: new GaplessAudio('5ththeme.mp3')
+};
+
+function playResultsTheme(isFifthOrDnf = false) {
+  if (!splashDismissed) return;
+  stopRankFinishJingle();
+  const targetTrack = isFifthOrDnf ? RESULTS_THEMES.lose : RESULTS_THEMES.win;
+  if (activeAudioTrack === targetTrack && !targetTrack.paused) return;
+  stopMenuTheme(true);
+  activeAudioTrack = targetTrack;
+  activeAudioTrack.volume = musicVolume;
+  activeAudioTrack.currentTime = 0;
+  activeAudioTrack.play().catch(() => {});
+}
+
+const PURCHASE_JINGLES = [
+  'purchase_jingle.mp3',
+  'purchase_jingle2.mp3',
+  'purchase_jingle3.mp3'
+];
+
+function playPurchaseJingle() {
+  const src = PURCHASE_JINGLES[Math.floor(Math.random() * PURCHASE_JINGLES.length)];
+  const jingle = new Audio(src);
+  jingle.volume = sfxVolume;
+  jingle.play().catch(() => {});
+}
+
 function playMenuTheme(context = currentAudioContext) {
   if (!splashDismissed) return;
   if (gameState === 'RACING' || gameState === 'RUNUP') return;
@@ -3156,6 +3288,12 @@ function stopMenuTheme(reset = false) {
         if (reset) track.currentTime = 0;
       }
     });
+  });
+  Object.values(RESULTS_THEMES).forEach(track => {
+    if (track) {
+      track.pause();
+      if (reset) track.currentTime = 0;
+    }
   });
   if (reset) activeAudioTrack = null;
 }
@@ -3255,6 +3393,11 @@ if (typeof bgStartup !== 'undefined') bgStartup.volume = musicVolume;
       });
     });
   }
+  if (typeof RESULTS_THEMES !== 'undefined') {
+    Object.values(RESULTS_THEMES).forEach(track => {
+      if (track) track.volume = musicVolume;
+    });
+  }
 
   document.querySelectorAll('.music-volume-slider').forEach(slider => {
     slider.value = Math.round(musicVolume * 100);
@@ -3272,6 +3415,9 @@ function updateSfxVolume(val) {
 
   if (typeof audio !== 'undefined' && audio.setMasterVolume) {
     audio.setMasterVolume(sfxVolume);
+  }
+  if (typeof activeFinishJingle !== 'undefined' && activeFinishJingle) {
+    activeFinishJingle.volume = sfxVolume;
   }
 
   document.querySelectorAll('.sfx-volume-slider').forEach(slider => {
