@@ -142,8 +142,6 @@ Open the app as normal!
 <img width="1511" height="757" alt="Screenshot 2026-10-23 at 7 04 03 AM" src="https://github.com/user-attachments/assets/719e764d-12b7-4319-a614-240086d639b0" />
 
 ## Known Issues / things to look out for
-- **Mobile UI is still WIP.** Basically finished! just have to make sure everything on mobile side is good - 98% done
-- **Heavy Front Loading On Mobile Devices / All devices really but specifically on slower internet for service workers causes the devices to be locked at the logo screen for quite a while**
 - **New Gamemode** (Patch 6)
 - **Staff Ghosts** (Patch 6)
 - **3rd Person** (Patch 6)
